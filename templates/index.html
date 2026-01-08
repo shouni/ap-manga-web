@@ -6,10 +6,11 @@
                 <h4 class="mb-0">🚀 Generate - 一括漫画生成なのだ</h4>
             </div>
             <div class="card-body">
-                <form action="/tasks/generate" method="POST">
+                <form action="/generate" method="POST">
                     <div class="mb-3">
                         <label class="form-label">ソースURL (Script URL)</label>
-                        <input type="url" name="script_url" class="form-control" placeholder="https://example.com/tech-blog" required>
+                        <input type="url" name="script_url" class="form-control"
+                               placeholder="https://example.com/tech-blog" required>
                         <div class="form-text">解析したい技術記事のURLを入力するのだ。</div>
                     </div>
 
@@ -28,7 +29,9 @@
                     </div>
 
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg text-white">漫画を錬成するのだ！</button>
+                        <button type="submit" class="btn btn-primary btn-lg text-white">
+                            漫画を錬成するのだ！
+                        </button>
                     </div>
                 </form>
             </div>
