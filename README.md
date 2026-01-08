@@ -94,13 +94,13 @@ go run main.go
 | --- | --- |
 | **Cloud Tasks エンキューア** (`roles/cloudtasks.enqueuer`) | タスクを Cloud Tasks キューに**追加**するために必要です。 |
 | **サービス アカウント ユーザー** (`roles/iam.serviceAccountUser`) | OIDCトークン付きのタスクを作成するために必要です。 |
-| **Storage オブジェクト管理者** (`roles/storage.objectAdmin`) | 画像やHTMLを **GCS** に書き込むために必要です。 |
+| **Storage オブジェクト管理者**(`roles/storage.objectAdmin`) | 生成された画像やHTMLなどの成果物を **GCS** バケットに書き込むために必要です。 |
 
 ### B. Cloud Tasks サービスアカウント (タスク実行ID)
 
 | 権限（IAMロール） | 目的 |
 | --- | --- |
-| **Cloud Run 起動元** (`roles/run.invoker`) | Cloud Tasks が、ワーカーエンドポイント (`/tasks/generate`) を認証付きで呼び出すために必要です。 |
+| **Cloud Run 起動元**<br>(`roles/run.invoker`) | Cloud Tasks が、ワーカーエンドポイント (`/tasks/generate`) を認証付きで呼び出すために必要です。 |
 
 ---
 

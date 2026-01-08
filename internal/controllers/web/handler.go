@@ -7,11 +7,12 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
 )
 
-// IndexPageData は Home (Generate) 画面用のビューモデルです
 type IndexPageData struct {
 	Title string
 }
@@ -21,7 +22,6 @@ type Handler struct {
 	tmpl *template.Template
 }
 
-// NewHandler はテンプレートディレクトリ内の全てのHTMLをパースし、整合性をチェックします
 func NewHandler(cfg config.Config) (*Handler, error) {
 	pattern := filepath.Join(cfg.TemplateDir, "*.html")
 	tmpl, err := template.ParseGlob(pattern)
@@ -29,9 +29,8 @@ func NewHandler(cfg config.Config) (*Handler, error) {
 		return nil, fmt.Errorf("failed to parse templates from %s: %w", pattern, err)
 	}
 
-	// 指摘事項: 起動時に主要なテンプレート（layout.html）が存在するかチェック
 	if tmpl.Lookup("layout.html") == nil {
-		return nil, fmt.Errorf("essential template 'layout.html' not found in %s (parsed files: %v)", cfg.TemplateDir, tmpl.DefinedTemplates())
+		return nil, fmt.Errorf("main template 'layout.html' not found in %s", pattern)
 	}
 
 	return &Handler{
@@ -40,25 +39,49 @@ func NewHandler(cfg config.Config) (*Handler, error) {
 	}, nil
 }
 
-// Index はメインの漫画生成フォームを表示します
+// Index はメイン画面を表示するのだ
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	data := IndexPageData{
 		Title: "Generate - Manga Runner",
 	}
 
-	// 指摘事項: bytes.Buffer を使用して、パース完了までレスポンス書き込みを待機（アトミックな送信）
 	var buf bytes.Buffer
 	err := h.tmpl.ExecuteTemplate(&buf, "layout.html", data)
 	if err != nil {
-		log.Printf("[ERROR] Failed to execute template 'layout.html': %v", err)
-		// まだ書き込み前なので、安全に http.Error を送出できる
+		log.Printf("[ERROR] Failed to execute template: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	// 成功した場合のみ、Content-Type を設定して一気に書き出す
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if _, err := buf.WriteTo(w); err != nil {
-		log.Printf("[ERROR] Failed to write response: %v", err)
+	buf.WriteTo(w)
+}
+
+// HandleSubmit は UI からの生成リクエストを処理するのだ
+func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
+	// 1. フォームの解析
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
 	}
+
+	limit, _ := strconv.Atoi(r.FormValue("panel_limit"))
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// 2. タスクペイロードの構築
+	payload := domain.GenerateTaskPayload{
+		ScriptURL:  r.FormValue("script_url"),
+		Mode:       r.FormValue("mode"),
+		PanelLimit: limit,
+	}
+
+	// 3. 本来はここで Cloud Tasks に投げるのだ
+	log.Printf("[INFO] タスクをキューに投入する準備中なのだ: %+v", payload)
+
+	// 仮のレスポンス
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusAccepted)
+	fmt.Fprintf(w, "漫画生成の依頼を受け付けたのだ！\nURL: %s\nMode: %s\n完了まで数分待つのだ。", payload.ScriptURL, payload.Mode)
 }

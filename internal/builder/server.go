@@ -22,7 +22,6 @@ func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, err
 	r.Use(middleware.Recoverer)
 
 	// --- 1. Auth Handler の初期化 ---
-	// [Blocker] url.JoinPath のエラーハンドリングを追加
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build auth redirect URL: %w", err)
@@ -44,7 +43,7 @@ func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, err
 		return nil, fmt.Errorf("failed to initialize web handler: %w", err)
 	}
 
-	// --- 3. Worker Handler (Task Execution) の初期化 ---
+	// --- 3. Worker Handler の初期化 ---
 	mangaRunner := runner.NewRunner(cfg)
 	workerHandler := worker.NewHandler(cfg, mangaRunner)
 
@@ -52,20 +51,18 @@ func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, err
 	r.Get("/auth/login", authHandler.Login)
 	r.Get("/auth/callback", authHandler.Callback)
 
-	// --- 5. 認証が必要なルート (Web UI) ---
+	// --- 5. 認証が必要なルート (Web UI 用) ---
 	r.Group(func(r chi.Router) {
-		r.Use(authHandler.Middleware)
+		r.Use(authHandler.Middleware) // Google OAuth セッションチェック
 		r.Get("/", webHandler.Index)
-		// r.Get("/design", webHandler.Design) // 今後実装
-		// r.Post("/generate", webHandler.HandleSubmit) // 今後実装
+		r.Post("/generate", webHandler.HandleSubmit)
 	})
 
-	// --- 6. Cloud Tasks 専用ルート (Worker) ---
-	// [Major] セキュリティ保護: インターネットからの直接呼び出しを防ぐ
-	// Cloud Run側で「認証が必要」かつ「IAM認証済みリクエストのみ」を許可する運用を想定。
-	// 必要に応じて、ここで OIDC トークン検証ミドルウェアを追加します。
+	// --- 6. Cloud Tasks 専用ルート (Worker 用) ---
+	// [Blocker] セキュリティ修正: OIDCトークン検証を強制適用
 	r.Group(func(r chi.Router) {
-		// r.Use(authHandler.TaskOIDCVerificationMiddleware) // 理想的な構成
+		// Cloud Tasks が付与する Authorization: Bearer [ID_TOKEN] を検証する
+		r.Use(authHandler.TaskOIDCVerificationMiddleware)
 		r.Post("/tasks/generate", workerHandler.GenerateTask)
 	})
 

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -13,11 +14,12 @@ import (
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/idtoken"
 )
 
 // UserSession キー
 const (
-	sessionName     = "git-gemini-session"
+	sessionName     = "ap-manga-session"
 	userKey         = "user_email"
 	stateCookieName = "oauth_state"
 )
@@ -30,7 +32,7 @@ type AuthConfig struct {
 	SessionKey     string
 	IsSecureCookie bool     // 開発環境(HTTP)と本番(HTTPS)で切り替え
 	AllowedEmails  []string // 許可するメールアドレスのリスト
-	AllowedDomains []string // 許可するドメインのリスト (例: example.com)
+	AllowedDomains []string // 許可するドメインのリスト
 }
 
 // Handler は認証に関連するHTTPハンドラーです
@@ -44,7 +46,6 @@ type Handler struct {
 
 // NewHandler は新しいAuthHandlerを作成します
 func NewHandler(cfg AuthConfig) *Handler {
-	// Google OAuth2設定
 	oauthCfg := &oauth2.Config{
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.ClientSecret,
@@ -56,7 +57,6 @@ func NewHandler(cfg AuthConfig) *Handler {
 		Endpoint: google.Endpoint,
 	}
 
-	// セッションストア設定
 	store := sessions.NewCookieStore([]byte(cfg.SessionKey))
 	store.Options = &sessions.Options{
 		Path:     "/",
@@ -66,7 +66,6 @@ func NewHandler(cfg AuthConfig) *Handler {
 		SameSite: http.SameSiteLaxMode,
 	}
 
-	// 認可リストの初期化 (高速検索用マップ)
 	emailMap := make(map[string]struct{})
 	for _, e := range cfg.AllowedEmails {
 		if e != "" {
@@ -91,7 +90,6 @@ func NewHandler(cfg AuthConfig) *Handler {
 
 // Login はGoogleのログイン画面へリダイレクトします
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
-	// CSRF対策: ランダムなStateを生成
 	state, err := generateState()
 	if err != nil {
 		slog.Error("State生成失敗", "error", err)
@@ -99,7 +97,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Stateを一時的なCookieに保存 (検証用)
 	http.SetCookie(w, &http.Cookie{
 		Name:     stateCookieName,
 		Value:    state,
@@ -115,7 +112,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 // Callback はGoogleからのコールバックを処理します
 func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
-	// 1. State検証 (CSRF対策)
 	queryState := r.URL.Query().Get("state")
 	cookieState, err := r.Cookie(stateCookieName)
 	if err != nil || cookieState.Value != queryState {
@@ -124,7 +120,6 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 使用済みState Cookieを削除
 	http.SetCookie(w, &http.Cookie{
 		Name:     stateCookieName,
 		Value:    "",
@@ -140,7 +135,6 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. トークン交換
 	token, err := h.oauthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		slog.Error("トークン交換失敗", "error", err)
@@ -148,7 +142,6 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. ユーザー情報取得
 	client := h.oauthConfig.Client(context.Background(), token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
@@ -167,14 +160,12 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 4. 認可チェック (Allowed List)
 	if !h.isAuthorized(userInfo.Email) {
 		slog.Warn("未許可ユーザーからのアクセス試行", "email", userInfo.Email)
-		http.Error(w, "Unauthorized: Your email is not permitted to access this application.", http.StatusForbidden)
+		http.Error(w, "Unauthorized email address", http.StatusForbidden)
 		return
 	}
 
-	// 5. セッションに保存
 	session, _ := h.store.Get(r, sessionName)
 	session.Values[userKey] = userInfo.Email
 	if err := session.Save(r, w); err != nil {
@@ -187,7 +178,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// Middleware は認証済みユーザーのみを通すミドルウェアです
+// Middleware は「人間」の認証済みセッションをチェックするミドルウェアです
 func (h *Handler) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, _ := h.store.Get(r, sessionName)
@@ -199,21 +190,41 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+// TaskOIDCVerificationMiddleware は「Cloud Tasks」の OIDC トークンを検証するミドルウェアです
+// [Blocker] セキュリティ対応：外部からの不正なジョブ投入を防止します
+func (h *Handler) TaskOIDCVerificationMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			slog.Warn("認証ヘッダーが欠落しています")
+			http.Error(w, "Unauthorized: OIDC token required", http.StatusUnauthorized)
+			return
+		}
+
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+
+		// Googleの公開鍵を使用してIDトークンを検証
+		// Audienceは通常、呼び出し先のサービスURLになります
+		payload, err := idtoken.Validate(r.Context(), token, "")
+		if err != nil {
+			slog.Warn("IDトークンの検証に失敗しました", "error", err)
+			http.Error(w, fmt.Sprintf("Invalid OIDC token: %v", err), http.StatusForbidden)
+			return
+		}
+
+		slog.Debug("Cloud Tasks 認証成功", "sub", payload.Subject, "email", payload.Claims["email"])
+		next.ServeHTTP(w, r)
+	})
+}
+
 // isAuthorized はユーザーがアクセス許可を持っているか判定します
 func (h *Handler) isAuthorized(email string) bool {
-	// 認可リストが空の場合、アプリケーションの運用上は起動時にチェックされるべきですが、
-	// ここでは最後の防衛線として、デフォルトで拒否するセキュリティ原則を維持します。
 	if len(h.allowedEmails) == 0 && len(h.allowedDomains) == 0 {
-		slog.Error("致命的な設定エラー: 認可リスト (allowedEmails/allowedDomains) が空です。すべてのアクセスを拒否します。", "email", email)
 		return false
 	}
-
-	// 1. メールアドレスの直接一致チェック
 	if _, ok := h.allowedEmails[email]; ok {
 		return true
 	}
-
-	// 2. ドメインチェック
 	parts := strings.Split(email, "@")
 	if len(parts) == 2 {
 		domain := parts[1]
@@ -221,11 +232,9 @@ func (h *Handler) isAuthorized(email string) bool {
 			return true
 		}
 	}
-
 	return false
 }
 
-// generateState は暗号論的に安全なランダム文字列を生成します
 func generateState() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
