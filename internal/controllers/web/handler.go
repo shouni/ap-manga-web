@@ -19,54 +19,62 @@ type IndexPageData struct {
 	Title string
 }
 
-// AcceptedPageData は受付完了画面に渡すためのデータ構造なのだ
 type AcceptedPageData struct {
-	Title     string // ページタイトル
-	ScriptURL string // ユーザーが入力した解析対象のURL
+	Title     string
+	ScriptURL string
 }
 
+// Handler manages HTTP requests using a cache of pre-parsed template sets.
 type Handler struct {
-	cfg  config.Config
-	tmpl *template.Template
+	cfg config.Config
+	// ページ名（"index.html"など）をキーにして、合成済みのテンプレートを保持するのだ
+	templateCache map[string]*template.Template
 }
 
-// NewHandler は基本となる layout.html のみをパースして保持するのだ
+// NewHandler parses each page template combined with the base layout at startup.
 func NewHandler(cfg config.Config) (*Handler, error) {
+	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
-	// まだ実行されていない「クリーンな」テンプレートとして layout を保持するのだ
-	tmpl, err := template.ParseFiles(layoutPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse layout template: %w", err)
+
+	// 1. まず layout.html が存在するか確認するのだ
+	if _, err := filepath.Glob(layoutPath); err != nil {
+		return nil, fmt.Errorf("layout.html not found: %w", err)
+	}
+
+	// 2. ページごとのテンプレートファイルを特定するのだ
+	pages := []string{"index.html", "accepted.html"}
+
+	for _, page := range pages {
+		pagePath := filepath.Join(cfg.TemplateDir, page)
+
+		// layout.html と各ページを組み合わせて、独立したセットとしてパースするのだ
+		// これで {{define "content"}} が衝突しなくなるのだよ！
+		tmpl, err := template.ParseFiles(layoutPath, pagePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse template %s: %w", page, err)
+		}
+		cache[page] = tmpl
 	}
 
 	return &Handler{
-		cfg:  cfg,
-		tmpl: tmpl,
+		cfg:           cfg,
+		templateCache: cache,
 	}, nil
 }
 
-// render は指定されたページファイルを layout と結合して描画する共通ヘルパーなのだ
-func (h *Handler) render(w http.ResponseWriter, status int, pageFile string, data any) {
-	// layout を保持しているテンプレートをクローンするのだ（未実行なので Clone 可能！）
-	t, err := h.tmpl.Clone()
-	if err != nil {
-		slog.Error("Failed to clone template", "error", err)
-		http.Error(w, "Internal Error", http.StatusInternalServerError)
-		return
-	}
-
-	// 各ページ固有のテンプレートファイルをパースして {{define "content"}} を注入するのだ
-	pagePath := filepath.Join(h.cfg.TemplateDir, pageFile)
-	if _, err := t.ParseFiles(pagePath); err != nil {
-		slog.Error("Failed to parse page template", "path", pagePath, "error", err)
-		http.Error(w, "Internal Error", http.StatusInternalServerError)
+// render executes a pre-cached template set based on the provided page name.
+func (h *Handler) render(w http.ResponseWriter, status int, pageName string, data any) {
+	tmpl, ok := h.templateCache[pageName]
+	if !ok {
+		slog.Error("Template not found in cache", "page", pageName)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	var buf bytes.Buffer
-	// layout.html 内の {{template "content" .}} に pageFile の内容が差し込まれるのだ
-	if err := t.ExecuteTemplate(&buf, "layout.html", data); err != nil {
-		slog.Error("Failed to render template", "page", pageFile, "error", err)
+	// layout.html をエントリーポイントとして実行するのだ
+	if err := tmpl.ExecuteTemplate(&buf, "layout.html", data); err != nil {
+		slog.Error("Failed to render template", "page", pageName, "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -76,16 +84,13 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageFile string, dat
 	buf.WriteTo(w)
 }
 
-// Index はメイン画面を表示するのだ
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "index.html", IndexPageData{
 		Title: "Generate - Manga Runner",
 	})
 }
 
-// HandleSubmit は UI からの生成リクエストを処理するのだ
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	// 1. フォームの解析
 	if err := r.ParseForm(); err != nil {
 		slog.Warn("Failed to parse form", "error", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -93,30 +98,25 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	limitStr := r.FormValue("panel_limit")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
+	limit, _ := strconv.Atoi(limitStr)
+	if limit <= 0 {
 		limit = defaultPanelLimit
-		if limitStr != "" {
-			slog.Warn("Invalid panel_limit value, using default",
-				"input", limitStr,
-				"default", limit,
-			)
-		}
 	}
 
-	// タスクペイロードの作成
 	payload := domain.GenerateTaskPayload{
 		ScriptURL:  r.FormValue("script_url"),
 		Mode:       r.FormValue("mode"),
 		PanelLimit: limit,
 	}
 
-	// 2. Cloud Tasks への投入準備（ログ出力）
-	slog.Info("Enqueuing task", "script_url", payload.ScriptURL)
+	slog.Info("Enqueuing task",
+		"script_url", payload.ScriptURL,
+		"mode", payload.Mode,
+		"panel_limit", payload.PanelLimit,
+	)
 
-	// 3. 完了画面の描画（accepted.html を動的に結合）
 	h.render(w, http.StatusAccepted, "accepted.html", AcceptedPageData{
-		Title:     "受付完了なのだ",
+		Title:     "Accepted - Manga Runner",
 		ScriptURL: payload.ScriptURL,
 	})
 }
