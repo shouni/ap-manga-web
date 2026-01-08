@@ -28,13 +28,14 @@ func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, err
 	}
 
 	authHandler := auth.NewHandler(auth.AuthConfig{
-		RedirectURL:    redirectURL,
-		ClientID:       cfg.GoogleClientID,
-		ClientSecret:   cfg.GoogleClientSecret,
-		SessionKey:     cfg.SessionSecret,
-		IsSecureCookie: config.IsSecureURL(cfg.ServiceURL),
-		AllowedEmails:  cfg.AllowedEmails,
-		AllowedDomains: cfg.AllowedDomains,
+		RedirectURL:     redirectURL,
+		TaskAudienceURL: cfg.ServiceURL,
+		ClientID:        cfg.GoogleClientID,
+		ClientSecret:    cfg.GoogleClientSecret,
+		SessionKey:      cfg.SessionSecret,
+		IsSecureCookie:  config.IsSecureURL(cfg.ServiceURL),
+		AllowedEmails:   cfg.AllowedEmails,
+		AllowedDomains:  cfg.AllowedDomains,
 	})
 
 	// --- 2. Web Handler (UI) の初期化 ---

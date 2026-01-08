@@ -26,10 +26,10 @@ const (
 
 // AuthConfig は認証ハンドラーの初期化に必要な設定です
 type AuthConfig struct {
+	RedirectURL     string
+	TaskAudienceURL string
 	ClientID        string
 	ClientSecret    string
-	RedirectURL     string
-	TaskAudienceURL string // Cloud Tasks がターゲットとする Audience URL
 	SessionKey      string
 	IsSecureCookie  bool
 	AllowedEmails   []string
