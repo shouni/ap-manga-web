@@ -27,7 +27,7 @@ type Config struct {
 	GeminiAPIKey    string
 	GeminiModel     string // 台本生成用
 	ImageModel      string // 画像生成用 (Nano Banana等)
-	TemplatePath    string
+	TemplateDir     string // 指摘に基づきパスからディレクトリに変更
 
 	// OAuth & Session Settings
 	GoogleClientID     string
@@ -44,10 +44,10 @@ func LoadConfig() Config {
 	allowedEmails := getEnv("ALLOWED_EMAILS", "")
 	allowedDomains := getEnv("ALLOWED_DOMAINS", "")
 
-	// Cloud Run や ko でのデプロイ環境に合わせたテンプレートパスの切り替え
-	templatePath := "templates/index.html"
+	// Cloud Run や ko でのデプロイ環境に合わせたテンプレートディレクトリの切り替え
+	templateDir := "templates"
 	if os.Getenv("KO_DATA_PATH") != "" || os.Getenv("K_SERVICE") != "" {
-		templatePath = "/app/templates/index.html"
+		templateDir = "/app/templates"
 	}
 
 	return Config{
@@ -61,7 +61,7 @@ func LoadConfig() Config {
 		GeminiAPIKey:    getEnv("GEMINI_API_KEY", ""),
 		GeminiModel:     getEnv("GEMINI_MODEL", "gemini-3.0-flash-preview"),
 		ImageModel:      getEnv("IMAGE_MODEL", "gemini-3.0-pro-image-preview"),
-		TemplatePath:    templatePath,
+		TemplateDir:     templateDir,
 
 		// OAuth
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
@@ -81,7 +81,7 @@ func ValidateEssentialConfig(cfg Config) error {
 	}
 
 	if !isSecure {
-		return fmt.Errorf("セキュリティエラー: SERVICE_URL ('%s') は HTTPS である必要があります", cfg.ServiceURL)
+		return fmt.Errorf("セキュリティエラー: SERVICE_URL ('%s') は HTTPS である必要があります。本番環境ではセッション保護のため必須です", cfg.ServiceURL)
 	}
 
 	if len(cfg.AllowedEmails) == 0 && len(cfg.AllowedDomains) == 0 {
