@@ -43,7 +43,7 @@ func (r *Runner) Execute(payload domain.GenerateTaskPayload) error {
 	time.Sleep(1 * time.Second) // 処理のシミュレーション
 
 	// --- STEP 3: 最終画像の錬成と GCS への保存 ---
-	// [Minor修正] オブジェクトパスを動的に構築し、設定の柔軟性を確保
+	// オブジェクトパスを動的に構築し、設定の柔軟性を確保
 	timestamp := time.Now().Unix()
 
 	// config に定義したフォーマット（デフォルト: "manga/%d/index.html"）を使用
