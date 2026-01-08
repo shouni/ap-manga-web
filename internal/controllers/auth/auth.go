@@ -16,7 +16,6 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-// UserSession キー
 const (
 	sessionName     = "ap-manga-session"
 	userKey         = "user_email"
@@ -89,8 +88,6 @@ func NewHandler(cfg AuthConfig) *Handler {
 		allowedDomains:  domainMap,
 	}
 }
-
-// Login, Callback, Middleware メソッドは変更なし（中略）
 
 // Login はGoogleのログイン画面へリダイレクトします
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -211,14 +208,13 @@ func (h *Handler) TaskOIDCVerificationMiddleware(next http.Handler) http.Handler
 
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// [Blocker対応] 明示的な Audience を指定して ID トークンを検証
+		// 明示的な Audience を指定して ID トークンを検証
 		payload, err := idtoken.Validate(r.Context(), token, h.taskAudienceURL)
 		if err != nil {
 			slog.Warn("IDトークンの検証に失敗しました",
 				"error", err,
 				"audience", h.taskAudienceURL,
 			)
-			// 修正案
 			slog.Warn("IDトークンの検証に失敗しました",
 				"error", err,
 				"audience", h.taskAudienceURL,
