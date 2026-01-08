@@ -66,11 +66,5 @@ func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, err
 		r.Post("/tasks/generate", workerHandler.GenerateTask)
 	})
 
-	// --- 7. Cloud Tasks 専用ルート (Worker 用) ---
-	r.Group(func(r chi.Router) {
-		r.Use(authHandler.TaskOIDCVerificationMiddleware)
-		r.Post("/tasks/generate", workerHandler.GenerateTask)
-	})
-
 	return r, nil
 }
