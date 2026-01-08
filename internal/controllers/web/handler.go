@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"log"
+	"log/slog" // log を log/slog に変更
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -48,7 +48,11 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	err := h.tmpl.ExecuteTemplate(&buf, "layout.html", data)
 	if err != nil {
-		log.Printf("[ERROR] Failed to execute template: %v", err)
+		// slog.Error を使用して構造化ログを出力
+		slog.Error("Failed to execute template",
+			"template", "layout.html",
+			"error", err,
+		)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -61,13 +65,22 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	// 1. フォームの解析
 	if err := r.ParseForm(); err != nil {
+		slog.Warn("Failed to parse form", "error", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	limit, _ := strconv.Atoi(r.FormValue("panel_limit"))
-	if limit <= 0 {
+	limitStr := r.FormValue("panel_limit")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
 		limit = 10
+		if limitStr != "" {
+			// 不正な数値入力があった場合は警告ログを残す
+			slog.Warn("Invalid panel_limit value, using default",
+				"input", limitStr,
+				"default", limit,
+			)
+		}
 	}
 
 	// 2. タスクペイロードの構築
@@ -77,8 +90,12 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		PanelLimit: limit,
 	}
 
-	// 3. 本来はここで Cloud Tasks に投げるのだ
-	log.Printf("[INFO] タスクをキューに投入する準備中なのだ: %+v", payload)
+	// 3. Cloud Tasks への投入準備（構造化データとして出力）
+	slog.Info("Preparing to enqueue task",
+		"script_url", payload.ScriptURL,
+		"mode", payload.Mode,
+		"panel_limit", payload.PanelLimit,
+	)
 
 	// 仮のレスポンス
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")

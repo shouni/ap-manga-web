@@ -59,7 +59,6 @@ func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, err
 	})
 
 	// --- 6. Cloud Tasks 専用ルート (Worker 用) ---
-	// [Blocker] セキュリティ修正: OIDCトークン検証を強制適用
 	r.Group(func(r chi.Router) {
 		// Cloud Tasks が付与する Authorization: Bearer [ID_TOKEN] を検証する
 		r.Use(authHandler.TaskOIDCVerificationMiddleware)
