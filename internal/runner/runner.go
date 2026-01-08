@@ -2,7 +2,7 @@ package runner
 
 import (
 	"fmt"
-	"log/slog" // log を log/slog に変更
+	"log/slog"
 	"time"
 
 	"ap-manga-web/internal/config"
@@ -32,26 +32,34 @@ func (r *Runner) Execute(payload domain.GenerateTaskPayload) error {
 
 	// --- STEP 1: コンテンツの抽出と台本(Script)の生成 ---
 	slog.Info("[Runner] STEP 1: Generating script via Gemini API...", "url", payload.ScriptURL)
-	// 本来はここで Gemini API を叩いて JSON を作るのだ
-	time.Sleep(2 * time.Second) // 処理のシミュレーション
+	// TODO: 本来はここで Gemini API を叩いて JSON を作るのだ
+	time.Sleep(1 * time.Second) // 処理のシミュレーション
 
 	// --- STEP 2: キャラクターDNAの注入とパネル作画 ---
 	slog.Info("[Runner] STEP 2: Drawing manga panels (Nano Banana)",
 		"panel_limit", payload.PanelLimit,
 	)
-	// 本来はここで Nano Banana (Image Kit) を呼び出すのだ
-	time.Sleep(3 * time.Second) // 処理のシミュレーション
+	// TODO: 本来はここで Nano Banana (Image Kit) を呼び出すのだ
+	time.Sleep(1 * time.Second) // 処理のシミュレーション
 
 	// --- STEP 3: 最終画像の錬成と GCS への保存 ---
+	// [Minor修正] オブジェクトパスを動的に構築し、設定の柔軟性を確保
 	timestamp := time.Now().Unix()
-	outputURL := fmt.Sprintf("https://storage.googleapis.com/%s/manga/%d/index.html", r.cfg.GCSBucket, timestamp)
+
+	// config に定義したフォーマット（デフォルト: "manga/%d/index.html"）を使用
+	// fmt.Sprintf の引数が増えても対応できるよう、config 側で管理するのが理想的なのだ
+	objectPath := fmt.Sprintf(r.cfg.GCSOutputPathFormat, timestamp)
+
+	// storage.googleapis.com 形式のURLを生成
+	outputURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s", r.cfg.GCSBucket, objectPath)
 
 	slog.Info("[Runner] STEP 3: Saving results to GCS",
 		"bucket", r.cfg.GCSBucket,
+		"object_path", objectPath,
 		"output_url", outputURL,
 	)
-	// 本来はここで画像を統合して HTML と一緒に GCS へ書き出すのだ
 
+	// 完了ログ
 	slog.Info("[Runner] Generation pipeline completed successfully",
 		"script_url", payload.ScriptURL,
 		"final_url", outputURL,

@@ -17,17 +17,18 @@ const (
 
 // Config は環境変数からアプリケーション設定を読み込む構造体です。
 type Config struct {
-	ServiceURL      string
-	Port            string
-	ProjectID       string
-	LocationID      string
-	QueueID         string
-	GCSBucket       string // 漫画画像とHTMLを保存するバケット
-	SlackWebhookURL string
-	GeminiAPIKey    string
-	GeminiModel     string // 台本生成用
-	ImageModel      string // 画像生成用 (Nano Banana等)
-	TemplateDir     string // 指摘に基づきパスからディレクトリに変更
+	ServiceURL          string
+	Port                string
+	ProjectID           string
+	LocationID          string
+	QueueID             string
+	GCSBucket           string // 漫画画像とHTMLを保存するバケット
+	GCSOutputPathFormat string
+	SlackWebhookURL     string
+	GeminiAPIKey        string
+	GeminiModel         string // 台本生成用
+	ImageModel          string // 画像生成用 (Nano Banana等)
+	TemplateDir         string // 指摘に基づきパスからディレクトリに変更
 
 	// OAuth & Session Settings
 	GoogleClientID     string
@@ -51,17 +52,18 @@ func LoadConfig() Config {
 	}
 
 	return Config{
-		ServiceURL:      getEnv("SERVICE_URL", "http://localhost:8080"),
-		Port:            getEnv("PORT", "8080"),
-		ProjectID:       getEnv("GCP_PROJECT_ID", "your-gcp-project"),
-		LocationID:      getEnv("GCP_LOCATION_ID", "asia-northeast1"),
-		QueueID:         getEnv("CLOUD_TASKS_QUEUE_ID", "manga-queue"),
-		GCSBucket:       getEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
-		SlackWebhookURL: getEnv("SLACK_WEBHOOK_URL", ""),
-		GeminiAPIKey:    getEnv("GEMINI_API_KEY", ""),
-		GeminiModel:     getEnv("GEMINI_MODEL", "gemini-3.0-flash-preview"),
-		ImageModel:      getEnv("IMAGE_MODEL", "gemini-3.0-pro-image-preview"),
-		TemplateDir:     templateDir,
+		ServiceURL:          getEnv("SERVICE_URL", "http://localhost:8080"),
+		Port:                getEnv("PORT", "8080"),
+		ProjectID:           getEnv("GCP_PROJECT_ID", "your-gcp-project"),
+		LocationID:          getEnv("GCP_LOCATION_ID", "asia-northeast1"),
+		QueueID:             getEnv("CLOUD_TASKS_QUEUE_ID", "manga-queue"),
+		GCSBucket:           getEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
+		GCSOutputPathFormat: getEnv("GCS_OUTPUT_PATH_FORMAT", "manga/%d/index.html"),
+		SlackWebhookURL:     getEnv("SLACK_WEBHOOK_URL", ""),
+		GeminiAPIKey:        getEnv("GEMINI_API_KEY", ""),
+		GeminiModel:         getEnv("GEMINI_MODEL", "gemini-3.0-flash-preview"),
+		ImageModel:          getEnv("IMAGE_MODEL", "gemini-3.0-pro-image-preview"),
+		TemplateDir:         templateDir,
 
 		// OAuth
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),

@@ -26,22 +26,24 @@ const (
 
 // AuthConfig は認証ハンドラーの初期化に必要な設定です
 type AuthConfig struct {
-	ClientID       string
-	ClientSecret   string
-	RedirectURL    string
-	SessionKey     string
-	IsSecureCookie bool     // 開発環境(HTTP)と本番(HTTPS)で切り替え
-	AllowedEmails  []string // 許可するメールアドレスのリスト
-	AllowedDomains []string // 許可するドメインのリスト
+	ClientID        string
+	ClientSecret    string
+	RedirectURL     string
+	TaskAudienceURL string // Cloud Tasks がターゲットとする Audience URL
+	SessionKey      string
+	IsSecureCookie  bool
+	AllowedEmails   []string
+	AllowedDomains  []string
 }
 
 // Handler は認証に関連するHTTPハンドラーです
 type Handler struct {
-	oauthConfig    *oauth2.Config
-	store          *sessions.CookieStore
-	isSecureCookie bool
-	allowedEmails  map[string]struct{}
-	allowedDomains map[string]struct{}
+	oauthConfig     *oauth2.Config
+	store           *sessions.CookieStore
+	taskAudienceURL string
+	isSecureCookie  bool
+	allowedEmails   map[string]struct{}
+	allowedDomains  map[string]struct{}
 }
 
 // NewHandler は新しいAuthHandlerを作成します
@@ -80,13 +82,16 @@ func NewHandler(cfg AuthConfig) *Handler {
 	}
 
 	return &Handler{
-		oauthConfig:    oauthCfg,
-		store:          store,
-		isSecureCookie: cfg.IsSecureCookie,
-		allowedEmails:  emailMap,
-		allowedDomains: domainMap,
+		oauthConfig:     oauthCfg,
+		store:           store,
+		taskAudienceURL: cfg.TaskAudienceURL,
+		isSecureCookie:  cfg.IsSecureCookie,
+		allowedEmails:   emailMap,
+		allowedDomains:  domainMap,
 	}
 }
+
+// Login, Callback, Middleware メソッドは変更なし（中略）
 
 // Login はGoogleのログイン画面へリダイレクトします
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +115,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-// Callback はGoogleからのコールバックを処理します
 func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	queryState := r.URL.Query().Get("state")
 	cookieState, err := r.Cookie(stateCookieName)
@@ -178,7 +182,6 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// Middleware は「人間」の認証済みセッションをチェックするミドルウェアです
 func (h *Handler) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, _ := h.store.Get(r, sessionName)
@@ -191,7 +194,6 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 }
 
 // TaskOIDCVerificationMiddleware は「Cloud Tasks」の OIDC トークンを検証するミドルウェアです
-// [Blocker] セキュリティ対応：外部からの不正なジョブ投入を防止します
 func (h *Handler) TaskOIDCVerificationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
@@ -201,23 +203,31 @@ func (h *Handler) TaskOIDCVerificationMiddleware(next http.Handler) http.Handler
 			return
 		}
 
+		// 設定ミスにより Audience が空の場合は、安全のためにすべてのリクエストを拒否する
+		if h.taskAudienceURL == "" {
+			slog.Error("Critical Config Error: TaskAudienceURL is not configured. Rejecting all task requests.")
+			http.Error(w, "Internal Server Configuration Error", http.StatusInternalServerError)
+			return
+		}
+
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// Googleの公開鍵を使用してIDトークンを検証
-		// Audienceは通常、呼び出し先のサービスURLになります
-		payload, err := idtoken.Validate(r.Context(), token, "")
+		// [Blocker対応] 明示的な Audience を指定して ID トークンを検証
+		payload, err := idtoken.Validate(r.Context(), token, h.taskAudienceURL)
 		if err != nil {
-			slog.Warn("IDトークンの検証に失敗しました", "error", err)
+			slog.Warn("IDトークンの検証に失敗しました",
+				"error", err,
+				"audience", h.taskAudienceURL,
+			)
 			http.Error(w, fmt.Sprintf("Invalid OIDC token: %v", err), http.StatusForbidden)
 			return
 		}
 
-		slog.Debug("Cloud Tasks 認証成功", "sub", payload.Subject, "email", payload.Claims["email"])
+		slog.Debug("Cloud Tasks 認証成功", "sub", payload.Subject)
 		next.ServeHTTP(w, r)
 	})
 }
 
-// isAuthorized はユーザーがアクセス許可を持っているか判定します
 func (h *Handler) isAuthorized(email string) bool {
 	if len(h.allowedEmails) == 0 && len(h.allowedDomains) == 0 {
 		return false
