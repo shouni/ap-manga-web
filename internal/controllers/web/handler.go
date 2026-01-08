@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"log"
@@ -20,13 +21,17 @@ type Handler struct {
 	tmpl *template.Template
 }
 
-// NewHandler はテンプレートディレクトリ内の全てのHTMLをパースして初期化します
+// NewHandler はテンプレートディレクトリ内の全てのHTMLをパースし、整合性をチェックします
 func NewHandler(cfg config.Config) (*Handler, error) {
-	// 指定されたディレクトリ（例: templates/*.html）をまとめてパース
 	pattern := filepath.Join(cfg.TemplateDir, "*.html")
 	tmpl, err := template.ParseGlob(pattern)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse templates from %s: %w", pattern, err)
+	}
+
+	// 指摘事項: 起動時に主要なテンプレート（layout.html）が存在するかチェック
+	if tmpl.Lookup("layout.html") == nil {
+		return nil, fmt.Errorf("essential template 'layout.html' not found in %s (parsed files: %v)", cfg.TemplateDir, tmpl.DefinedTemplates())
 	}
 
 	return &Handler{
@@ -41,14 +46,19 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 		Title: "Generate - Manga Runner",
 	}
 
-	// テンプレートの実行とエラーハンドリング
-	err := h.tmpl.ExecuteTemplate(w, "layout.html", data)
+	// 指摘事項: bytes.Buffer を使用して、パース完了までレスポンス書き込みを待機（アトミックな送信）
+	var buf bytes.Buffer
+	err := h.tmpl.ExecuteTemplate(&buf, "layout.html", data)
 	if err != nil {
 		log.Printf("[ERROR] Failed to execute template 'layout.html': %v", err)
-		// ヘッダーが既に書き込まれていない場合のみエラーを返す
+		// まだ書き込み前なので、安全に http.Error を送出できる
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// 成功した場合のみ、Content-Type を設定して一気に書き出す
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if _, err := buf.WriteTo(w); err != nil {
+		log.Printf("[ERROR] Failed to write response: %v", err)
 	}
 }
-
-// 各画面のハンドラーも同様の構造で追加可能
-// func (h *Handler) Design(w http.ResponseWriter, r *http.Request) { ... }
