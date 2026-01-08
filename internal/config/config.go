@@ -11,24 +11,27 @@ import (
 )
 
 const (
-	DefaultHTTPTimeout  = 60 * time.Second // 画像生成は時間がかかるため少し長めに設定
-	SignedURLExpiration = 1 * time.Hour    // 生成された漫画を確認する時間を考慮
+	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
+	DefaultHTTPTimeout = 60 * time.Second
+	// SignedURLExpiration 生成された漫画を確認する時間を考慮した有効期限
+	SignedURLExpiration = 1 * time.Hour
 )
 
-// Config は環境変数からアプリケーション設定を読み込む構造体です。
+// Config は環境変数から読み込まれたアプリケーションの全設定を保持します。
 type Config struct {
 	ServiceURL          string
 	Port                string
 	ProjectID           string
 	LocationID          string
 	QueueID             string
+	TaskAudienceURL     string // OIDC トークンの検証に使用する Audience URL
 	GCSBucket           string // 漫画画像とHTMLを保存するバケット
-	GCSOutputPathFormat string
+	GCSOutputPathFormat string // 出力パスのテンプレート (例: "manga/%d/index.html")
 	SlackWebhookURL     string
 	GeminiAPIKey        string
-	GeminiModel         string // 台本生成用
-	ImageModel          string // 画像生成用 (Nano Banana等)
-	TemplateDir         string // 指摘に基づきパスからディレクトリに変更
+	GeminiModel         string // 台本生成用モデル
+	ImageModel          string // 画像生成用モデル
+	TemplateDir         string // HTMLテンプレートの格納ディレクトリ
 
 	// OAuth & Session Settings
 	GoogleClientID     string
@@ -40,71 +43,70 @@ type Config struct {
 	AllowedDomains []string
 }
 
-// LoadConfig は環境変数から設定を読み込みます。
+// LoadConfig は環境変数から設定を読み込み、Config 構造体を生成します。
 func LoadConfig() Config {
-	allowedEmails := getEnv("ALLOWED_EMAILS", "")
-	allowedDomains := getEnv("ALLOWED_DOMAINS", "")
+	serviceURL := envutil.GetEnv("SERVICE_URL", "http://localhost:8080")
+	allowedEmails := envutil.GetEnv("ALLOWED_EMAILS", "")
+	allowedDomains := envutil.GetEnv("ALLOWED_DOMAINS", "")
 
-	// Cloud Run や ko でのデプロイ環境に合わせたテンプレートディレクトリの切り替え
+	// 実行環境（Local, Cloud Run, ko）に応じたテンプレートパスの解決
 	templateDir := "templates"
 	if os.Getenv("KO_DATA_PATH") != "" || os.Getenv("K_SERVICE") != "" {
 		templateDir = "/app/templates"
 	}
 
 	return Config{
-		ServiceURL:          getEnv("SERVICE_URL", "http://localhost:8080"),
-		Port:                getEnv("PORT", "8080"),
-		ProjectID:           getEnv("GCP_PROJECT_ID", "your-gcp-project"),
-		LocationID:          getEnv("GCP_LOCATION_ID", "asia-northeast1"),
-		QueueID:             getEnv("CLOUD_TASKS_QUEUE_ID", "manga-queue"),
-		GCSBucket:           getEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
-		GCSOutputPathFormat: getEnv("GCS_OUTPUT_PATH_FORMAT", "manga/%d/index.html"),
-		SlackWebhookURL:     getEnv("SLACK_WEBHOOK_URL", ""),
-		GeminiAPIKey:        getEnv("GEMINI_API_KEY", ""),
-		GeminiModel:         getEnv("GEMINI_MODEL", "gemini-3.0-flash-preview"),
-		ImageModel:          getEnv("IMAGE_MODEL", "gemini-3.0-pro-image-preview"),
+		ServiceURL:          serviceURL,
+		Port:                envutil.GetEnv("PORT", "8080"),
+		ProjectID:           envutil.GetEnv("GCP_PROJECT_ID", "your-gcp-project"),
+		LocationID:          envutil.GetEnv("GCP_LOCATION_ID", "asia-northeast1"),
+		QueueID:             envutil.GetEnv("CLOUD_TASKS_QUEUE_ID", "manga-queue"),
+		TaskAudienceURL:     envutil.GetEnv("TASK_AUDIENCE_URL", serviceURL), // デフォルトは ServiceURL
+		GCSBucket:           envutil.GetEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
+		GCSOutputPathFormat: envutil.GetEnv("GCS_OUTPUT_PATH_FORMAT", "manga/%d/index.html"),
+		SlackWebhookURL:     envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
+		GeminiAPIKey:        envutil.GetEnv("GEMINI_API_KEY", ""),
+		GeminiModel:         envutil.GetEnv("GEMINI_MODEL", "gemini-2.5-flash"),
+		ImageModel:          envutil.GetEnv("IMAGE_MODEL", "imagen-3"),
 		TemplateDir:         templateDir,
 
 		// OAuth
-		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
-		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
-		SessionSecret:      getEnv("SESSION_SECRET", ""),
+		GoogleClientID:     envutil.GetEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret: envutil.GetEnv("GOOGLE_CLIENT_SECRET", ""),
+		SessionSecret:      envutil.GetEnv("SESSION_SECRET", ""),
 		AllowedEmails:      text.ParseCommaSeparatedList(allowedEmails),
 		AllowedDomains:     text.ParseCommaSeparatedList(allowedDomains),
 	}
 }
 
-// ValidateEssentialConfig は設定バリデーションを行います。
+// ValidateEssentialConfig はアプリケーション実行に不可欠な設定が正しく提供されているか検証します。
 func ValidateEssentialConfig(cfg Config) error {
-	isSecure := IsSecureURL(cfg.ServiceURL)
-
-	if cfg.GoogleClientID == "" || cfg.GoogleClientSecret == "" || cfg.SessionSecret == "" {
-		return fmt.Errorf("認証関連の環境変数が不足しています (CLIENT_ID, SECRET, SESSION_SECRET)")
+	// 本番環境（localhost 以外）では HTTPS を強制
+	if !IsSecureURL(cfg.ServiceURL) {
+		return fmt.Errorf("security error: SERVICE_URL ('%s') must be HTTPS in production for session protection", cfg.ServiceURL)
 	}
 
-	if !isSecure {
-		return fmt.Errorf("セキュリティエラー: SERVICE_URL ('%s') は HTTPS である必要があります。本番環境ではセッション保護のため必須です", cfg.ServiceURL)
+	if cfg.GoogleClientID == "" || cfg.GoogleClientSecret == "" || cfg.SessionSecret == "" {
+		return fmt.Errorf("configuration error: OAuth requirements (CLIENT_ID, SECRET, SESSION_SECRET) are missing")
 	}
 
 	if len(cfg.AllowedEmails) == 0 && len(cfg.AllowedDomains) == 0 {
-		return fmt.Errorf("設定エラー: 認可リスト (ALLOWED_EMAILS/DOMAINS) が空です")
+		return fmt.Errorf("configuration error: authorization lists (ALLOWED_EMAILS/DOMAINS) are empty")
 	}
 
 	if cfg.GeminiAPIKey == "" {
-		return fmt.Errorf("設定エラー: GEMINI_API_KEY が設定されていません")
+		return fmt.Errorf("configuration error: GEMINI_API_KEY is not set")
+	}
+
+	// Audience URL のチェック (OIDC検証に必須)
+	if cfg.TaskAudienceURL == "" {
+		return fmt.Errorf("configuration error: TASK_AUDIENCE_URL is required for secure worker communication")
 	}
 
 	return nil
 }
 
+// IsSecureURL は指定された URL がセキュア（HTTPS または開発用 localhost）であるか判定します。
 func IsSecureURL(rawURL string) bool {
 	return urlpath.IsSecureServiceURL(rawURL)
-}
-
-func getEnv(key string, defaultValue string) string {
-	return envutil.GetEnv(key, defaultValue)
-}
-
-func getEnvAsBool(key string, defaultValue bool) bool {
-	return envutil.GetEnvAsBool(key, defaultValue)
 }
