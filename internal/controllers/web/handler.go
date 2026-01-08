@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"log/slog" // log を log/slog に変更
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -19,20 +19,24 @@ type IndexPageData struct {
 	Title string
 }
 
+// AcceptedPageData は受付完了画面に渡すためのデータ構造なのだ
+type AcceptedPageData struct {
+	Title     string // ページタイトル
+	ScriptURL string // ユーザーが入力した解析対象のURL
+}
+
 type Handler struct {
 	cfg  config.Config
 	tmpl *template.Template
 }
 
+// NewHandler は基本となる layout.html のみをパースして保持するのだ
 func NewHandler(cfg config.Config) (*Handler, error) {
-	pattern := filepath.Join(cfg.TemplateDir, "*.html")
-	tmpl, err := template.ParseGlob(pattern)
+	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
+	// まだ実行されていない「クリーンな」テンプレートとして layout を保持するのだ
+	tmpl, err := template.ParseFiles(layoutPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse templates from %s: %w", pattern, err)
-	}
-
-	if tmpl.Lookup("layout.html") == nil {
-		return nil, fmt.Errorf("main template 'layout.html' not found in %s", pattern)
+		return nil, fmt.Errorf("failed to parse layout template: %w", err)
 	}
 
 	return &Handler{
@@ -41,26 +45,42 @@ func NewHandler(cfg config.Config) (*Handler, error) {
 	}, nil
 }
 
-// Index はメイン画面を表示するのだ
-func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
-	data := IndexPageData{
-		Title: "Generate - Manga Runner",
+// render は指定されたページファイルを layout と結合して描画する共通ヘルパーなのだ
+func (h *Handler) render(w http.ResponseWriter, status int, pageFile string, data any) {
+	// layout を保持しているテンプレートをクローンするのだ（未実行なので Clone 可能！）
+	t, err := h.tmpl.Clone()
+	if err != nil {
+		slog.Error("Failed to clone template", "error", err)
+		http.Error(w, "Internal Error", http.StatusInternalServerError)
+		return
+	}
+
+	// 各ページ固有のテンプレートファイルをパースして {{define "content"}} を注入するのだ
+	pagePath := filepath.Join(h.cfg.TemplateDir, pageFile)
+	if _, err := t.ParseFiles(pagePath); err != nil {
+		slog.Error("Failed to parse page template", "path", pagePath, "error", err)
+		http.Error(w, "Internal Error", http.StatusInternalServerError)
+		return
 	}
 
 	var buf bytes.Buffer
-	err := h.tmpl.ExecuteTemplate(&buf, "layout.html", data)
-	if err != nil {
-		// slog.Error を使用して構造化ログを出力
-		slog.Error("Failed to execute template",
-			"template", "layout.html",
-			"error", err,
-		)
+	// layout.html 内の {{template "content" .}} に pageFile の内容が差し込まれるのだ
+	if err := t.ExecuteTemplate(&buf, "layout.html", data); err != nil {
+		slog.Error("Failed to render template", "page", pageFile, "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
 	buf.WriteTo(w)
+}
+
+// Index はメイン画面を表示するのだ
+func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "index.html", IndexPageData{
+		Title: "Generate - Manga Runner",
+	})
 }
 
 // HandleSubmit は UI からの生成リクエストを処理するのだ
@@ -77,7 +97,6 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil || limit <= 0 {
 		limit = defaultPanelLimit
 		if limitStr != "" {
-			// 不正な数値入力があった場合は警告ログを残す
 			slog.Warn("Invalid panel_limit value, using default",
 				"input", limitStr,
 				"default", limit,
@@ -85,22 +104,19 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 2. タスクペイロードの構築
+	// タスクペイロードの作成
 	payload := domain.GenerateTaskPayload{
 		ScriptURL:  r.FormValue("script_url"),
 		Mode:       r.FormValue("mode"),
 		PanelLimit: limit,
 	}
 
-	// 3. Cloud Tasks への投入準備（構造化データとして出力）
-	slog.Info("Preparing to enqueue task",
-		"script_url", payload.ScriptURL,
-		"mode", payload.Mode,
-		"panel_limit", payload.PanelLimit,
-	)
+	// 2. Cloud Tasks への投入準備（ログ出力）
+	slog.Info("Enqueuing task", "script_url", payload.ScriptURL)
 
-	// 仮のレスポンス
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusAccepted)
-	fmt.Fprintf(w, "漫画生成の依頼を受け付けたのだ！\nURL: %s\nMode: %s\n完了まで数分待つのだ。", payload.ScriptURL, payload.Mode)
+	// 3. 完了画面の描画（accepted.html を動的に結合）
+	h.render(w, http.StatusAccepted, "accepted.html", AcceptedPageData{
+		Title:     "受付完了なのだ",
+		ScriptURL: payload.ScriptURL,
+	})
 }

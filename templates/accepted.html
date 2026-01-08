@@ -1,0 +1,25 @@
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="card shadow-sm border-success">
+            <div class="card-body py-5">
+                <div class="mb-4">
+                    <span style="font-size: 4rem;">✅</span>
+                </div>
+                <h2 class="card-title h4 mb-3">漫画の錬成依頼を受け付けたのだ！</h2>
+                <p class="text-muted mb-4">
+                    サーバーが裏側で一生懸命描いているから、完了まで数分待つのだ。<br>
+                    完成したら GCS に保存されるのだよ。
+                </p>
+                <div class="bg-light p-3 rounded mb-4 text-start">
+                    <small class="d-block text-secondary">対象URL:</small>
+                    <code class="text-break">{{.ScriptURL}}</code>
+                </div>
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                    <a href="/" class="btn btn-outline-primary">トップへ戻る</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
