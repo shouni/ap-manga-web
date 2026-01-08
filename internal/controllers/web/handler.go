@@ -26,8 +26,7 @@ type AcceptedPageData struct {
 
 // Handler manages HTTP requests using a cache of pre-parsed template sets.
 type Handler struct {
-	cfg config.Config
-	// ページ名（"index.html"など）をキーにして、合成済みのテンプレートを保持するのだ
+	cfg           config.Config
 	templateCache map[string]*template.Template
 }
 
@@ -36,19 +35,19 @@ func NewHandler(cfg config.Config) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
-	// 1. まず layout.html が存在するか確認するのだ
+	// 1. まず layout.html が存在するか確認する
 	if _, err := filepath.Glob(layoutPath); err != nil {
 		return nil, fmt.Errorf("layout.html not found: %w", err)
 	}
 
-	// 2. ページごとのテンプレートファイルを特定するのだ
+	// 2. ページごとのテンプレートファイルを特定する
 	pages := []string{"index.html", "accepted.html"}
 
 	for _, page := range pages {
 		pagePath := filepath.Join(cfg.TemplateDir, page)
 
-		// layout.html と各ページを組み合わせて、独立したセットとしてパースするのだ
-		// これで {{define "content"}} が衝突しなくなるのだよ！
+		// layout.html と各ページを組み合わせて、独立したセットとしてパースする
+		// これで {{define "content"}} が衝突しなくなる
 		tmpl, err := template.ParseFiles(layoutPath, pagePath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse template %s: %w", page, err)
@@ -72,7 +71,7 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageName string, dat
 	}
 
 	var buf bytes.Buffer
-	// layout.html をエントリーポイントとして実行するのだ
+	// layout.html をエントリーポイントとして実行する
 	if err := tmpl.ExecuteTemplate(&buf, "layout.html", data); err != nil {
 		slog.Error("Failed to render template", "page", pageName, "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -98,7 +97,19 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	limitStr := r.FormValue("panel_limit")
-	limit, _ := strconv.Atoi(limitStr)
+	limit, err := strconv.Atoi(limitStr)
+	// limitStrが空、または不正な値の場合にデフォルト値を使用する
+	if err != nil {
+		// 空文字列の場合はエラーではなく、単にデフォルト値を使用する
+		if limitStr != "" {
+			slog.Warn("Invalid panel_limit value, using default",
+				"input", limitStr,
+				"default", defaultPanelLimit,
+			)
+		}
+		limit = defaultPanelLimit
+	}
+
 	if limit <= 0 {
 		limit = defaultPanelLimit
 	}
