@@ -215,10 +215,6 @@ func (h *Handler) TaskOIDCVerificationMiddleware(next http.Handler) http.Handler
 				"error", err,
 				"audience", h.taskAudienceURL,
 			)
-			slog.Warn("IDトークンの検証に失敗しました",
-				"error", err,
-				"audience", h.taskAudienceURL,
-			)
 			// クライアントには汎用的なエラーメッセージを返す
 			http.Error(w, "Invalid OIDC token", http.StatusForbidden)
 			return
