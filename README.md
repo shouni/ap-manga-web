@@ -5,11 +5,11 @@
 [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/shouni/ap-manga-web)](https://github.com/shouni/ap-manga-web/tags)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🚀 概要 (About) - Webベースの画像作成オーケストレーター
+## 🚀 概要 (About) - Webベースの画像生成オーケストレーター
 
-**AP Manga Web** は、画像作成の**コアライブラリ機能**を **[Go Manga Kit](https://github.com/shouni/go-manga-kit)** を活用し、その機能を **Cloud Run** および **Google Cloud Tasks** を利用してWebアプリケーション化・オーケストレーションするためのプロジェクトです。
+**AP Manga Web** は、画像生成の**コアライブラリ機能**を **[Go Manga Kit](https://github.com/shouni/go-manga-kit)** を活用し、その機能を **Cloud Run** および **Google Cloud Tasks** を利用してWebアプリケーション化・オーケストレーションするためのプロジェクトです。
 
-Webフォームを通じて画像作成処理を**非同期ワーカー**（Cloud Tasks）で実行します。
+Webフォームを通じて画像生成処理を**非同期ワーカー**（Cloud Tasks）で実行します。
 
 **Google OAuth 2.0** による認証機能を実装。Webフォームへのアクセスを承認されたユーザー（指定ドメイン/メールアドレス）のみに制限し、AIリソースの安全な利用を担保します。
 
@@ -23,8 +23,8 @@ Webフォームを通じて画像作成処理を**非同期ワーカー**（Clou
 | **認証・セッション** | **`x/oauth2`** / **`gorilla/sessions`** | **Google OAuth 2.0** フローとCookieベースのセッション管理。 |
 | **Webフレームワーク** | **go-chi/chi/v5** | 軽量でモジュール化されたルーティング処理。 |
 | **アーキテクチャ** | **DI (Dependency Injection)** | `builder/server.go` で全ての依存関係を統合する保守性の高い設計。 |
-| **非同期実行** | **Google Cloud Tasks** | 重いレビュー処理を非同期キューに投入し、タイムアウトを回避。 |
-| **結果保存** | **Google Cloud Storage (GCS)** | AIが出力したレビュー結果（HTML）を保存。 |
+| **非同期実行** | **Google Cloud Tasks** | 重い画像生成処理を非同期キューに投入し、タイムアウトを回避。 |
+| **結果保存** | **Google Cloud Storage (GCS)** | 生成された画像を保存。 |
 | **I/O抽象化** | **[`go-remote-io`](https://github.com/shouni/go-remote-io)** | GCSへのI/O操作および署名付きURLの生成。 |
 
 ---
@@ -107,9 +107,9 @@ ap-manga-web/
 │   │   ├── auth/     # Google OAuth & セッション管理
 │   │   ├── web/      # フォーム受付・ハンドラ
 │   │   └── worker/   # 非同期タスク実行
-│   ├── domain/       # ドメインモデル (review, response)
-│   └── runner/       # レビュー実行パイプライン
-├── templates/        # HTMLテンプレート (review_form.html等)
+│   ├── domain/       # ドメインモデル
+│   └── runner/       # 画像生成実行パイプライン
+├── templates/        # HTMLテンプレート
 ├── main.go           # エントリーポイント
 └── go.mod            # モジュール定義
 
@@ -119,10 +119,10 @@ ap-manga-web/
 
 ## 💻 処理のフロー
 
-1. **リクエスト:** 認証済みユーザーがフォームよりGitHub URL等を送信。
+1. **リクエスト:** 認証済みユーザーがフォームより参照URL等を送信。
 2. **署名付きURL生成:** `go-remote-io` を使い、未来の保存先URLを即時生成。
-3. **タスク投入:** Cloud Tasks へレビュー処理を委譲し、ユーザーには `202 Accepted` を返却。
-4. **非同期実行:** ワーカーが `gemini-reviewer-core` を実行し、結果をGCSへ保存＆Slack通知。
+3. **タスク投入:** Cloud Tasks へ画像生成処理を委譲し、ユーザーには `202 Accepted` を返却。
+4. **非同期実行:** ワーカーが `go-manga-kit` を実行し、結果をGCSへ保存＆Slack通知。
 
 ---
 
