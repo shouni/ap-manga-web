@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -35,24 +36,29 @@ func NewHandler(cfg config.Config) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
-	// 1. まず layout.html が存在するか確認する
-	if _, err := filepath.Glob(layoutPath); err != nil {
-		return nil, fmt.Errorf("layout.html not found: %w", err)
+	// layout.html の存在を最初に確認する
+	if _, err := os.Stat(layoutPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("layout template not found: %s", layoutPath)
 	}
 
-	// 2. ページごとのテンプレートファイルを特定する
-	pages := []string{"index.html", "accepted.html"}
+	// layout.html を除く全ての .html ファイルをページとして取得
+	pagePaths, err := filepath.Glob(filepath.Join(cfg.TemplateDir, "*.html"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to glob for page templates: %w", err)
+	}
 
-	for _, page := range pages {
-		pagePath := filepath.Join(cfg.TemplateDir, page)
+	for _, pagePath := range pagePaths {
+		pageName := filepath.Base(pagePath)
+		if pageName == "layout.html" {
+			continue // レイアウトファイル自体はスキップ
+		}
 
 		// layout.html と各ページを組み合わせて、独立したセットとしてパースする
-		// これで {{define "content"}} が衝突しなくなる
 		tmpl, err := template.ParseFiles(layoutPath, pagePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse template %s: %w", page, err)
+			return nil, fmt.Errorf("failed to parse template %s: %w", pageName, err)
 		}
-		cache[page] = tmpl
+		cache[pageName] = tmpl
 	}
 
 	return &Handler{
