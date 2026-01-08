@@ -17,7 +17,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, error) {
+func NewServerHandler(ctx context.Context, cfg config.Config, taskAdapter adapters.TaskAdapter) (http.Handler, error) {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -45,7 +45,7 @@ func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, err
 		AllowedDomains:  cfg.AllowedDomains,
 	})
 
-	// --- 2. Web Handler (UI) の初期化 (taskAdapter を渡す！) ---
+	// --- 2. Web Handler (UI) の初期化 ---
 	webHandler, err := web.NewHandler(cfg, taskAdapter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize web handler: %w", err)
