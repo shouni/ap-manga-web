@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
@@ -34,11 +35,14 @@ func NewCloudTasksAdapter(ctx context.Context, cfg config.Config) (*CloudTasksAd
 		return nil, fmt.Errorf("failed to create cloud tasks client: %w", err)
 	}
 
-	// 実行時に変化しない値を初期化時に構築しておくことで、パフォーマンスを最適化します
 	parent := fmt.Sprintf("projects/%s/locations/%s/queues/%s",
 		cfg.ProjectID, cfg.LocationID, cfg.QueueID)
 
-	workerURL := fmt.Sprintf("%s/tasks/generate", cfg.ServiceURL)
+	workerURL, err := url.JoinPath(cfg.ServiceURL, "/tasks/generate")
+	if err != nil {
+		// このエラーは通常発生し得ないが、念のためハンドリング
+		return nil, fmt.Errorf("failed to construct worker URL: %w", err)
+	}
 
 	return &CloudTasksAdapter{
 		client:    client,
