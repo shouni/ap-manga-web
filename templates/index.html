@@ -1,0 +1,41 @@
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h4 class="mb-0">🚀 Generate - 一括漫画生成なのだ</h4>
+            </div>
+            <div class="card-body">
+                <form action="/generate" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">ソースURL (Script URL)</label>
+                        <input type="url" name="script_url" class="form-control"
+                               placeholder="https://example.com/tech-blog" required>
+                        <div class="form-text">解析したい技術記事のURLを入力するのだ。</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">モード</label>
+                            <select name="mode" class="form-select">
+                                <option value="dialogue" selected>Dialogue (解説)</option>
+                                <option value="duet">Duet (二人芝居)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">パネル上限</label>
+                            <input type="number" name="panel_limit" class="form-control" value="10">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg text-white">
+                            漫画を錬成するのだ！
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
