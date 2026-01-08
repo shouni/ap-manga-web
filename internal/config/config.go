@@ -29,9 +29,10 @@ type Config struct {
 	GCSOutputPathFormat string // 出力パスのテンプレート (例: "manga/%d/index.html")
 	SlackWebhookURL     string
 	GeminiAPIKey        string
-	GeminiModel         string // 台本生成用モデル
-	ImageModel          string // 画像生成用モデル
-	TemplateDir         string // HTMLテンプレートの格納ディレクトリ
+	GeminiModel         string        // 台本生成用モデル
+	ImageModel          string        // 画像生成用モデル
+	TemplateDir         string        // HTMLテンプレートの格納ディレクトリ
+	ShutdownTimeout     time.Duration // 追加
 
 	// OAuth & Session Settings
 	GoogleClientID     string
@@ -69,6 +70,7 @@ func LoadConfig() Config {
 		GeminiModel:         envutil.GetEnv("GEMINI_MODEL", "gemini-2.5-flash"),
 		ImageModel:          envutil.GetEnv("IMAGE_MODEL", "imagen-3"),
 		TemplateDir:         templateDir,
+		ShutdownTimeout:     15 * time.Second,
 
 		// OAuth
 		GoogleClientID:     envutil.GetEnv("GOOGLE_CLIENT_ID", ""),

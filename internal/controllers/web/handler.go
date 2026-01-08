@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 )
@@ -29,10 +30,11 @@ type AcceptedPageData struct {
 type Handler struct {
 	cfg           config.Config
 	templateCache map[string]*template.Template
+	taskAdapter   adapters.TaskAdapter
 }
 
 // NewHandler parses each page template combined with the base layout at startup.
-func NewHandler(cfg config.Config) (*Handler, error) {
+func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
@@ -64,6 +66,7 @@ func NewHandler(cfg config.Config) (*Handler, error) {
 	return &Handler{
 		cfg:           cfg,
 		templateCache: cache,
+		taskAdapter:   taskAdapter,
 	}, nil
 }
 
@@ -96,6 +99,8 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	if err := r.ParseForm(); err != nil {
 		slog.Warn("Failed to parse form", "error", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -126,11 +131,16 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		PanelLimit: limit,
 	}
 
-	slog.Info("Enqueuing task",
-		"script_url", payload.ScriptURL,
-		"mode", payload.Mode,
-		"panel_limit", payload.PanelLimit,
-	)
+	// 2. Cloud Tasks へのエンキュー実行
+	// 注入された taskAdapter を使用することで、具体的な実装(Cloud Tasks)を隠蔽しています
+	if err := h.taskAdapter.EnqueueGenerateTask(ctx, payload); err != nil {
+		slog.Error("Failed to enqueue task",
+			"error", err,
+			"url", payload.ScriptURL,
+		)
+		http.Error(w, "Failed to schedule task", http.StatusInternalServerError)
+		return
+	}
 
 	h.render(w, http.StatusAccepted, "accepted.html", AcceptedPageData{
 		Title:     "Accepted - Manga Runner",
