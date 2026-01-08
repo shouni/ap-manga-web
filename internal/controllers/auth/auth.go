@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -219,7 +218,13 @@ func (h *Handler) TaskOIDCVerificationMiddleware(next http.Handler) http.Handler
 				"error", err,
 				"audience", h.taskAudienceURL,
 			)
-			http.Error(w, fmt.Sprintf("Invalid OIDC token: %v", err), http.StatusForbidden)
+			// 修正案
+			slog.Warn("IDトークンの検証に失敗しました",
+				"error", err,
+				"audience", h.taskAudienceURL,
+			)
+			// クライアントには汎用的なエラーメッセージを返す
+			http.Error(w, "Invalid OIDC token", http.StatusForbidden)
 			return
 		}
 

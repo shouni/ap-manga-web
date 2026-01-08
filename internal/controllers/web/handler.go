@@ -13,6 +13,8 @@ import (
 	"ap-manga-web/internal/domain"
 )
 
+const defaultPanelLimit = 10
+
 type IndexPageData struct {
 	Title string
 }
@@ -73,7 +75,7 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.FormValue("panel_limit")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		limit = 10
+		limit = defaultPanelLimit
 		if limitStr != "" {
 			// 不正な数値入力があった場合は警告ログを残す
 			slog.Warn("Invalid panel_limit value, using default",
