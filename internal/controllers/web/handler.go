@@ -34,7 +34,7 @@ type Handler struct {
 }
 
 // NewHandler parses each page template combined with the base layout at startup.
-func NewHandler(cfg config.Config) (*Handler, error) {
+func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
@@ -66,6 +66,7 @@ func NewHandler(cfg config.Config) (*Handler, error) {
 	return &Handler{
 		cfg:           cfg,
 		templateCache: cache,
+		taskAdapter:   taskAdapter,
 	}, nil
 }
 

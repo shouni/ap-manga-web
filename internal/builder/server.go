@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"ap-manga-web/internal/adapters"
 	"context"
 	"fmt"
 	"net/http"
@@ -21,6 +22,12 @@ func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, err
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	// --- 0. アダプターの初期化 (これを追加！) ---
+	taskAdapter, err := adapters.NewCloudTasksAdapter(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize cloud tasks adapter: %w", err)
+	}
+
 	// --- 1. Auth Handler の初期化 ---
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {
@@ -38,8 +45,8 @@ func NewServerHandler(ctx context.Context, cfg config.Config) (http.Handler, err
 		AllowedDomains:  cfg.AllowedDomains,
 	})
 
-	// --- 2. Web Handler (UI) の初期化 ---
-	webHandler, err := web.NewHandler(cfg)
+	// --- 2. Web Handler (UI) の初期化 (taskAdapter を渡す！) ---
+	webHandler, err := web.NewHandler(cfg, taskAdapter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize web handler: %w", err)
 	}
