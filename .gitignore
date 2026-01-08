@@ -8,7 +8,6 @@
 .DS_Store
 
 # Go build artifacts
-# Goのビルド成果物
 *.exe
 *.dll
 *.so
@@ -17,8 +16,11 @@
 /bin/
 
 # Environment files
-# 環境設定ファイル（すべての.envバリエーションを網羅）
-.env*
+# Ignore all .env files but keep templates
+.env
+.env.*
+!.env.example
+!.env.sample
 
 # VSCode editor
 .vscode/
