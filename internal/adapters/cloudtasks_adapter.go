@@ -21,32 +21,35 @@ type TaskAdapter interface {
 
 // CloudTasksAdapter は Google Cloud Tasks を使用した TaskAdapter の実装です。
 type CloudTasksAdapter struct {
-	client *cloudtasks.Client
-	cfg    config.Config
+	client    *cloudtasks.Client
+	parent    string // キューの親リソース名 (プロジェクト、ロケーション、キューIDを含む)
+	workerURL string // タスクが送信されるワーカーのエンドポイントURL
+	audience  string // OIDCトークンの検証に使用する Audience
 }
 
-// NewCloudTasksAdapter は Cloud Tasks クライアントを初期化します。
+// NewCloudTasksAdapter は Cloud Tasks クライアントを初期化し、固定の設定値を事前構築します。
 func NewCloudTasksAdapter(ctx context.Context, cfg config.Config) (*CloudTasksAdapter, error) {
 	client, err := cloudtasks.NewClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cloud tasks client: %w", err)
 	}
 
+	// 実行時に変化しない値を初期化時に構築しておくことで、パフォーマンスを最適化します
+	parent := fmt.Sprintf("projects/%s/locations/%s/queues/%s",
+		cfg.ProjectID, cfg.LocationID, cfg.QueueID)
+
+	workerURL := fmt.Sprintf("%s/tasks/generate", cfg.ServiceURL)
+
 	return &CloudTasksAdapter{
-		client: client,
-		cfg:    cfg,
+		client:    client,
+		parent:    parent,
+		workerURL: workerURL,
+		audience:  cfg.TaskAudienceURL,
 	}, nil
 }
 
 // EnqueueGenerateTask は漫画生成タスクを Cloud Tasks キューにエンキューします。
 func (a *CloudTasksAdapter) EnqueueGenerateTask(ctx context.Context, payload domain.GenerateTaskPayload) error {
-	// リソース名の構築
-	parent := fmt.Sprintf("projects/%s/locations/%s/queues/%s",
-		a.cfg.ProjectID, a.cfg.LocationID, a.cfg.QueueID)
-
-	// ワーカーエンドポイントの構築
-	workerURL := fmt.Sprintf("%s/tasks/generate", a.cfg.ServiceURL)
-
 	// ペイロードのJSON変換
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -54,27 +57,26 @@ func (a *CloudTasksAdapter) EnqueueGenerateTask(ctx context.Context, payload dom
 	}
 
 	// タスクリクエストの構築
-	// AuthorizationHeader に OidcToken を設定することで、Cloud Tasks が自動的に
-	// 有効な IDトークンを取得し、Authorization: Bearer <token> ヘッダーを付与します。
-	// タスクリクエストの構築
 	req := &cloudtaskspb.CreateTaskRequest{
-		Parent: parent,
+		Parent: a.parent,
 		Task: &cloudtaskspb.Task{
-			// MessageType は HttpRequest フィールドを直接持つ構造体に変わっているのだ
+			// MessageType は oneof であり、ここでは HttpRequest を指定します。
 			MessageType: &cloudtaskspb.Task_HttpRequest{
 				HttpRequest: &cloudtaskspb.HttpRequest{
-					// HttpMethod は cloudtaskspb.HttpMethod_POST を参照するのだ
+					// HttpMethod は enum 値で指定します。
 					HttpMethod: cloudtaskspb.HttpMethod_POST,
-					Url:        workerURL,
+					Url:        a.workerURL,
 					Body:       body,
 					Headers: map[string]string{
 						"Content-Type": "application/json",
 					},
-					// AuthorizationHeader も Oneof 型のラッパーが必要なのだ
+					// AuthorizationHeader は oneof であり、ここでは OidcToken を指定します。
+					// Cloud Tasks が有効な ID トークンを自動的に取得し、Authorization ヘッダーを付与します。
 					AuthorizationHeader: &cloudtaskspb.HttpRequest_OidcToken{
 						OidcToken: &cloudtaskspb.OidcToken{
-							ServiceAccountEmail: "", // 空文字でデフォルトSAが使われるのだ
-							Audience:            a.cfg.TaskAudienceURL,
+							// 空文字の場合、環境のデフォルトサービスアカウントが使用されます。
+							ServiceAccountEmail: "",
+							Audience:            a.audience,
 						},
 					},
 				},
@@ -89,11 +91,12 @@ func (a *CloudTasksAdapter) EnqueueGenerateTask(ctx context.Context, payload dom
 
 	slog.Info("Task enqueued successfully",
 		"task_name", createdTask.GetName(),
-		"audience", a.cfg.TaskAudienceURL,
+		"audience", a.audience,
 	)
 	return nil
 }
 
+// Close は Cloud Tasks クライアントの接続を閉じます。
 func (a *CloudTasksAdapter) Close() error {
 	return a.client.Close()
 }
