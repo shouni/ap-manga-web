@@ -28,6 +28,7 @@ func NewMangaPipeline(cfg config.Config) *MangaPipeline {
 
 // Execute は Payload の Command に応じて、適切なワークフローを実行するのだ。
 func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTaskPayload) error {
+	// TODO:サーバー起動時に変更
 	appCtx, err := builder.BuildAppContext(ctx, &p.cfg)
 	if err != nil {
 		return fmt.Errorf("failed to build AppContext: %w", err)
@@ -81,7 +82,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, appCtx *builder.AppCo
 	if err != nil {
 		return mngdom.MangaResponse{}, err
 	}
-	return runner.Run(ctx, payload.ScriptURL)
+	return runner.Run(ctx, payload.ScriptURL, payload.Mode)
 }
 
 func (p *MangaPipeline) runImageStep(ctx context.Context, appCtx *builder.AppContext, manga mngdom.MangaResponse, limit int) ([]*imagedom.ImageResponse, error) {
