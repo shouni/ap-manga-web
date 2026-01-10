@@ -114,9 +114,16 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.FormValue("panel_limit")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		// 空文字列や不正な値の場合はデフォルト値を使用
+		// 空文字列の場合はデフォルト値を使用するが、それ以外の不正な値の場合は警告ログを出力する
+		if limitStr != "" {
+			slog.WarnContext(ctx, "Invalid panel_limit value, using default",
+				"input", limitStr,
+				"default", defaultPanelLimit,
+			)
+		}
 		limit = defaultPanelLimit
 	}
+
 	if limit <= 0 {
 		limit = defaultPanelLimit
 	}

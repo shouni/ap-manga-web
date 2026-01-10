@@ -72,7 +72,7 @@ func (sr *MangaScriptRunner) Run(ctx context.Context, scriptURL string, mode str
 	slog.Info("ScriptRunner: Calling Gemini API", "model", sr.cfg.GeminiModel)
 	resp, err := sr.aiClient.GenerateContent(ctx, finalPrompt, sr.cfg.GeminiModel)
 	if err != nil {
-		return domain.MangaResponse{}, fmt.Errorf("AI generation failed: %w", err)
+		return domain.MangaResponse{}, fmt.Errorf("プロンプト生成に失敗: %w", err)
 	}
 
 	// 4. AI 応答をパースして構造化データに変換

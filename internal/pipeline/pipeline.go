@@ -58,7 +58,13 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 	case "image":
 		var manga mngdom.MangaResponse
 		if err := json.Unmarshal([]byte(payload.InputText), &manga); err != nil {
-			return fmt.Errorf("failed to parse input JSON for image mode: %w", err)
+			// リトライ不可能なエラーとしてログレベルをErrorではなくWarnに設定
+			slog.WarnContext(ctx, "Failed to parse input JSON for image mode. Task will not be retried.",
+				"error", err,
+				"command", payload.Command,
+			)
+			// 不正なリクエストなのでリトライさせずに正常終了とする
+			return nil
 		}
 		images, err := p.runImageStep(ctx, appCtx, manga, payload.PanelLimit)
 		if err != nil {
