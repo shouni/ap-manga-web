@@ -16,11 +16,12 @@ const (
 	DefaultModel        = "gemini-3-flash-preview"
 	DefaultImageModel   = "gemini-3-pro-image-preview"
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
-	DefaultHTTPTimeout       = 30 * time.Second
-	DefaultPanelLimit        = 10
-	DefaultRateLimit         = 30 * time.Second
-	DefaultCharactersFile    = "internal/config/characters.json" // キャラクターの視覚情報（DNA）を定義したJSONパス
-	DefaultImagePromptSuffix = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
+	DefaultHTTPTimeout         = 30 * time.Second
+	DefaultPanelLimit          = 10
+	DefaultGCSOutputPathFormat = "manga/%d/index.html"
+	DefaultRateLimit           = 30 * time.Second
+	DefaultCharactersFile      = "internal/config/characters.json" // キャラクターの視覚情報（DNA）を定義したJSONパス
+	DefaultImagePromptSuffix   = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
 )
 
 // Config は環境変数から読み込まれたアプリケーションの全設定を保持します。
@@ -72,7 +73,7 @@ func LoadConfig() Config {
 		QueueID:             envutil.GetEnv("CLOUD_TASKS_QUEUE_ID", "manga-queue"),
 		TaskAudienceURL:     envutil.GetEnv("TASK_AUDIENCE_URL", serviceURL), // デフォルトは ServiceURL
 		GCSBucket:           envutil.GetEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
-		GCSOutputPathFormat: envutil.GetEnv("GCS_OUTPUT_PATH_FORMAT", "manga/%d/index.html"),
+		GCSOutputPathFormat: envutil.GetEnv("GCS_OUTPUT_PATH_FORMAT", DefaultGCSOutputPathFormat),
 		SlackWebhookURL:     envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
 		GeminiAPIKey:        envutil.GetEnv("GEMINI_API_KEY", ""),
 		GeminiModel:         envutil.GetEnv("GEMINI_MODEL", DefaultModel),
