@@ -2,7 +2,6 @@ package builder
 
 import (
 	"ap-manga-web/internal/adapters"
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,13 +10,16 @@ import (
 	"ap-manga-web/internal/controllers/auth"
 	"ap-manga-web/internal/controllers/web"
 	"ap-manga-web/internal/controllers/worker"
-	"ap-manga-web/internal/runner"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func NewServerHandler(ctx context.Context, cfg config.Config, taskAdapter adapters.TaskAdapter) (http.Handler, error) {
+func NewServerHandler(
+	cfg config.Config,
+	taskAdapter adapters.TaskAdapter,
+	pipelineExecutor worker.MangaPipelineExecutor, // インターフェースで受け取る
+) (http.Handler, error) {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -46,8 +48,7 @@ func NewServerHandler(ctx context.Context, cfg config.Config, taskAdapter adapte
 	}
 
 	// --- 3. Worker Handler の初期化 ---
-	mangaRunner := runner.NewRunner(cfg)
-	workerHandler := worker.NewHandler(cfg, mangaRunner)
+	workerHandler := worker.NewHandler(cfg, pipelineExecutor)
 
 	// --- 4. 公開ルート (Authentication Entry Points) ---
 	r.Get("/auth/login", authHandler.Login)
