@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/prompt"
+	"ap-manga-web/internal/prompts"
 
 	"github.com/shouni/go-ai-client/v2/pkg/ai/gemini"
 	"github.com/shouni/go-manga-kit/pkg/domain"
@@ -22,13 +22,13 @@ var jsonBlockRegex = regexp.MustCompile("(?s)```(?:json)?\\s*(.*\\S)\\s*```")
 // ScriptRunner は、生成された漫画の台本や画像データを永続化するためのインターフェースなのだ。
 type ScriptRunner interface {
 	// Run は台本生成パイプラインを実行し、構造化された漫画データを返すのだ。
-	Run(ctx context.Context, scriptURL string) (domain.MangaResponse, error)
+	Run(ctx context.Context, scriptURL string, mode string) (domain.MangaResponse, error)
 }
 
 type MangaScriptRunner struct {
 	cfg           config.Config
 	extractor     *extract.Extractor
-	promptBuilder prompt.PromptBuilder // インターフェースを保持
+	promptBuilder prompts.PromptBuilder
 	aiClient      gemini.GenerativeModel
 	reader        remoteio.InputReader
 }
@@ -37,7 +37,7 @@ type MangaScriptRunner struct {
 func NewMangaScriptRunner(
 	cfg config.Config,
 	ext *extract.Extractor,
-	pb prompt.PromptBuilder, // 修正されたインターフェースを注入
+	pb prompts.PromptBuilder,
 	ai gemini.GenerativeModel,
 	r remoteio.InputReader,
 ) *MangaScriptRunner {
@@ -51,7 +51,7 @@ func NewMangaScriptRunner(
 }
 
 // Run は Web ページの内容を抽出し、Gemini を用いて漫画の台本 JSON を生成します。
-func (sr *MangaScriptRunner) Run(ctx context.Context, scriptURL string) (domain.MangaResponse, error) {
+func (sr *MangaScriptRunner) Run(ctx context.Context, scriptURL string, mode string) (domain.MangaResponse, error) {
 	slog.Info("ScriptRunner: Extracting text", "url", scriptURL)
 
 	// 1. Web サイトからテキストを抽出
@@ -60,20 +60,19 @@ func (sr *MangaScriptRunner) Run(ctx context.Context, scriptURL string) (domain.
 		return domain.MangaResponse{}, err
 	}
 
-	// 2. 注入されたプロンプトビルダーを使用してプロンプトを構築
 	// TemplateData 構造体を使用して InputText を流し込みます
-	finalPrompt, err := sr.promptBuilder.Build(prompt.TemplateData{
-		InputText: inputText,
-	})
-	if err != nil {
-		return domain.MangaResponse{}, fmt.Errorf("failed to build prompt: %w", err)
+	templateData := prompts.TemplateData{InputText: inputText}
+	finalPrompt, promptErr := sr.promptBuilder.Build(mode, templateData)
+	if promptErr != nil {
+		err = fmt.Errorf("プロンプト生成に失敗: %w", promptErr)
+		return domain.MangaResponse{}, err
 	}
 
 	// 3. Gemini API を呼び出し
 	slog.Info("ScriptRunner: Calling Gemini API", "model", sr.cfg.GeminiModel)
 	resp, err := sr.aiClient.GenerateContent(ctx, finalPrompt, sr.cfg.GeminiModel)
 	if err != nil {
-		return domain.MangaResponse{}, fmt.Errorf("AI generation failed: %w", err)
+		return domain.MangaResponse{}, fmt.Errorf("プロンプト生成に失敗: %w", err)
 	}
 
 	// 4. AI 応答をパースして構造化データに変換

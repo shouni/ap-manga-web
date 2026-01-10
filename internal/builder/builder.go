@@ -1,12 +1,11 @@
 package builder
 
 import (
+	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/prompts"
+	"ap-manga-web/internal/runner"
 	"context"
 	"fmt"
-
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/prompt"
-	"ap-manga-web/internal/runner"
 
 	"github.com/shouni/go-ai-client/v2/pkg/ai/gemini"
 	"github.com/shouni/go-http-kit/pkg/httpkit"
@@ -19,30 +18,24 @@ import (
 
 // BuildScriptRunner は台本テキスト生成の Runner を構築します。
 func BuildScriptRunner(ctx context.Context, appCtx *AppContext) (runner.ScriptRunner, error) {
-	// 1. appCtx.httpClient (非公開) を使用してエクストラクタを初期化
+	// appCtx.httpClient (非公開) を使用してエクストラクタを初期化
 	extractor, err := extract.NewExtractor(appCtx.httpClient)
 	if err != nil {
 		return nil, fmt.Errorf("エクストラクタの初期化に失敗しました: %w", err)
 	}
 
-	// 2. Config.GeminiModel をモードとしてプロンプトテンプレートを取得
-	templateStr, err := prompt.GetPromptByMode(appCtx.Config.GeminiModel)
+	// プロンプトビルダーの作成
+	promptBuilder, err := prompts.NewTextPromptBuilder()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Prompt Builder の構築に失敗しました: %w", err)
 	}
 
-	// 3. プロンプトビルダーの作成 (最新の runner はインターフェースとしてこれを受け取ります)
-	promptBuilder, err := prompt.NewBuilder(templateStr)
-	if err != nil {
-		return nil, fmt.Errorf("プロンプトビルダーの作成に失敗しました: %w", err)
-	}
-
-	// 4. 最新の引数構成に合わせて注入 (cfg, ext, pb, ai, r)
+	// 最新の引数構成に合わせて注入 (cfg, ext, pb, ai, r)
 	return runner.NewMangaScriptRunner(
-		*appCtx.Config,
+		appCtx.Config,
 		extractor,
-		promptBuilder,   // 外部で作成して注入
-		appCtx.aiClient, // 非公開フィールド
+		promptBuilder,
+		appCtx.aiClient,
 		appCtx.Reader,
 	), nil
 }
@@ -53,7 +46,6 @@ func BuildImageRunner(ctx context.Context, appCtx *AppContext) (runner.ImageRunn
 	return runner.NewMangaImageRunner(
 		appCtx.MangaGenerator,
 		config.DefaultImagePromptSuffix,
-		config.DefaultPanelLimit,
 	), nil
 }
 
@@ -84,7 +76,7 @@ func BuildPublisherRunner(ctx context.Context, appCtx *AppContext) (runner.Publi
 	pub := publisher.NewMangaPublisher(appCtx.Writer, md2htmlRunner)
 
 	// Web版のフラットな Config をそのまま渡す
-	return runner.NewDefaultPublisherRunner(*appCtx.Config, pub), nil
+	return runner.NewDefaultPublisherRunner(appCtx.Config, pub), nil
 }
 
 // BuildDesignRunner はキャラクターデザインの生成を担う Runner を構築します。

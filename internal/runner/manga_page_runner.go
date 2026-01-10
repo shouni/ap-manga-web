@@ -17,7 +17,6 @@ type PageRunner interface {
 // MangaPageRunner は Markdownのパースと複数ページの生成（チャンク処理）を管理するのだ。
 type MangaPageRunner struct {
 	pageGen *generator.PageGenerator
-	//	markdownParser *parser.Parser
 }
 
 // NewMangaPageRunner は生成エンジン、スタイル設定、パーサーを依存性として注入して初期化するのだ。
