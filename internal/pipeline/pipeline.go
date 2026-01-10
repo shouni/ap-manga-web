@@ -64,6 +64,7 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 	case "script":
 		manga, err = p.runScriptStep(ctx, payload)
+		// TODO::jsonファイルのgsc保存がいる
 		// scriptのみの場合は通知しない、あるいは専用の通知をここに書くのだ
 
 	case "image":

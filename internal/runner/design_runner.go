@@ -78,8 +78,6 @@ func (dr *MangaDesignRunner) Run(ctx context.Context, charIDs []string, seed int
 	return outputPath, resp.UsedSeed, nil
 }
 
-// --- 以下、ヘルパー関数群 (CLI版のロジックを継承) ---
-
 func (dr *MangaDesignRunner) saveResponseImage(ctx context.Context, resp imgdom.ImageResponse, charIDs []string, imageDir string) (string, error) {
 	extension := getPreferredExtension(resp.MimeType)
 	charTags := strings.Join(charIDs, "_")

@@ -22,7 +22,6 @@ type MangaImageRunner struct {
 }
 
 // NewMangaImageRunner は、依存関係を注入して初期化します。
-// mangaGen は adapters.GeminiImageAdapter などがこのインターフェースを満たしている想定です。
 func NewMangaImageRunner(mangaGen generator.MangaGenerator, styleSuffix string) *MangaImageRunner {
 	// 1秒間に生成するリクエスト数などは config から取得するようにします
 	groupGen := generator.NewGroupGenerator(mangaGen, styleSuffix, config.DefaultRateLimit)
@@ -36,7 +35,7 @@ func NewMangaImageRunner(mangaGen generator.MangaGenerator, styleSuffix string) 
 func (r *MangaImageRunner) Run(ctx context.Context, manga domain.MangaResponse, limit int) ([]*imagedom.ImageResponse, error) {
 	pages := manga.Pages
 
-	// 1. パネル数制限の適用 (Web版では payload.PanelLimit から渡される値などを使用)
+	// 1. パネル数制限の適用
 	if limit > 0 && len(pages) > limit {
 		slog.Info("Applying panel limit", "limit", limit, "total", len(pages))
 		pages = pages[:limit]
@@ -48,7 +47,6 @@ func (r *MangaImageRunner) Run(ctx context.Context, manga domain.MangaResponse, 
 	)
 
 	// 2. 既存の manga-kit のロジックに委譲
-	// domain.MangaPage が kit 側の型と互換性があることを前提としています
 	images, err := r.groupGen.ExecutePanelGroup(ctx, pages)
 	if err != nil {
 		slog.Error("Image generation pipeline failed", "error", err)

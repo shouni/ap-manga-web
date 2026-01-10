@@ -28,11 +28,7 @@ func NewMangaPageRunner(mangaGen generator.MangaGenerator, styleSuffix string) *
 
 // Run は提供された Markdown コンテンツを解析し、複数枚の漫画ページ画像を生成するのだ。
 func (r *MangaPageRunner) Run(ctx context.Context, scriptURL, markdownContent string) ([]*imagedom.ImageResponse, error) {
-
 	markdownParser := parser.NewParser(scriptURL)
-
-	// 1. Markdown テキストをドメインモデルに変換
-	//	manga, err := r.markdownParser.Parse(markdownContent)
 	manga, err := markdownParser.Parse(markdownContent)
 	if err != nil {
 		return nil, fmt.Errorf("Markdownコンテンツのパースに失敗しました: %w", err)
