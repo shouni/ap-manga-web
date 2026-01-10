@@ -85,6 +85,8 @@ github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
 github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
 github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=
+github.com/go-test/deep v1.1.1 h1:0r/53hagsehfO4bzD2Pgr/+RgHqhmf+k1Bpse2cTu1U=
+github.com/go-test/deep v1.1.1/go.mod h1:5C2ZWiW0ErCdrYzpqxLbTX7MG14M9iiw8DgHncVwcsE=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
@@ -124,6 +126,8 @@ github.com/shouni/go-http-kit v1.1.2 h1:hVhVSjF1yLt9kMJbI5yFYQvANuHCH3so7ynhCiXb
 github.com/shouni/go-http-kit v1.1.2/go.mod h1:CFk1CJbTqRskKB70qbn+q2fVyH9zXNp9KWQuWp/lwFY=
 github.com/shouni/go-manga-kit v1.0.6 h1:QaTpIQroh5as5+pKlAnXbWg5+hQNO8vYvFeSAQEICmU=
 github.com/shouni/go-manga-kit v1.0.6/go.mod h1:tLKh1xLJvk9QxJO1HaZRxIL6a118gJpwcq0S3pfQ4SI=
+github.com/shouni/go-notifier v1.1.4 h1:mIZAy2hX3QkVqCEl6Win81XJANJj1sp54tw3MGxSNW4=
+github.com/shouni/go-notifier v1.1.4/go.mod h1:7SanutXQN2OYDT3lYqjkDe6wHwKyVdVaNdXkoeOVSwA=
 github.com/shouni/go-remote-io v1.1.0 h1:Ne6xoUUEpvhcjmA2hXrNMkiERuxAxDk1eFSZIKBN7JA=
 github.com/shouni/go-remote-io v1.1.0/go.mod h1:zFdrNFXoPvEQ12W/yAV2RKktcuv7NgDNHD1MKL6ngwU=
 github.com/shouni/go-text-format v1.1.3 h1:OW53o+jPycCo7TjjPTCqa7uiBxmrFZR/C7IeRG0/RBI=
@@ -132,6 +136,8 @@ github.com/shouni/go-utils v1.0.15 h1:4wfvMko3SgTCRwuZz0XI08wnQJQN600/FzVjgFso5/
 github.com/shouni/go-utils v1.0.15/go.mod h1:dQxOuVTvWFHWEH/G6izteLh+tubkI5Sl1jpDWlCSkBU=
 github.com/shouni/go-web-exact/v2 v2.0.13 h1:GMwj/0tP96B8VGBQ0yhe8+dYI4lD6ImIC4Kdra1xptM=
 github.com/shouni/go-web-exact/v2 v2.0.13/go.mod h1:j5jU6uCI/AwchJA00nZpY7LnIJ1Vg+KylXCNXknuWdw=
+github.com/slack-go/slack v0.17.3 h1:zV5qO3Q+WJAQ/XwbGfNFrRMaJ5T/naqaonyPV/1TP4g=
+github.com/slack-go/slack v0.17.3/go.mod h1:X+UqOufi3LYQHDnMG1vxf0J8asC6+WllXrVrhl8/Prk=
 github.com/spiffe/go-spiffe/v2 v2.6.0 h1:l+DolpxNWYgruGQVV0xsfeya3CsC7m8iBzDnMpsbLuo=
 github.com/spiffe/go-spiffe/v2 v2.6.0/go.mod h1:gm2SeUoMZEtpnzPNs2Csc0D/gX33k1xIx7lEzqblHEs=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=

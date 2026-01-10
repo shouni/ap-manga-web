@@ -1,11 +1,11 @@
 package builder
 
 import (
-	"ap-manga-web/internal/adapters"
 	"fmt"
 	"net/http"
 	"net/url"
 
+	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/controllers/auth"
 	"ap-manga-web/internal/controllers/web"
@@ -15,16 +15,20 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// NewServerHandler は HTTP ルーティング、認証、各ハンドラーの依存関係をすべて組み立てるのだ。
 func NewServerHandler(
 	cfg config.Config,
 	taskAdapter adapters.TaskAdapter,
-	pipelineExecutor worker.MangaPipelineExecutor, // インターフェースで受け取る
+	pipelineExecutor worker.MangaPipelineExecutor, // インターフェース経由で Pipeline を受け取るのだ
 ) (http.Handler, error) {
 	r := chi.NewRouter()
+
+	// 標準的なミドルウェア
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
 	// --- 1. Auth Handler の初期化 ---
+	// Google OAuth と Cloud Tasks OIDC 検証の両方を担当するのだ
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build auth redirect URL: %w", err)
@@ -56,17 +60,34 @@ func NewServerHandler(
 
 	// --- 5. 認証が必要なルート (Web UI 用) ---
 	r.Group(func(r chi.Router) {
-		r.Use(authHandler.Middleware) // Google OAuth セッションチェック
+		r.Use(authHandler.Middleware) // ブラウザセッションをチェックするのだ
+
+		// 一括生成 (メイン)
 		r.Get("/", webHandler.Index)
+
+		// [追加] 各 Command ごとの入力テンプレート表示
+		// Handler 側にそれぞれ Index と同様のメソッドが必要なのだ
+		r.Get("/design", webHandler.Design) // キャラ設計画面
+		r.Get("/script", webHandler.Script) // 台本抽出画面
+		r.Get("/image", webHandler.Image)   // 画像錬成画面
+		r.Get("/story", webHandler.Story)   // プロット構成画面
+
+		// 全ての POST リクエストは共通の HandleSubmit で受け止め、
+		// payload.Command で後続の挙動を分岐させるのだ。
 		r.Post("/generate", webHandler.HandleSubmit)
 	})
 
 	// --- 6. Cloud Tasks 専用ルート (Worker 用) ---
 	r.Group(func(r chi.Router) {
-		// Cloud Tasks が付与する Authorization: Bearer [ID_TOKEN] を検証する
+		// Cloud Tasks が付与する OIDC Token (Authorization: Bearer) を検証するのだ
 		r.Use(authHandler.TaskOIDCVerificationMiddleware)
+
+		// Worker が実際に重い処理 (Pipeline) を実行するエンドポイントなのだ
 		r.Post("/tasks/generate", workerHandler.GenerateTask)
 	})
+
+	// --- 7. 静的ファイル（もしあれば） ---
+	// GCS上の成果物を表示したり、CSSを読み込んだりする設定をここに追加できるのだ
 
 	return r, nil
 }
