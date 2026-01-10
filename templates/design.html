@@ -1,0 +1,35 @@
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-info">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">🎨 Character Design - キャラ設定なのだ</h4>
+            </div>
+            <div class="card-body">
+                <form action="/generate" method="POST">
+                    <input type="hidden" name="command" value="design">
+
+                    <div class="mb-3">
+                        <label class="form-label">キャラクターID (カンマ区切り)</label>
+                        <input type="text" name="input_text" class="form-control"
+                               placeholder="zundamon, metan" required>
+                        <div class="form-text">デザインシートを作りたいキャラのIDを入れるのだ。</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">シード値 (Seed)</label>
+                        <input type="number" name="seed" class="form-control" value="0">
+                        <div class="form-text">0を指定するとランダム、特定の数値を入れれば固定されるのだ！</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-info btn-lg text-white">
+                            デザインシートを生成するのだ！
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"ap-manga-web/internal/adapters"
 	"context"
 	"fmt"
 
@@ -24,6 +25,8 @@ type AppContext struct {
 	Writer remoteio.OutputWriter
 	// MangaGenerator はマンガ生成のコア機能を提供します。
 	MangaGenerator generator.MangaGenerator
+	// SlackNotifier はslack通知のアダプターです。
+	SlackNotifier adapters.SlackNotifier
 	// aiClient はGemini APIとの通信に使用するクライアントです。
 	aiClient gemini.GenerativeModel
 	// httpClient は外部HTTPリソースへのアクセスに使用するクライアントです。
@@ -38,6 +41,7 @@ func NewAppContext(
 	reader remoteio.InputReader,
 	writer remoteio.OutputWriter,
 	mangaGenerator generator.MangaGenerator,
+	slackNotifier adapters.SlackNotifier,
 ) AppContext {
 	return AppContext{
 		Config:         cfg,
@@ -46,6 +50,7 @@ func NewAppContext(
 		Reader:         reader,
 		Writer:         writer,
 		MangaGenerator: mangaGenerator,
+		SlackNotifier:  slackNotifier,
 	}
 }
 
@@ -73,12 +78,13 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		return nil, err
 	}
 
-	// MangaGeneratorを一度だけ初期化
 	mangaGenerator, err := initializeMangaGenerator(httpClient, aiClient, cfg.ImageModel, cfg.CharacterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("MangaGeneratorの初期化に失敗しました: %w", err)
 	}
 
-	appCtx := NewAppContext(cfg, httpClient, aiClient, reader, writer, mangaGenerator)
+	slack := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
+
+	appCtx := NewAppContext(cfg, httpClient, aiClient, reader, writer, mangaGenerator, slack)
 	return &appCtx, nil
 }

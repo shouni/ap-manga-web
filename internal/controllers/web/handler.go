@@ -100,6 +100,34 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Design はキャラ設計画面を表示するのだ
+func (h *Handler) Design(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "design.html", IndexPageData{
+		Title: "Character Design - AP Manga Web",
+	})
+}
+
+// Script は台本抽出画面を表示するのだ
+func (h *Handler) Script(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "script.html", IndexPageData{
+		Title: "Script Generation - AP Manga Web",
+	})
+}
+
+// Image は画像錬成画面を表示するのだ
+func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "image.html", IndexPageData{
+		Title: "Image Generation - AP Manga Web",
+	})
+}
+
+// Story はプロット構成画面を表示するのだ
+func (h *Handler) Story(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "story.html", IndexPageData{
+		Title: "Story Boarding - AP Manga Web",
+	})
+}
+
 // HandleSubmit は、あらゆるワークフロー（Generate/Design/Story等）のフォームを受け付けるのだ。
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

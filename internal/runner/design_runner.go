@@ -20,7 +20,7 @@ import (
 
 // DesignRunner はデザインシート生成のインターフェースです。
 type DesignRunner interface {
-	Run(ctx context.Context, cfg *config.Config, charIDs []string, seed int64, outputGCS string) (string, int64, error)
+	Run(ctx context.Context, charIDs []string, seed int64, outputGCS string) (string, int64, error)
 }
 
 // MangaDesignRunner はキャラクターデザインシート生成の実行実体なのだ。
@@ -38,7 +38,7 @@ func NewMangaDesignRunner(mangaGen generator.MangaGenerator, writer remoteio.Out
 }
 
 // Run は、キャラクターIDを指定してデザインシートを生成し、GCSやローカルに保存するのだ。
-func (dr *MangaDesignRunner) Run(ctx context.Context, cfg *config.Config, charIDs []string, seed int64, outputGCS string) (string, int64, error) {
+func (dr *MangaDesignRunner) Run(ctx context.Context, charIDs []string, seed int64, outputGCS string) (string, int64, error) {
 	// 1. 複数キャラの情報を集約 (CharactersMap などから取得)
 	refs, descriptions, err := collectCharacterAssets(dr.mangaGen.Characters, charIDs)
 	if err != nil {

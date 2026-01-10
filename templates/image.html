@@ -1,0 +1,27 @@
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-success">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">🖼 Image - 台本から画像錬成なのだ</h4>
+            </div>
+            <div class="card-body">
+                <form action="/generate" method="POST">
+                    <input type="hidden" name="command" value="image">
+                    <div class="mb-3">
+                        <label class="form-label">台本 JSON (Input Text)</label>
+                        <textarea name="input_text" class="form-control" rows="10" placeholder='{"title": "ずんだもんの冒険", "pages": [...]}' required></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">パネル上限</label>
+                            <input type="number" name="panel_limit" class="form-control" value="10">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">画像のみ生成開始なのだ！</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

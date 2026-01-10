@@ -1,0 +1,28 @@
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0">📝 Script - 台本抽出なのだ</h4>
+            </div>
+            <div class="card-body">
+                <form action="/generate" method="POST">
+                    <input type="hidden" name="command" value="script">
+                    <div class="mb-3">
+                        <label class="form-label">ソースURL</label>
+                        <input type="url" name="script_url" class="form-control" placeholder="https://..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">台本構成モード</label>
+                        <select name="mode" class="form-select">
+                            <option value="dialogue">Dialogue (基本解説)</option>
+                            <option value="duet">Duet (掛け合い)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-secondary w-100">台本を生成するのだ！</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
