@@ -32,7 +32,7 @@ func BuildScriptRunner(ctx context.Context, appCtx *AppContext) (runner.ScriptRu
 
 	// 最新の引数構成に合わせて注入 (cfg, ext, pb, ai, r)
 	return runner.NewMangaScriptRunner(
-		*appCtx.Config,
+		appCtx.Config,
 		extractor,
 		promptBuilder,
 		appCtx.aiClient,
@@ -76,7 +76,7 @@ func BuildPublisherRunner(ctx context.Context, appCtx *AppContext) (runner.Publi
 	pub := publisher.NewMangaPublisher(appCtx.Writer, md2htmlRunner)
 
 	// Web版のフラットな Config をそのまま渡す
-	return runner.NewDefaultPublisherRunner(*appCtx.Config, pub), nil
+	return runner.NewDefaultPublisherRunner(appCtx.Config, pub), nil
 }
 
 // BuildDesignRunner はキャラクターデザインの生成を担う Runner を構築します。
