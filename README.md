@@ -130,7 +130,7 @@ ap-manga-web/
 │   ├── domain/       # ドメインモデル (task.go, manga.go)
 │   ├── pipeline/     # 実行制御 (Script -> Image -> Publish)
 │   ├── prompt/       # 台本作成用テンプレート (Markdown)
-│   └── runner/       # 画像生成実行パイプライン
+│   └── runner/       # 再利用可能なタスク実行コンポーネント
 ├── templates/        # HTMLテンプレート (layout.html, index.html等)
 ├── main.go           # エントリーポイント
 └── go.mod            # モジュール定義
