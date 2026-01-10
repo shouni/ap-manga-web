@@ -17,7 +17,7 @@ type PublisherRunner interface {
 
 // DefaultPublisherRunner は pkg/publisher を利用した標準実装なのだ。
 type DefaultPublisherRunner struct {
-	cfg       config.Config // CLI版の options ではなく Config 全体を保持する形に合わせるのだ
+	cfg       config.Config
 	publisher *publisher.MangaPublisher
 }
 
@@ -29,8 +29,6 @@ func NewDefaultPublisherRunner(cfg config.Config, pub *publisher.MangaPublisher)
 }
 
 func (pr *DefaultPublisherRunner) Run(ctx context.Context, manga domain.MangaResponse, images []*imagedom.ImageResponse, outputFile, outputGCS string) error {
-	// Web版の Config (または GCS 保存先設定) を pkg/publisher 用の構造体に詰め替えるのだ。
-	// ここで設定する OutputFile は、GCS のバケットパス (gs://...) などになるのだ。
 	opts := publisher.Options{
 		OutputFile:     outputFile,
 		OutputImageDir: outputGCS,

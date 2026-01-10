@@ -1,11 +1,12 @@
 package builder
 
 import (
+	"context"
+	"fmt"
+
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/prompts"
 	"ap-manga-web/internal/runner"
-	"context"
-	"fmt"
 
 	"github.com/shouni/go-ai-client/v2/pkg/ai/gemini"
 	"github.com/shouni/go-http-kit/pkg/httpkit"
@@ -18,7 +19,6 @@ import (
 
 // BuildScriptRunner は台本テキスト生成の Runner を構築します。
 func BuildScriptRunner(ctx context.Context, appCtx *AppContext) (runner.ScriptRunner, error) {
-	// appCtx.httpClient (非公開) を使用してエクストラクタを初期化
 	extractor, err := extract.NewExtractor(appCtx.httpClient)
 	if err != nil {
 		return nil, fmt.Errorf("エクストラクタの初期化に失敗しました: %w", err)
@@ -30,7 +30,6 @@ func BuildScriptRunner(ctx context.Context, appCtx *AppContext) (runner.ScriptRu
 		return nil, fmt.Errorf("Prompt Builder の構築に失敗しました: %w", err)
 	}
 
-	// 最新の引数構成に合わせて注入 (cfg, ext, pb, ai, r)
 	return runner.NewMangaScriptRunner(
 		appCtx.Config,
 		extractor,
@@ -42,7 +41,6 @@ func BuildScriptRunner(ctx context.Context, appCtx *AppContext) (runner.ScriptRu
 
 // BuildImageRunner は個別パネル画像生成を担当する MangaImageRunner を構築します。
 func BuildImageRunner(ctx context.Context, appCtx *AppContext) (runner.ImageRunner, error) {
-	// limit は Config の DefaultPanelLimit 定数を使用
 	return runner.NewMangaImageRunner(
 		appCtx.MangaGenerator,
 		config.DefaultImagePromptSuffix,
@@ -75,7 +73,6 @@ func BuildPublisherRunner(ctx context.Context, appCtx *AppContext) (runner.Publi
 
 	pub := publisher.NewMangaPublisher(appCtx.Writer, md2htmlRunner)
 
-	// Web版のフラットな Config をそのまま渡す
 	return runner.NewDefaultPublisherRunner(appCtx.Config, pub), nil
 }
 

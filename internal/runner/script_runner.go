@@ -84,8 +84,6 @@ func (sr *MangaScriptRunner) Run(ctx context.Context, scriptURL string, mode str
 	return manga, nil
 }
 
-// --- 内部ロジック群 ---
-
 func (sr *MangaScriptRunner) extractContent(ctx context.Context, url string) (string, error) {
 	text, _, err := sr.extractor.FetchAndExtractText(ctx, url)
 	if err != nil {
