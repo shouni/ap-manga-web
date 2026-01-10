@@ -53,7 +53,6 @@ func BuildImageRunner(ctx context.Context, appCtx *AppContext) (runner.ImageRunn
 	return runner.NewMangaImageRunner(
 		appCtx.MangaGenerator,
 		config.DefaultImagePromptSuffix,
-		config.DefaultPanelLimit,
 	), nil
 }
 
