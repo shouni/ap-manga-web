@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"strings"
 
 	"ap-manga-web/internal/builder"
 	"ap-manga-web/internal/config"
@@ -13,6 +15,9 @@ import (
 	imagedom "github.com/shouni/gemini-image-kit/pkg/domain"
 	mngdom "github.com/shouni/go-manga-kit/pkg/domain"
 )
+
+// ファイル名として安全でない文字を置換するための正規表現
+var invalidPathChars = regexp.MustCompile(`[\\/:\*\?"<>\|]`)
 
 type MangaPipeline struct {
 	cfg config.Config
@@ -33,7 +38,6 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 	switch payload.Command {
 	case "generate":
-		// 全工程一括実行
 		manga, err := p.runScriptStep(ctx, appCtx, payload)
 		if err != nil {
 			return err
@@ -45,16 +49,13 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		return p.runPublishStep(ctx, appCtx, manga, images)
 
 	case "design":
-		// キャラクターデザインシート生成
 		return p.runDesignStep(ctx, appCtx, payload)
 
 	case "script":
-		// 台本生成のみ (Publishはせず、ログやDB等に結果を残す想定)
 		_, err := p.runScriptStep(ctx, appCtx, payload)
 		return err
 
 	case "image":
-		// 直接入力されたJSON台本から画像生成
 		var manga mngdom.MangaResponse
 		if err := json.Unmarshal([]byte(payload.InputText), &manga); err != nil {
 			return fmt.Errorf("failed to parse input JSON for image mode: %w", err)
@@ -66,7 +67,6 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		return p.runPublishStep(ctx, appCtx, manga, images)
 
 	case "story":
-		// Markdown等から最終的な複数ページ漫画を生成
 		return p.runStoryStep(ctx, appCtx, payload)
 
 	default:
@@ -86,11 +86,12 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, appCtx *builder.AppCo
 }
 
 func (p *MangaPipeline) runImageStep(ctx context.Context, appCtx *builder.AppContext, manga mngdom.MangaResponse, limit int) ([]*imagedom.ImageResponse, error) {
+	slog.Info("Phase: Image generation starting...", "panels", len(manga.Pages))
 	runner, err := builder.BuildImageRunner(ctx, appCtx)
 	if err != nil {
 		return nil, err
 	}
-	// Payload から引き回してきた limit をここで渡す
+
 	return runner.Run(ctx, manga, limit)
 }
 
@@ -112,7 +113,6 @@ func (p *MangaPipeline) runStoryStep(ctx context.Context, appCtx *builder.AppCon
 	if err != nil {
 		return err
 	}
-	// Markdownパース後の保存先は別途検討が必要だが、一旦生成まで実行
 	_, err = runner.Run(ctx, payload.ScriptURL, payload.InputText)
 	return err
 }
@@ -123,7 +123,13 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, appCtx *builder.AppC
 	if err != nil {
 		return err
 	}
-	// 保存先ディレクトリ名は日付やIDをベースに動的に生成するのが望ましい
-	outputDir := fmt.Sprintf("output/%s", manga.Title)
+
+	// タイトルのサニタイズ処理を追加
+	safeTitle := invalidPathChars.ReplaceAllString(manga.Title, "_")
+	if safeTitle == "" {
+		safeTitle = "untitled"
+	}
+	outputDir := fmt.Sprintf("output/%s", safeTitle)
+
 	return runner.Run(ctx, manga, images, "index.html", outputDir)
 }
