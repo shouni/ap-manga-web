@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -13,7 +14,6 @@ import (
 	mngdom "github.com/shouni/go-manga-kit/pkg/domain"
 )
 
-// MangaPipeline は、CLI版のフェーズ管理ロジックをWeb版に適合させたものです。
 type MangaPipeline struct {
 	cfg config.Config
 }
@@ -22,65 +22,108 @@ func NewMangaPipeline(cfg config.Config) *MangaPipeline {
 	return &MangaPipeline{cfg: cfg}
 }
 
-// Execute は Cloud Tasks ワーカーから呼び出され、全工程を実行します。
+// Execute は Payload の Command に応じて、適切なワークフローを実行するのだ。
 func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTaskPayload) error {
-	// 1. AppContext の構築 (CLI版 builder.BuildAppContext の流用)
 	appCtx, err := builder.BuildAppContext(ctx, &p.cfg)
 	if err != nil {
 		return fmt.Errorf("failed to build AppContext: %w", err)
 	}
 
-	// --- Phase 1: Script Phase (台本生成) ---
-	// CLI版の runScriptStep と同等の処理
-	manga, err := p.runScriptStep(ctx, appCtx, payload)
-	if err != nil {
-		return err
-	}
+	slog.Info("Pipeline started", "command", payload.Command, "mode", payload.Mode)
 
-	// --- Phase 2: Image Phase (パネル画像作成) ---
-	// CLI版の runImageStep と同等の処理
-	images, err := p.runImageStep(ctx, appCtx, manga)
-	if err != nil {
-		return err
-	}
+	switch payload.Command {
+	case "generate":
+		// 全工程一括実行
+		manga, err := p.runScriptStep(ctx, appCtx, payload)
+		if err != nil {
+			return err
+		}
+		images, err := p.runImageStep(ctx, appCtx, manga, payload.PanelLimit)
+		if err != nil {
+			return err
+		}
+		return p.runPublishStep(ctx, appCtx, manga, images)
 
-	// --- Phase 3: Publish Phase (保存・通知) ---
-	// CLI版の runPublishStep と同等の処理
-	err = p.runPublishStep(ctx, appCtx, manga, images)
-	if err != nil {
-		return err
-	}
+	case "design":
+		// キャラクターデザインシート生成
+		return p.runDesignStep(ctx, appCtx, payload)
 
-	slog.Info("漫画生成パイプラインが正常に完了しました！", "url", payload.ScriptURL)
-	return nil
+	case "script":
+		// 台本生成のみ (Publishはせず、ログやDB等に結果を残す想定)
+		_, err := p.runScriptStep(ctx, appCtx, payload)
+		return err
+
+	case "image":
+		// 直接入力されたJSON台本から画像生成
+		var manga mngdom.MangaResponse
+		if err := json.Unmarshal([]byte(payload.InputText), &manga); err != nil {
+			return fmt.Errorf("failed to parse input JSON for image mode: %w", err)
+		}
+		images, err := p.runImageStep(ctx, appCtx, manga, payload.PanelLimit)
+		if err != nil {
+			return err
+		}
+		return p.runPublishStep(ctx, appCtx, manga, images)
+
+	case "story":
+		// Markdown等から最終的な複数ページ漫画を生成
+		return p.runStoryStep(ctx, appCtx, payload)
+
+	default:
+		return fmt.Errorf("unsupported command: %s", payload.Command)
+	}
 }
 
-// 内部ステップ（CLI版のロジックをそのままメソッド化）
+// --- 内部ステップ群 ---
+
 func (p *MangaPipeline) runScriptStep(ctx context.Context, appCtx *builder.AppContext, payload domain.GenerateTaskPayload) (mngdom.MangaResponse, error) {
-	slog.Info("Phase 1: 台本生成を開始します...")
-	scriptRunner, err := builder.BuildScriptRunner(ctx, appCtx)
+	slog.Info("Phase: Script generation starting...")
+	runner, err := builder.BuildScriptRunner(ctx, appCtx)
 	if err != nil {
 		return mngdom.MangaResponse{}, err
 	}
-	// payload.ScriptURL を利用して解析
-	return scriptRunner.Run(ctx, payload.ScriptURL)
+	return runner.Run(ctx, payload.ScriptURL)
 }
 
-func (p *MangaPipeline) runImageStep(ctx context.Context, appCtx *builder.AppContext, manga mngdom.MangaResponse) ([]*imagedom.ImageResponse, error) {
-	slog.Info("Phase 2: 画像生成を開始します...", "pages", len(manga.Pages))
-	imageRunner, err := builder.BuildImageRunner(ctx, appCtx)
+func (p *MangaPipeline) runImageStep(ctx context.Context, appCtx *builder.AppContext, manga mngdom.MangaResponse, limit int) ([]*imagedom.ImageResponse, error) {
+	runner, err := builder.BuildImageRunner(ctx, appCtx)
 	if err != nil {
 		return nil, err
 	}
-	return imageRunner.Run(ctx, manga)
+	// Payload から引き回してきた limit をここで渡す
+	return runner.Run(ctx, manga, limit)
 }
 
-func (p *MangaPipeline) runPublishStep(ctx context.Context, appCtx *builder.AppContext, manga mngdom.MangaResponse, images []*imagedom.ImageResponse) error {
-	slog.Info("Phase 3: 公開処理を開始します...")
-	publishRunner, err := builder.BuildPublisherRunner(ctx, appCtx)
+func (p *MangaPipeline) runDesignStep(ctx context.Context, appCtx *builder.AppContext, payload domain.GenerateTaskPayload) error {
+	slog.Info("Phase: Design sheet generation starting...")
+	runner, err := builder.BuildDesignRunner(ctx, appCtx)
 	if err != nil {
 		return err
 	}
-	// TODO::パスを指定する
-	return publishRunner.Run(ctx, manga, images, "test", "test")
+	// InputText をキャラIDのカンマ区切りとして扱う等の仕様に合わせる
+	charIDs := []string{payload.InputText}
+	_, _, err = runner.Run(ctx, &p.cfg, charIDs, 0, p.cfg.GCSBucket)
+	return err
+}
+
+func (p *MangaPipeline) runStoryStep(ctx context.Context, appCtx *builder.AppContext, payload domain.GenerateTaskPayload) error {
+	slog.Info("Phase: Story (Markdown to Pages) starting...")
+	runner, err := builder.BuildMangaPageRunner(ctx, appCtx)
+	if err != nil {
+		return err
+	}
+	// Markdownパース後の保存先は別途検討が必要だが、一旦生成まで実行
+	_, err = runner.Run(ctx, payload.ScriptURL, payload.InputText)
+	return err
+}
+
+func (p *MangaPipeline) runPublishStep(ctx context.Context, appCtx *builder.AppContext, manga mngdom.MangaResponse, images []*imagedom.ImageResponse) error {
+	slog.Info("Phase: Publishing...")
+	runner, err := builder.BuildPublisherRunner(ctx, appCtx)
+	if err != nil {
+		return err
+	}
+	// 保存先ディレクトリ名は日付やIDをベースに動的に生成するのが望ましい
+	outputDir := fmt.Sprintf("output/%s", manga.Title)
+	return runner.Run(ctx, manga, images, "index.html", outputDir)
 }
