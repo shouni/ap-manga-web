@@ -1,17 +1,20 @@
 package main
 
 import (
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/builder"
-	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/pipeline"
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/builder"
+	"ap-manga-web/internal/config"
 )
 
 func main() {
@@ -41,10 +44,14 @@ func run(ctx context.Context) error {
 		}
 	}()
 
-	// 3. サーバーの構築 (外部で生成したアダプターを注入)
-	handler, err := builder.NewServerHandler(ctx, cfg, taskAdapter)
+	// 1. Pipeline の作成 (pipeline は builder をインポートしている)
+	mangaPipeline := pipeline.NewMangaPipeline(cfg)
+
+	// 3. Builder を使ってハンドラーを作成
+	// ここで pipeline を渡すことで、builder パッケージ自体は pipeline を知る必要がなくなる
+	handler, err := builder.NewServerHandler(cfg, taskAdapter, mangaPipeline)
 	if err != nil {
-		return fmt.Errorf("failed to build server handler: %w", err)
+		log.Fatal(err)
 	}
 
 	srv := &http.Server{

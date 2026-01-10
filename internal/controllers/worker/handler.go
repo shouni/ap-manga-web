@@ -1,32 +1,36 @@
 package worker
 
 import (
+	"context"
 	"encoding/json"
-	"log/slog" // log を log/slog に変更
+	"fmt"
+	"log/slog"
 	"net/http"
 
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 )
 
-// MangaRunner は実際の生成ロジックを持つインターフェースなのだ
-type MangaRunner interface {
-	Execute(payload domain.GenerateTaskPayload) error
+// MangaPipelineExecutor は、非同期タスクを受け取って漫画生成フローを実行するインターフェースなのだ。
+type MangaPipelineExecutor interface {
+	Execute(ctx context.Context, payload domain.GenerateTaskPayload) error
 }
 
+// Handler は Cloud Tasks からのリクエストを処理する HTTP ハンドラーなのだ。
 type Handler struct {
-	cfg    config.Config
-	runner MangaRunner
+	cfg      config.Config
+	pipeline MangaPipelineExecutor
 }
 
-func NewHandler(cfg config.Config, runner MangaRunner) *Handler {
+// NewHandler は、依存関係を注入して Worker ハンドラーを初期化します。
+func NewHandler(cfg config.Config, pipeline MangaPipelineExecutor) *Handler {
 	return &Handler{
-		cfg:    cfg,
-		runner: runner,
+		cfg:      cfg,
+		pipeline: pipeline,
 	}
 }
 
-// GenerateTask は /tasks/generate へのリクエストを処理するのだ
+// GenerateTask は /tasks/generate へのリクエストを処理するのだ。
 func (h *Handler) GenerateTask(w http.ResponseWriter, r *http.Request) {
 	// 1. Cloud Tasks からのペイロードをデコード
 	var payload domain.GenerateTaskPayload
@@ -43,16 +47,15 @@ func (h *Handler) GenerateTask(w http.ResponseWriter, r *http.Request) {
 		"panel_limit", payload.PanelLimit,
 	)
 
-	// 2. 実際の生成処理を実行 (Runnerを呼び出す)
-	// Cloud Run のタイムアウト制限内で同期実行されるのだ
-	if err := h.runner.Execute(payload); err != nil {
-		// 失敗時は Error レベルでログ出力
+	// 2. パイプラインを実行
+	// r.Context() を渡すことで、HTTPリクエストのキャンセルやタイムアウトを伝搬させます。
+	if err := h.pipeline.Execute(r.Context(), payload); err != nil {
 		slog.Error("Manga generation failed",
 			"script_url", payload.ScriptURL,
 			"error", err,
 		)
-		// 5xxを返すと Cloud Tasks が自動でリトライしてくれるのだ！
-		http.Error(w, "Generation failed", http.StatusInternalServerError)
+		// 5xxを返すと Cloud Tasks が指数バックオフで自動リトライしてくれるのだ！
+		http.Error(w, "Internal Server Error during generation", http.StatusInternalServerError)
 		return
 	}
 
@@ -60,5 +63,8 @@ func (h *Handler) GenerateTask(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Manga generation completed successfully",
 		"script_url", payload.ScriptURL,
 	)
+
+	// 成功を Cloud Tasks に知らせる
 	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "OK")
 }
