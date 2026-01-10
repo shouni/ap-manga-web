@@ -138,6 +138,11 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.Genera
 		}
 	}
 
+	if len(charIDs) == 0 {
+		slog.WarnContext(ctx, "Character IDs are empty. Skipping design step.", "input", payload.InputText)
+		return "", 0, nil
+	}
+
 	outputURL, finalSeed, err := runner.Run(
 		ctx,
 		charIDs,
@@ -198,5 +203,5 @@ func (p *MangaPipeline) buildDesignNotification(payload domain.GenerateTaskPaylo
 		OutputCategory: "design-sheet",
 		TargetTitle:    fmt.Sprintf("Design: %s (Seed: %d)", payload.InputText, seed),
 		ExecutionMode:  "design",
-	}, url, "Google Cloud Storage"
+	}, url, "N/A"
 }

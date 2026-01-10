@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"ap-manga-web/internal/domain"
 
@@ -82,5 +81,5 @@ func (a *SlackAdapter) buildSlackContent(publicURL, storageURI string, req domai
 		publicURL,
 		storageURI,
 	)
-	return strings.TrimSpace(content)
+	return content
 }
