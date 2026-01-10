@@ -50,7 +50,7 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 
 1. **Controller 層**: Web/Worker ハンドラーが外部（ユーザー/Cloud Tasks）との窓口となる。
 2. **Pipeline 層**: `MangaPipeline` が全体の指揮官となり、台本生成・画像生成・公開の順序を制御。
-3. **Runner 層**: 最小単位の実行部隊。特定のタスク（画像1枚の生成など）に専念。
+3. **Runner 層**: 特定の独立したタスク（例: 画像1枚の生成、GCSへのアップロード）を実行する、再利用可能な最小単位のコンポーネント。
 
 ---
 
@@ -139,7 +139,7 @@ ap-manga-web/
 
 ---
 
-## 💻 処理のフロー (Workflow Flow)
+## 💻 ワークフロー (Workflow)
 
 1. **Request**: ユーザーが Web フォームから URL を送信。
 2. **Enqueue**: `web.Handler` が Cloud Tasks にジョブを投入。
