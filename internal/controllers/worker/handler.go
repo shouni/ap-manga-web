@@ -56,8 +56,7 @@ func (h *Handler) GenerateTask(w http.ResponseWriter, r *http.Request) {
 			"script_url", payload.ScriptURL,
 			"error", err,
 		)
-		// 5xxを返すと Cloud Tasks が指数バックオフで自動リトライしてくれるのだ！
-		// ただし、致命的なエラーでリトライ不要な場合は設計に合わせて調整が必要なのだ。
+		// 5xx系のステータスコードを返却すると、Cloud Tasksは指数バックオフに基づきタスクを自動的にリトライします。
 		http.Error(w, "Internal Server Error during generation", http.StatusInternalServerError)
 		return
 	}

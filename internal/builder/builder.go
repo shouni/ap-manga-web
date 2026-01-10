@@ -1,13 +1,11 @@
 package builder
 
 import (
-	"context"
-	"fmt"
-	"log/slog"
-
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/prompts"
 	"ap-manga-web/internal/runner"
+	"context"
+	"fmt"
 
 	"github.com/shouni/go-ai-client/v2/pkg/ai/gemini"
 	"github.com/shouni/go-http-kit/pkg/httpkit"
@@ -26,12 +24,11 @@ func BuildScriptRunner(ctx context.Context, appCtx *AppContext) (runner.ScriptRu
 		return nil, fmt.Errorf("エクストラクタの初期化に失敗しました: %w", err)
 	}
 
-	// プロンプトビルダーの作成 (最新の runner はインターフェースとしてこれを受け取ります)
+	// プロンプトビルダーの作成
 	promptBuilder, err := prompts.NewTextPromptBuilder()
 	if err != nil {
 		return nil, fmt.Errorf("Prompt Builder の構築に失敗しました: %w", err)
 	}
-	slog.Debug("PromptBuilderを構築しました。")
 
 	// 最新の引数構成に合わせて注入 (cfg, ext, pb, ai, r)
 	return runner.NewMangaScriptRunner(
