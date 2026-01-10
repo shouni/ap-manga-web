@@ -10,6 +10,7 @@ import (
 
 	"github.com/shouni/go-http-kit/pkg/httpkit"
 	"github.com/shouni/go-notifier/pkg/factory"
+	"github.com/shouni/go-notifier/pkg/slack"
 )
 
 // --- インターフェース定義 ---
@@ -23,16 +24,27 @@ type SlackNotifier interface {
 
 // SlackAdapter は SlackNotifier インターフェースを満たす具象型です。
 type SlackAdapter struct {
-	httpClient httpkit.ClientInterface
-	webhookURL string
+	httpClient  httpkit.ClientInterface
+	webhookURL  string
+	slackClient *slack.Client
 }
 
 // NewSlackAdapter は新しいアダプターインスタンスを作成します。
-func NewSlackAdapter(httpClient httpkit.ClientInterface, webhookURL string) *SlackAdapter {
-	return &SlackAdapter{
-		httpClient: httpClient,
-		webhookURL: webhookURL,
+func NewSlackAdapter(httpClient httpkit.ClientInterface, webhookURL string) (*SlackAdapter, error) {
+	if webhookURL == "" {
+		// webhookURL がない場合はクライアントを初期化しない
+		return &SlackAdapter{webhookURL: webhookURL}, nil
 	}
+	client, err := factory.GetSlackClient(httpClient)
+	if err != nil {
+		return nil, fmt.Errorf("Slackクライアントの初期化に失敗したのだ: %w", err)
+	}
+
+	return &SlackAdapter{
+		httpClient:  httpClient,
+		webhookURL:  webhookURL,
+		slackClient: client,
+	}, nil
 }
 
 // Notify は Slack に漫画生成完了の通知を投稿します。

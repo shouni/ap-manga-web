@@ -83,7 +83,10 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		return nil, fmt.Errorf("MangaGeneratorの初期化に失敗しました: %w", err)
 	}
 
-	slack := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
+	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
+	if err != nil {
+		return nil, fmt.Errorf("SlackAdapterの初期化に失敗しました: %w", err)
+	}
 
 	appCtx := NewAppContext(cfg, httpClient, aiClient, reader, writer, mangaGenerator, slack)
 	return &appCtx, nil

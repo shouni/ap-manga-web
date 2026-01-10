@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
+	"path"
 	"regexp"
 	"strings"
 
@@ -45,8 +47,12 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		err = p.runPublishStep(ctx, manga, images)
 
 	case "design":
-		err = p.runDesignStep(ctx, payload)
-
+		outputURL, finalSeed, err := p.runDesignStep(ctx, payload)
+		if err != nil {
+			return err
+		}
+		p.notifySlackForDesign(ctx, payload, outputURL, finalSeed)
+		return nil
 	case "script":
 		_, err = p.runScriptStep(ctx, payload)
 
@@ -96,11 +102,11 @@ func (p *MangaPipeline) runImageStep(ctx context.Context, manga mngdom.MangaResp
 	return runner.Run(ctx, manga, limit)
 }
 
-func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
+func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.GenerateTaskPayload) (string, int64, error) {
 	slog.Info("Phase: Design sheet generation starting...")
 	runner, err := builder.BuildDesignRunner(ctx, p.appCtx)
 	if err != nil {
-		return err
+		return "", 0, err
 	}
 
 	rawIDs := strings.Split(payload.InputText, ",")
@@ -119,13 +125,15 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.Genera
 		p.appCtx.Config.GCSBucket,
 	)
 	if err != nil {
-		return err
+		return "", 0, err
 	}
 
-	// 生成された Seed と URL を使って Slack に通知するのだ
-	p.notifySlackForDesign(ctx, payload, outputURL, finalSeed)
-
-	return nil
+	return outputURL, finalSeed, nil
+	//
+	//// 生成された Seed と URL を使って Slack に通知するのだ
+	//p.notifySlackForDesign(ctx, payload, outputURL, finalSeed)
+	//
+	//return nil
 }
 
 func (p *MangaPipeline) runStoryStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
@@ -156,12 +164,15 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaRe
 
 // notifySlack は生成完了を Slack に通知するヘルパーなのだ
 func (p *MangaPipeline) notifySlack(ctx context.Context, payload domain.GenerateTaskPayload, manga mngdom.MangaResponse) {
-	// 通知メッセージ用のリンク作成（構成に合わせて調整してほしいのだ）
-	publicURL := fmt.Sprintf("%s/outputs/%s", p.appCtx.Config.ServiceURL, manga.Title)
-	storageURI := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, manga.Title)
+	publicURL, err := url.JoinPath(p.appCtx.Config.ServiceURL, "outputs", manga.Title)
+	if err != nil {
+		slog.Error("Failed to build public URL", "error", err)
+		publicURL = "URL_BUILD_ERROR" // エラー時のフォールバック
+	}
+	storageURI := fmt.Sprintf("gs://%s/%s", p.appCtx.Config.GCSBucket, path.Join("output", manga.Title))
 
 	// SlackAdapter の Notify インターフェースに合わせて情報を詰めるのだ
-	err := p.appCtx.SlackNotifier.Notify(ctx, publicURL, storageURI, domain.NotificationRequest{
+	err = p.appCtx.SlackNotifier.Notify(ctx, publicURL, storageURI, domain.NotificationRequest{
 		SourceURL:      payload.ScriptURL,
 		OutputCategory: "manga-output",
 		TargetTitle:    manga.Title,
