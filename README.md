@@ -9,7 +9,7 @@
 
 **AP Manga Web** は、画像生成のコアライブラリ機能を **[Go Manga Kit](https://github.com/shouni/go-manga-kit)** を活用し、その機能を **Cloud Run** および **Google Cloud Tasks** を利用してWebアプリケーション化・オーケストレーションするためのプロジェクトです。
 
-Webフォームを通じて画像生成処理を**非同期ワーカー**（Cloud Tasks）で実行します。
+Webフォームを通じて画像生成処理を**非同期ワーカー**（Cloud Tasks）で実行します。処理完了時には **Slack** へ通知が飛び、生成された作品の確認や、キャラクター固定に必要な Seed 値の取得がスムーズに行えるのだ。
 
 **Google OAuth 2.0** による認証機能を実装。Webフォームへのアクセスを承認されたユーザー（指定ドメイン/メールアドレス）のみに制限し、AIリソースの安全な利用を担保します。
 
@@ -17,15 +17,15 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 
 ## 🎨 5つのワークフロー (Workflows)
 
-本ツールは、制作プロセスに応じて5つの機能をWeb UIから使い分けられるのだ。
+制作プロセスに応じて、以下の5つの機能をWeb UIから使い分けられるのだ。
 
 | 画面 (Command) | 役割 | 主な出力 |
 | --- | --- | --- |
-| **Design** | DNA抽出。設定画を生成し、固定用のSeed値を特定する。 | Design Image, Seed |
+| **Design** | DNA抽出。設定画を生成し、**固定用のSeed値を特定**する。 | Design Image, **Final Seed (via Slack)** |
 | **Generate** | 一括生成。解析から全ページのパブリッシュまで一気通貫。 | HTML, Images, MD |
 | **Script** | 台本生成。AIによる構成案（JSON）のみを出力。 | JSON (Script) |
-| **Image** | パネル作画。各コマの個別画像とHTMLを生成。 | Images, HTML, MD |
-| **Story** | 最終錬成。Markdown/JSONから複数枚の統合漫画画像を生成。 | Final Images (PNGs) |
+| **Image** | パネル作画。既存の台本から画像とHTMLを生成。 | Images, HTML, MD |
+| **Story** | 最終錬成。プロット（Markdown）から漫画構成案を生成。 | Manga Structure (JSON) |
 
 ---
 
@@ -34,39 +34,27 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | 要素 | 技術 / ライブラリ | 役割 |
 | --- | --- | --- |
 | **言語** | **Go (Golang)** | Webサーバー（API/タスクワーカー）の開発言語。 |
-| **認証・セッション** | **`x/oauth2`** / **`gorilla/sessions`** | **Google OAuth 2.0** フローとCookieベースのセッション管理。 |
-| **Webフレームワーク** | **go-chi/chi/v5** | 軽量でモジュール化されたルーティング処理。 |
-| **アーキテクチャ** | **DI (Dependency Injection)** | `builder/server.go` で全ての依存関係を統合。 |
-| **非同期実行** | **Google Cloud Tasks** | 重い画像生成処理を非同期キューに投入し、タイムアウトを回避。 |
-| **結果保存** | **Google Cloud Storage (GCS)** | 生成された画像を保存。 |
-| **I/O抽象化** | **[`go-remote-io`](https://github.com/shouni/go-remote-io)** | GCSへのI/O操作および署名付きURLの生成。 |
+| **認証・セッション** | **`x/oauth2`** / **`gorilla/sessions`** | **Google OAuth 2.0** フローとセッション管理。 |
+| **Webフレームワーク** | **go-chi/chi/v5** | 軽量なルーティング処理。 |
+| **非同期実行** | **Google Cloud Tasks** | 重い画像生成処理をキューイング。 |
+| **結果保存** | **Google Cloud Storage (GCS)** | 生成物（HTML/画像）の永続化。 |
+| **通知** | **Slack Webhook** | **SlackAdapter** による生成完了および Seed 値の報告。 |
 
 ---
 
-
 ## 🏗 システムアーキテクチャ (Internal Structure)
 
-本プロジェクトは、インポートサイクルを回避しつつ、拡張性を高めるために以下の3層構造で設計されています。
+本プロジェクトは、拡張性を高めるために以下の3層構造で設計されています。
 
-1. **Controller 層**: Web/Worker ハンドラーが外部（ユーザー/Cloud Tasks）との窓口となる。
-2. **Pipeline 層**: `MangaPipeline` が全体の指揮官となり、台本生成・画像生成・公開の順序を制御。
-3. **Runner 層**: 特定の独立したタスク（例: 画像1枚の生成、GCSへのアップロード）を実行する、再利用可能な最小単位のコンポーネント。
+1. **Controller 層**: Web/Worker ハンドラーが外部との窓口となる。
+2. **Pipeline 層**: `MangaPipeline` が全体の指揮官となり、台本・画像生成・公開・Slack通知を制御。
+3. **Runner 層**: 画像生成やGCSアップロードなど、特定のタスクを実行する最小単位のコンポーネント。
 
 ---
 
 ## 🚀 使い方 (Usage) / セットアップ
 
-### 1. GCPコンソールでの事前準備 (OAuth) 🔐
-
-1. **「APIとサービス」 > 「認証情報」** で **OAuth クライアント ID** を作成します。
-2. **承認済みのリダイレクト URI**:
-* ローカル: `http://localhost:8080/auth/callback`
-* 本番: `https://[あなたのCloud Run URL]/auth/callback`
-
-
-3. **クライアント ID** と **シークレット** を取得します。
-
-### 2. 必要な環境変数
+### 1. 必要な環境変数
 
 | 環境変数 | 説明 | デフォルト値 |
 | --- | --- | --- |
@@ -81,8 +69,9 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `SESSION_SECRET` | セッション暗号化用のランダム文字列 | - |
 | `ALLOWED_EMAILS` | 許可するメールアドレス（カンマ区切り） | - |
 | `ALLOWED_DOMAINS` | 許可するドメイン（例: `example.com`） | - |
+| `SLACK_WEBHOOK_URL` | 通知を送る先の Slack Webhook URL |
 
-### 3. ローカルでの実行方法
+### 2. ローカルでの実行方法
 
 ```bash
 # 必要な環境変数を設定（direnv推奨）
@@ -97,43 +86,24 @@ go run main.go
 
 ---
 
-## 🔐 4. 必要なIAMロールの設定（重要）
-
-### A. Cloud Run サービスアカウント (アプリケーション実行用)
-
-| 権限（IAMロール） | 目的 |
-| --- | --- |
-| **Cloud Tasks エンキューア** (`roles/cloudtasks.enqueuer`) | タスクを Cloud Tasks キューに**追加**するために必要です。 |
-| **サービス アカウント ユーザー** (`roles/iam.serviceAccountUser`) | OIDCトークン付きのタスクを作成するために必要です。 |
-| **Storage オブジェクト管理者**(`roles/storage.objectAdmin`) | 生成された画像やHTMLなどの成果物を **GCS** バケットに書き込むために必要です。 |
-
-### B. Cloud Tasks サービスアカウント (タスク実行ID)
-
-| 権限（IAMロール） | 目的 |
-| --- | --- |
-| **Cloud Run 起動元**<br>(`roles/run.invoker`) | Cloud Tasks が、ワーカーエンドポイント (`/tasks/generate`) を認証付きで呼び出すために必要です。 |
-
----
-
 ## 📁 プロジェクトレイアウト
 
 ```text
 ap-manga-web/
 ├── internal/
-│   ├── adapters/     # 外部システム連携を担うアダプター
-│   ├── builder/      # DIコンテナ、サーバー構築 (server.go)
-│   ├── config/       # 環境変数・設定管理 (config.go)
+│   ├── adapters/     # Slack通知、Cloud Tasks連携等の外部アダプター
+│   ├── builder/      # DIコンテナ、サーバー構築、Appコンテキスト
+│   ├── config/       # 環境変数管理、キャラクター定義 (characters.json)
 │   ├── controllers/
-│   │   ├── auth/     # Google OAuth & セッション管理
-│   │   ├── web/      # 画面表示・フォーム受付 (handler.go)
-│   │   └── worker/   # 非同期タスク実行 (handler.go)
-│   ├── domain/       # ドメインモデル (task.go, manga.go)
-│   ├── pipeline/     # 実行制御 (Script -> Image -> Publish)
-│   ├── prompt/       # 台本作成用テンプレート (Markdown)
-│   └── runner/       # 再利用可能なタスク実行コンポーネント
-├── templates/        # HTMLテンプレート (layout.html, index.html等)
-├── main.go           # エントリーポイント
-└── go.mod            # モジュール定義
+│   │   ├── auth/     # Google OAuth & OIDC検証
+│   │   ├── web/      # 各ワークフローの画面表示・受付
+│   │   └── worker/   # 非同期タスク実行
+│   ├── domain/       # ドメインモデル (TaskPayload, NotificationRequest)
+│   ├── pipeline/     # 全体の実行制御 (Script -> Image -> Publish -> Notify)
+│   ├── prompts/      # 台本作成用テンプレート (Markdown)
+│   └── runner/       # 各タスクの実行実体 (Design, Image, Script, etc.)
+├── templates/        # UIテンプレート (layout.html, index.html 等)
+└── main.go           # エントリーポイント
 
 ```
 
@@ -141,13 +111,24 @@ ap-manga-web/
 
 ## 💻 ワークフロー (Workflow)
 
-1. **Request**: ユーザーが Web フォームから URL を送信。
+1. **Request**: ユーザーが Web フォームから URL やプロット、**Seed値**を送信。
 2. **Enqueue**: `web.Handler` が Cloud Tasks にジョブを投入。
 3. **Worker**: `worker.Handler` がリクエストを受け、`MangaPipeline` を起動。
 4. **Pipeline**:
-* **Script Phase**: ウェブコンテンツを抽出し、Gemini で JSON 台本を構成。
-* **Image Phase**: 各パネルに対し、設定されたキャラクタースタイルで画像生成。
-* **Publish Phase**: 画像を GCS へ保存し、HTML/Markdown レポートを出力。
+* **Phase 1**: 台本生成（Script/Story）
+* **Phase 2**: 画像生成（Image/Design）。指定された Seed またはランダム Seed を使用。
+* **Phase 3**: 保存（Publish）。GCS へ保存し、公開用 URL を発行。
+* **Phase 4**: **Notification**。Slack へ完了報告。**Designモードの場合は決定された Seed 値を明記。**
+
+
+
+---
+
+## 💡 Tips: キャラクターを固定する方法
+
+1. **Design** 画面でキャラクターID（例: `zundamon`）を入力し、Seedを `12345` で実行するのだ。
+2. Slackに通知された **Final Seed**（例: `12345`）を確認するのだ。気に入った見た目ならその数値をメモ！
+3. 次回 **Generate** や **Image** を実行する際、その Seed 値を入力欄に入れれば、同じビジュアルのキャラクターを登場させ続けられるのだ！
 
 ---
 
