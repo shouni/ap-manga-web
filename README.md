@@ -43,6 +43,17 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 
 ---
 
+
+## 🏗 システムアーキテクチャ (Internal Structure)
+
+本プロジェクトは、インポートサイクルを回避しつつ、拡張性を高めるために以下の3層構造で設計されています。
+
+1. **Controller 層**: Web/Worker ハンドラーが外部（ユーザー/Cloud Tasks）との窓口となる。
+2. **Pipeline 層**: `MangaPipeline` が全体の指揮官となり、台本生成・画像生成・公開の順序を制御。
+3. **Runner 層**: 最小単位の実行部隊。特定のタスク（画像1枚の生成など）に専念。
+
+---
+
 ## 🚀 使い方 (Usage) / セットアップ
 
 ### 1. GCPコンソールでの事前準備 (OAuth) 🔐
@@ -109,6 +120,7 @@ go run main.go
 ```text
 ap-manga-web/
 ├── internal/
+│   ├── adapters/     # 外部システム連携を担うアダプター
 │   ├── builder/      # DIコンテナ、サーバー構築 (server.go)
 │   ├── config/       # 環境変数・設定管理 (config.go)
 │   ├── controllers/
@@ -116,6 +128,8 @@ ap-manga-web/
 │   │   ├── web/      # 画面表示・フォーム受付 (handler.go)
 │   │   └── worker/   # 非同期タスク実行 (handler.go)
 │   ├── domain/       # ドメインモデル (task.go, manga.go)
+│   ├── pipeline/     # 実行制御 (Script -> Image -> Publish)
+│   ├── prompt/       # 台本作成用テンプレート (Markdown)
 │   └── runner/       # 画像生成実行パイプライン
 ├── templates/        # HTMLテンプレート (layout.html, index.html等)
 ├── main.go           # エントリーポイント
@@ -125,12 +139,15 @@ ap-manga-web/
 
 ---
 
-## 💻 処理のフロー
+## 💻 処理のフロー (Workflow Flow)
 
-1. **リクエスト:** 認証済みユーザーが各画面のフォームより条件を送信。
-2. **タスク投入:** Cloud Tasks へ処理（Generate, Design等）を委譲し、ユーザーには `202 Accepted` を返却。
-3. **非同期実行:** ワーカーが `runner` を実行し、Gemini API を用いて画像を生成。
-4. **結果保存:** 生成された成果物を GCS へ保存し、必要に応じて完了を通知。
+1. **Request**: ユーザーが Web フォームから URL を送信。
+2. **Enqueue**: `web.Handler` が Cloud Tasks にジョブを投入。
+3. **Worker**: `worker.Handler` がリクエストを受け、`MangaPipeline` を起動。
+4. **Pipeline**:
+* **Script Phase**: ウェブコンテンツを抽出し、Gemini で JSON 台本を構成。
+* **Image Phase**: 各パネルに対し、設定されたキャラクタースタイルで画像生成。
+* **Publish Phase**: 画像を GCS へ保存し、HTML/Markdown レポートを出力。
 
 ---
 
