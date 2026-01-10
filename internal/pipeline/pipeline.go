@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
-	"strings"
 
 	"ap-manga-web/internal/builder"
 	"ap-manga-web/internal/config"
