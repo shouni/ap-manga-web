@@ -17,7 +17,7 @@ import (
 // これを各Build関数に渡すことで、依存関係の注入を簡素化します。
 type AppContext struct {
 	// Config は環境変数から読み込まれたグローバル設定です。
-	Config *config.Config
+	Config config.Config
 	// Reader は外部データソースからの読み込みに使用します。
 	Reader remoteio.InputReader
 	// Writer は生成されたコンテンツの書き込みに使用します。
@@ -32,7 +32,7 @@ type AppContext struct {
 
 // NewAppContext は AppContext の新しいインスタンスを生成する
 func NewAppContext(
-	cfg *config.Config,
+	cfg config.Config,
 	httpClient httpkit.ClientInterface,
 	aiClient gemini.GenerativeModel,
 	reader remoteio.InputReader,
@@ -52,7 +52,7 @@ func NewAppContext(
 // BuildAppContext は、アプリケーションの実行に必要な依存関係（HTTPクライアント、AIクライアント、GCS I/Oなど）を
 // 初期化し、AppContextとして返します。
 // この関数は、各コマンドやパイプライン実行の前に呼び出され、一貫したコンテキストを提供します。
-func BuildAppContext(ctx context.Context, cfg *config.Config) (*AppContext, error) {
+func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error) {
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
 	aiClient, err := initializeAIClient(ctx, cfg.GeminiAPIKey)
 	if err != nil {

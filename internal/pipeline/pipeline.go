@@ -8,7 +8,6 @@ import (
 	"regexp"
 
 	"ap-manga-web/internal/builder"
-	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 
 	imagedom "github.com/shouni/gemini-image-kit/pkg/domain"
@@ -19,40 +18,35 @@ import (
 var invalidPathChars = regexp.MustCompile(`[\\/:\*\?"<>\|]`)
 
 type MangaPipeline struct {
-	cfg config.Config
+	appCtx *builder.AppContext
 }
 
-func NewMangaPipeline(cfg config.Config) *MangaPipeline {
-	return &MangaPipeline{cfg: cfg}
+func NewMangaPipeline(appCtx *builder.AppContext) *MangaPipeline {
+	return &MangaPipeline{
+		appCtx: appCtx,
+	}
 }
 
 // Execute は Payload の Command に応じて、適切なワークフローを実行するのだ。
 func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTaskPayload) error {
-	// TODO:サーバー起動時に変更
-	appCtx, err := builder.BuildAppContext(ctx, &p.cfg)
-	if err != nil {
-		return fmt.Errorf("failed to build AppContext: %w", err)
-	}
-
 	slog.Info("Pipeline started", "command", payload.Command, "mode", payload.Mode)
-
 	switch payload.Command {
 	case "generate":
-		manga, err := p.runScriptStep(ctx, appCtx, payload)
+		manga, err := p.runScriptStep(ctx, p.appCtx, payload)
 		if err != nil {
 			return err
 		}
-		images, err := p.runImageStep(ctx, appCtx, manga, payload.PanelLimit)
+		images, err := p.runImageStep(ctx, p.appCtx, manga, payload.PanelLimit)
 		if err != nil {
 			return err
 		}
-		return p.runPublishStep(ctx, appCtx, manga, images)
+		return p.runPublishStep(ctx, p.appCtx, manga, images)
 
 	case "design":
-		return p.runDesignStep(ctx, appCtx, payload)
+		return p.runDesignStep(ctx, p.appCtx, payload)
 
 	case "script":
-		_, err := p.runScriptStep(ctx, appCtx, payload)
+		_, err := p.runScriptStep(ctx, p.appCtx, payload)
 		return err
 
 	case "image":
@@ -66,14 +60,14 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 			// 不正なリクエストなのでリトライさせずに正常終了とする
 			return nil
 		}
-		images, err := p.runImageStep(ctx, appCtx, manga, payload.PanelLimit)
+		images, err := p.runImageStep(ctx, p.appCtx, manga, payload.PanelLimit)
 		if err != nil {
 			return err
 		}
-		return p.runPublishStep(ctx, appCtx, manga, images)
+		return p.runPublishStep(ctx, p.appCtx, manga, images)
 
 	case "story":
-		return p.runStoryStep(ctx, appCtx, payload)
+		return p.runStoryStep(ctx, p.appCtx, payload)
 
 	default:
 		return fmt.Errorf("unsupported command: %s", payload.Command)
@@ -109,7 +103,7 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, appCtx *builder.AppCo
 	}
 	// InputText をキャラIDのカンマ区切りとして扱う等の仕様に合わせる
 	charIDs := []string{payload.InputText}
-	_, _, err = runner.Run(ctx, &p.cfg, charIDs, 0, p.cfg.GCSBucket)
+	_, _, err = runner.Run(ctx, &p.appCtx.Config, charIDs, 0, p.appCtx.Config.GCSBucket)
 	return err
 }
 
