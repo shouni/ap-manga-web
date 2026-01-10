@@ -49,28 +49,22 @@ func NewSlackAdapter(httpClient httpkit.ClientInterface, webhookURL string) (*Sl
 
 // Notify は Slack に漫画生成完了の通知を投稿します。
 func (a *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error {
-	// 1. Slack 認証情報の取得とスキップチェック
-	if a.webhookURL == "" {
-		slog.Info("SLACK_WEBHOOK_URL が設定されていないため、通知をスキップするのだ。", "storage_uri", storageURI)
+	// 1. Slackクライアントの存在チェック
+	if a.slackClient == nil {
+		slog.Info("Slackクライアントが初期化されていないため、通知をスキップします。", "storage_uri", storageURI)
 		return nil
 	}
 
-	// 2. Slack クライアントの初期化
-	slackClient, err := factory.GetSlackClient(a.httpClient)
-	if err != nil {
-		return fmt.Errorf("Slackクライアントの初期化に失敗したのだ: %w", err)
-	}
-
-	// 3. メッセージの作成
-	title := "🎨 漫画の錬成が完了したのだ！"
+	// 2. メッセージの作成
+	title := "🎨 漫画の錬成が完了しました！"
 	content := a.buildSlackContent(publicURL, storageURI, req)
 
-	// 4. Slack 投稿処理を実行
-	if err := slackClient.SendTextWithHeader(ctx, title, content); err != nil {
-		return fmt.Errorf("Slackへの投稿に失敗したのだ: %w", err)
+	// 3. Slack 投稿処理を実行 (保持しているクライアントを使用)
+	if err := a.slackClient.SendTextWithHeader(ctx, title, content); err != nil {
+		return fmt.Errorf("Slackへの投稿に失敗しました: %w", err)
 	}
 
-	slog.Info("Slack に完了通知を飛ばしたのだ！", "public_url", publicURL)
+	slog.Info("Slack に完了通知を送信しました。", "public_url", publicURL)
 	return nil
 }
 

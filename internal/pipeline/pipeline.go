@@ -32,7 +32,13 @@ func NewMangaPipeline(appCtx *builder.AppContext) *MangaPipeline {
 func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTaskPayload) error {
 	slog.Info("Pipeline started", "command", payload.Command, "mode", payload.Mode)
 
+	// 通知に必要なメタ情報を保持する変数を定義するのだ
+	var notificationReq *domain.NotificationRequest
+	var publicURL string
+	var storageURI string
 	var err error
+
+	// 一時変数の定義
 	var manga mngdom.MangaResponse
 	var images []*imagedom.ImageResponse
 
@@ -44,20 +50,24 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		if images, err = p.runImageStep(ctx, manga, payload.PanelLimit); err != nil {
 			return err
 		}
-		err = p.runPublishStep(ctx, manga, images)
+		if err = p.runPublishStep(ctx, manga, images); err == nil {
+			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
+		}
 
 	case "design":
-		outputURL, finalSeed, err := p.runDesignStep(ctx, payload)
-		if err != nil {
-			return err
+		var outputURL string
+		var finalSeed int64
+		outputURL, finalSeed, err = p.runDesignStep(ctx, payload)
+		if err == nil {
+			notificationReq, publicURL, storageURI = p.buildDesignNotification(payload, outputURL, finalSeed)
 		}
-		p.notifySlackForDesign(ctx, payload, outputURL, finalSeed)
-		return nil
+
 	case "script":
-		_, err = p.runScriptStep(ctx, payload)
+		manga, err = p.runScriptStep(ctx, payload)
+		// scriptのみの場合は通知しない、あるいは専用の通知をここに書くのだ
 
 	case "image":
-		if err := json.Unmarshal([]byte(payload.InputText), &manga); err != nil {
+		if err = json.Unmarshal([]byte(payload.InputText), &manga); err != nil {
 			slog.WarnContext(ctx, "Failed to parse input JSON for image mode. Task will not be retried.",
 				"error", err, "command", payload.Command)
 			return nil
@@ -65,7 +75,9 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		if images, err = p.runImageStep(ctx, manga, payload.PanelLimit); err != nil {
 			return err
 		}
-		err = p.runPublishStep(ctx, manga, images)
+		if err = p.runPublishStep(ctx, manga, images); err == nil {
+			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
+		}
 
 	case "story":
 		err = p.runStoryStep(ctx, payload)
@@ -74,12 +86,20 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		return fmt.Errorf("unsupported command: %s", payload.Command)
 	}
 
-	// 全ての処理が成功した後に Slack 通知を送るのだ
-	if err == nil && payload.Command != "design" {
-		p.notifySlack(ctx, payload, manga)
+	// 処理中にエラーが発生した場合はここで返却するのだ
+	if err != nil {
+		return err
 	}
 
-	return err
+	// 通知リクエストが作成されている場合のみ、共通の通知処理を実行するのだ
+	if notificationReq != nil {
+		if notifyErr := p.appCtx.SlackNotifier.Notify(ctx, publicURL, storageURI, *notificationReq); notifyErr != nil {
+			slog.ErrorContext(ctx, "Failed to send notification", "error", notifyErr)
+			// 本体の処理は成功しているので、通知エラーでリトライはさせないのだ
+		}
+	}
+
+	return nil
 }
 
 // --- 内部ステップ群 ---
@@ -129,11 +149,6 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.Genera
 	}
 
 	return outputURL, finalSeed, nil
-	//
-	//// 生成された Seed と URL を使って Slack に通知するのだ
-	//p.notifySlackForDesign(ctx, payload, outputURL, finalSeed)
-	//
-	//return nil
 }
 
 func (p *MangaPipeline) runStoryStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
@@ -162,38 +177,26 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaRe
 	return runner.Run(ctx, manga, images, "index.html", outputDir)
 }
 
-// notifySlack は生成完了を Slack に通知するヘルパーなのだ
-func (p *MangaPipeline) notifySlack(ctx context.Context, payload domain.GenerateTaskPayload, manga mngdom.MangaResponse) {
+func (p *MangaPipeline) buildMangaNotification(payload domain.GenerateTaskPayload, manga mngdom.MangaResponse) (*domain.NotificationRequest, string, string) {
 	publicURL, err := url.JoinPath(p.appCtx.Config.ServiceURL, "outputs", manga.Title)
 	if err != nil {
-		slog.Error("Failed to build public URL", "error", err)
-		publicURL = "URL_BUILD_ERROR" // エラー時のフォールバック
+		publicURL = "URL_BUILD_ERROR"
 	}
 	storageURI := fmt.Sprintf("gs://%s/%s", p.appCtx.Config.GCSBucket, path.Join("output", manga.Title))
 
-	// SlackAdapter の Notify インターフェースに合わせて情報を詰めるのだ
-	err = p.appCtx.SlackNotifier.Notify(ctx, publicURL, storageURI, domain.NotificationRequest{
+	return &domain.NotificationRequest{
 		SourceURL:      payload.ScriptURL,
 		OutputCategory: "manga-output",
 		TargetTitle:    manga.Title,
 		ExecutionMode:  payload.Command + " / " + payload.Mode,
-	})
-
-	if err != nil {
-		slog.Error("Failed to send slack notification", "error", err)
-	}
+	}, publicURL, storageURI
 }
 
-// notifySlackForDesign design 生成完了を Slack に通知するヘルパーなのだ
-func (p *MangaPipeline) notifySlackForDesign(ctx context.Context, payload domain.GenerateTaskPayload, url string, seed int64) {
-	err := p.appCtx.SlackNotifier.Notify(ctx, url, "Google Cloud Storage", domain.NotificationRequest{
+func (p *MangaPipeline) buildDesignNotification(payload domain.GenerateTaskPayload, url string, seed int64) (*domain.NotificationRequest, string, string) {
+	return &domain.NotificationRequest{
 		SourceURL:      "N/A (Character Design)",
 		OutputCategory: "design-sheet",
 		TargetTitle:    fmt.Sprintf("Design: %s (Seed: %d)", payload.InputText, seed),
 		ExecutionMode:  "design",
-	})
-
-	if err != nil {
-		slog.Error("Failed to send slack notification", "error", err)
-	}
+	}, url, "Google Cloud Storage"
 }
