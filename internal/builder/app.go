@@ -1,15 +1,17 @@
 package builder
 
 import (
-	"ap-manga-web/internal/adapters"
 	"context"
 	"fmt"
+	"io"
 
+	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 
 	"github.com/shouni/go-ai-client/v2/pkg/ai/gemini"
 	"github.com/shouni/go-http-kit/pkg/httpkit"
-	"github.com/shouni/go-manga-kit/pkg/generator"
+	mngkitCfg "github.com/shouni/go-manga-kit/pkg/config"
+	"github.com/shouni/go-manga-kit/pkg/workflow"
 	"github.com/shouni/go-remote-io/pkg/gcsfactory"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
@@ -23,8 +25,8 @@ type AppContext struct {
 	Reader remoteio.InputReader
 	// Writer は生成されたコンテンツの書き込みに使用します。
 	Writer remoteio.OutputWriter
-	// MangaGenerator はマンガ生成のコア機能を提供します。
-	MangaGenerator generator.MangaGenerator
+	// wkBuilder はマンガ生成ワークフロービルダーを提供します。
+	wkBuilder *workflow.Builder
 	// SlackNotifier はslack通知のアダプターです。
 	SlackNotifier adapters.SlackNotifier
 	// aiClient はGemini APIとの通信に使用するクライアントです。
@@ -40,17 +42,18 @@ func NewAppContext(
 	aiClient gemini.GenerativeModel,
 	reader remoteio.InputReader,
 	writer remoteio.OutputWriter,
-	mangaGenerator generator.MangaGenerator,
+	wkBuilder *workflow.Builder,
 	slackNotifier adapters.SlackNotifier,
+
 ) AppContext {
 	return AppContext{
-		Config:         cfg,
-		aiClient:       aiClient,
-		httpClient:     httpClient,
-		Reader:         reader,
-		Writer:         writer,
-		MangaGenerator: mangaGenerator,
-		SlackNotifier:  slackNotifier,
+		Config:        cfg,
+		aiClient:      aiClient,
+		httpClient:    httpClient,
+		Reader:        reader,
+		Writer:        writer,
+		wkBuilder:     wkBuilder,
+		SlackNotifier: slackNotifier,
 	}
 }
 
@@ -78,16 +81,42 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		return nil, err
 	}
 
-	mangaGenerator, err := initializeMangaGenerator(httpClient, aiClient, cfg.ImageModel, cfg.CharacterConfig)
+	// 2. CharacterConfig を []byte として読み込み
+	characterConfig := cfg.CharacterConfig
+	rc, err := reader.Open(ctx, characterConfig)
 	if err != nil {
-		return nil, fmt.Errorf("MangaGeneratorの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("キャラクター設定ファイルのオープンに失敗しました (path: %s): %w", characterConfig, err)
 	}
+	defer rc.Close()
+
+	charData, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, fmt.Errorf("キャラクター設定ファイルの読み込みに失敗しました (path: %s): %w", characterConfig, err)
+	}
+
+	// 3. Workflow Builder の初期化
+	// workflow パッケージ内でのマッピング例
+	wfCfg := mngkitCfg.Config{
+		GeminiAPIKey: cfg.GeminiAPIKey,
+		GeminiModel:  cfg.GeminiModel,
+		ImageModel:   cfg.ImageModel,
+		//		StyleSuffix:  cfg.StyleSuffix, // TODO::あと設定する
+		RateInterval: config.DefaultRateLimit,
+	}
+	wfBuilder, err := workflow.NewBuilder(
+		wfCfg,
+		httpClient,
+		aiClient,
+		reader,
+		writer,
+		charData,
+	)
 
 	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
 	if err != nil {
 		return nil, fmt.Errorf("SlackAdapterの初期化に失敗しました: %w", err)
 	}
 
-	appCtx := NewAppContext(cfg, httpClient, aiClient, reader, writer, mangaGenerator, slack)
+	appCtx := NewAppContext(cfg, httpClient, aiClient, reader, writer, wfBuilder, slack)
 	return &appCtx, nil
 }
