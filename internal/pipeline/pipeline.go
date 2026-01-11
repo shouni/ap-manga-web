@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,8 +53,8 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		if manga, scriptPath, err = p.runScriptStep(ctx, payload); err != nil {
 			return err
 		}
-		// Phase 2: Image (パネル画像生成)
-		if images, err = p.runImageStep(ctx, manga, payload.PanelLimit); err != nil {
+		// Phase 2: Image (パネル画像生成 - TargetPanelsを考慮)
+		if images, err = p.runImageStep(ctx, manga, payload); err != nil {
 			return err
 		}
 		// Phase 3: Publish (成果物の統合・公開)
@@ -76,11 +77,12 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		}
 
 	case "image":
+		// 入力がJSON(台本)であることを想定
 		if err = json.Unmarshal([]byte(payload.InputText), &manga); err != nil {
 			slog.WarnContext(ctx, "Failed to parse input JSON for image mode", "error", err)
 			return nil
 		}
-		if images, err = p.runImageStep(ctx, manga, payload.PanelLimit); err != nil {
+		if images, err = p.runImageStep(ctx, manga, payload); err != nil {
 			return err
 		}
 		if err = p.runPublishStep(ctx, manga, images); err == nil {
@@ -123,7 +125,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 		return mngdom.MangaResponse{}, "", err
 	}
 
-	// 成果物の保存
+	// 成果物(JSON)の保存 - bytes.NewReaderでio.Readerに変換するのだ
 	safeTitle := p.getSafeTitle(manga.Title)
 	outputPath := path.Join("output", safeTitle, "script.json")
 	data, _ := json.MarshalIndent(manga, "", "  ")
@@ -135,21 +137,35 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	return manga, outputPath, nil
 }
 
-func (p *MangaPipeline) runImageStep(ctx context.Context, manga mngdom.MangaResponse, limit int) ([]*imagedom.ImageResponse, error) {
-	// PanelImageRunner 用にインデックスのリストを作成
+func (p *MangaPipeline) runImageStep(ctx context.Context, manga mngdom.MangaResponse, payload domain.GenerateTaskPayload) ([]*imagedom.ImageResponse, error) {
 	var targetIndices []int
-	panelCount := len(manga.Pages)
 
-	max := panelCount
-	if limit > 0 && limit < panelCount {
-		max = limit
+	// TargetPanels文字列をパースして[]intに変換するのだ
+	if payload.TargetPanels != "" {
+		parts := strings.Split(payload.TargetPanels, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed == "" {
+				continue
+			}
+			idx, err := strconv.Atoi(trimmed)
+			if err == nil && idx >= 0 && idx < len(manga.Pages) {
+				targetIndices = append(targetIndices, idx)
+			}
+		}
 	}
 
-	for i := 0; i < max; i++ {
-		targetIndices = append(targetIndices, i)
+	// 指定がない場合は、上限なく全パネルを対象とするのだ
+	if len(targetIndices) == 0 {
+		for i := 0; i < len(manga.Pages); i++ {
+			targetIndices = append(targetIndices, i)
+		}
 	}
 
-	slog.Info("Step: Image generation", "target_panels", len(targetIndices))
+	slog.Info("Step: Image generation",
+		"target_count", len(targetIndices),
+		"indices", targetIndices,
+	)
 
 	runner, err := builder.BuildPanelImageRunner(ctx, p.appCtx)
 	if err != nil {
@@ -194,7 +210,7 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaRe
 	}
 
 	outputDir := path.Join("output", p.getSafeTitle(manga.Title))
-	// 戻り値の PublishResult は必要に応じて活用するのだ
+	// publisher.PublishResultを受け取ってエラーチェックをするのだ
 	_, err = runner.Run(ctx, manga, images, outputDir)
 	return err
 }
