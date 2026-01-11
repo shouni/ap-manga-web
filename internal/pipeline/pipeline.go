@@ -152,7 +152,11 @@ func (p *MangaPipeline) runImageStep(ctx context.Context, manga mngdom.MangaResp
 				continue
 			}
 			idx, err := strconv.Atoi(trimmed)
-			if err == nil && idx >= 0 && idx < len(manga.Pages) {
+			if err != nil {
+				slog.WarnContext(ctx, "Invalid panel index found in target_panels, skipping", "input", trimmed)
+				continue
+			}
+			if idx >= 0 && idx < len(manga.Pages) {
 				targetIndices = append(targetIndices, idx)
 			}
 		}

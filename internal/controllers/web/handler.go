@@ -8,13 +8,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 )
 
-// 💡 defaultPanelLimit は不要になったので削除したのだ
+var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
 
 type IndexPageData struct {
 	Title string
@@ -85,7 +86,6 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageName string, dat
 	buf.WriteTo(w)
 }
 
-// 各画面の表示関数（変更なし）
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "index.html", IndexPageData{Title: "Generate - AP Manga Web"})
 }
@@ -109,6 +109,13 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		slog.Warn("Failed to parse form", "error", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	targetPanels := r.FormValue("target_panels")
+	if !validTargetPanels.MatchString(targetPanels) {
+		slog.WarnContext(ctx, "Invalid characters in target_panels", "input", targetPanels)
+		http.Error(w, "Bad Request: target_panels contains invalid characters.", http.StatusBadRequest)
 		return
 	}
 
