@@ -128,7 +128,10 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	// 成果物(JSON)の保存 - bytes.NewReaderでio.Readerに変換するのだ
 	safeTitle := p.getSafeTitle(manga.Title)
 	outputPath := path.Join("output", safeTitle, "script.json")
-	data, _ := json.MarshalIndent(manga, "", "  ")
+	data, err := json.MarshalIndent(manga, "", "  ")
+	if err != nil {
+		return manga, "", fmt.Errorf("script JSON serialization failed: %w", err)
+	}
 	if err := p.appCtx.Writer.Write(ctx, outputPath, bytes.NewReader(data), "application/json"); err != nil {
 		return manga, "", fmt.Errorf("script saving failed: %w", err)
 	}
