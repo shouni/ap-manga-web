@@ -112,7 +112,7 @@ go run main.go
 4. **Pipeline**:
     * **Phase 1: Script/Page**: プロットのパースと物語構成。
     * **Phase 2: Panel/Design**: 画像生成。**特定インデックスの部分生成**にも対応。
-    * **Phase 3: Publish**: 成果物の保存。ディレクトリ名は `UnixNano` を使用し、衝突リスクを最小化。
+    * **Phase 3: Publish**: 生成された成果物をGCSに保存し、一意なURLでアクセス可能にする。
     * **Phase 4: Notification**: Slack への完了報告。**Designモードの場合は Seed 値を明記。**
 
 ---
@@ -121,9 +121,9 @@ go run main.go
 
 生成されるキャラクターの見た目を一貫させるためには、以下の手順でSeed値を特定・利用します。
 
-1.  **Seed値の特定**: `Design`ワークフローを実行し、好みのビジュアルが生成されるまで試行します。
-2.  **Seed値の確認**: 処理完了後、Slackに通知される`Final Seed`の値を控えます。
-3.  **Seed値の利用**: `Generate`や`Panel`ワークフロー実行時に、控えたSeed値をフォームに入力することで、同じビジュアルのキャラクターを再現できます。
+1.  **DesignワークフローでSeed値を特定する**: `Design`画面で好みのビジュアルが生成されるまで試行します。
+2.  **Slack通知でFinal Seedを確認する**: 処理完了後、Slackに通知される`Final Seed`の値を控えてください。
+3.  **他のワークフローでSeed値を利用する**: `Generate`や`Panel`の実行時に、控えたSeed値をフォームに入力すると、同じビジュアルのキャラクターを再現できます。
 
 ---
 
