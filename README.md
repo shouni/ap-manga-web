@@ -11,21 +11,19 @@
 
 Webフォームを通じて画像生成処理を**非同期ワーカー**（Cloud Tasks）で実行します。処理完了時には **Slack** へ通知が飛び、生成された作品の確認や、キャラクター固定に必要な Seed 値の取得がスムーズに行えるのだ。
 
-**Google OAuth 2.0** による認証機能を実装。Webフォームへのアクセスを承認されたユーザー（指定ドメイン/メールアドレス）のみに制限し、AIリソースの安全な利用を担保します。
-
 ---
 
 ## 🎨 5つのワークフロー (Workflows)
 
 制作プロセスに応じて、以下の5つの機能をWeb UIから使い分けられるのだ。
 
-| 画面 (Command) | 役割 | 主な出力 |
+| 画面 (Command) | 役割 | 主な入力 / 出力 |
 | --- | --- | --- |
-| **Design** | DNA抽出。設定画を生成し、**固定用のSeed値を特定**する。 | Design Image, **Final Seed (via Slack)** |
-| **Generate** | 一括生成。解析から全ページのパブリッシュまで一気通貫。 | HTML, Images, MD |
-| **Script** | 台本生成。AIによる構成案（JSON）のみを出力。 | JSON (Script) |
-| **Panel** | パネル作画。既存の台本から画像とHTMLを生成。 | Images, HTML, MD |
-| **Page** | 最終錬成。プロット（Markdown）から漫画構成案を生成。 | Manga Structure (JSON) |
+| **Design** | DNA抽出。設定画を生成し、**固定用のSeed値を特定**する。 | キャラID / Design Image, **Final Seed** |
+| **Generate** | 一括生成。台本解析から全パネルのパブリッシュまで一気通貫。 | URL・プロット / HTML, Images, MD |
+| **Script** | 台本抽出。AIによる構成案（JSON）のみを出力。 | URL・テキスト / JSON (Script) |
+| **Panel** | パネル作画。既存の台本JSONから画像とHTMLを生成。 | 台本JSON / Images, HTML, MD |
+| **Page** | 魂の注入。**Markdownプロット**から精密な配置案を生成。 | **Markdown** / Manga Structure (JSON) |
 
 ---
 
@@ -86,23 +84,21 @@ go run main.go
 
 ---
 
-## 📁 プロジェクトレイアウト
+## 🏗 プロジェクトレイアウト (Project Layout)
 
 ```text
-ap-manga-web/
+.
 ├── internal/
-│   ├── adapters/     # Slack通知、Cloud Tasks連携等の外部アダプター
-│   ├── builder/      # DIコンテナ、サーバー構築、Appコンテキスト
-│   ├── config/       # 環境変数管理、キャラクター定義 (characters.json)
+│   ├── adapters/     # Cloud Tasks連携、Slack通知等の外部アダプター
+│   ├── builder/      # Appコンテキスト、Runner構築、サーバー初期化
+│   ├── config/       # 環境変数管理、キャラクターDNA定義 (characters.json)
 │   ├── controllers/
-│   │   ├── auth/     # Google OAuth & OIDC検証
-│   │   ├── web/      # 各ワークフローの画面表示・受付
-│   │   └── worker/   # 非同期タスク実行
+│   │   ├── auth/     # Google OAuth 2.0 & OIDC Token検証
+│   │   ├── web/      # UIハンドラー (Design, Panel, Page等の画面制御)
+│   │   └── worker/   # Cloud Tasks専用エンドポイント (非同期タスク実行)
 │   ├── domain/       # ドメインモデル (TaskPayload, NotificationRequest)
-│   ├── pipeline/     # 全体の実行制御 (Script -> Image -> Publish -> Notify)
-│   ├── prompts/      # 台本作成用テンプレート (Markdown)
-│   └── runner/       # 各タスクの実行実体 (Design, Image, Script, etc.)
-├── templates/        # UIテンプレート (layout.html, index.html 等)
+│   └── pipeline/     # 全体の指揮官。解析、生成、公開、通知のフロー制御
+├── templates/        # Bootstrap 5 を採用したUIテンプレート
 └── main.go           # エントリーポイント
 
 ```
@@ -111,22 +107,18 @@ ap-manga-web/
 
 ## 💻 ワークフロー (Workflow)
 
-1. **Request**: ユーザーが Web フォームから URL やプロット、**Seed値**を送信。
-2. **Enqueue**: `web.Handler` が Cloud Tasks にジョブを投入。
+1. **Request**: ユーザーが Web フォームから Markdown プロット等を送信。
+2. **Enqueue**: `web.Handler` が `CloudTasksAdapter` を介してジョブを投入。
 3. **Worker**: `worker.Handler` がリクエストを受け、`MangaPipeline` を起動。
 4. **Pipeline**:
     * **Phase 1: Script/Page**: 台本生成や構成案の作成。
     * **Phase 2: Panel/Design**: 画像生成。指定された Seed またはランダム Seed を使用。
     * **Phase 3: Publish**: 成果物の保存。GCS へ保存し、公開用 URL を発行。
     * **Phase 4: Notification**: Slack へ完了報告。**Designモードの場合は決定された Seed 値を明記。**
-
----
-
-## 💡 Tips: キャラクターを固定する方法
-
-1. **Design** 画面でキャラクターID（例: `zundamon`）を入力し、Seedを `12345` で実行するのだ。
-2. Slackに通知された **Final Seed**（例: `12345`）を確認するのだ。気に入った見た目ならその数値をメモ！
-3. 次回 **Generate** や **Image** を実行する際、その Seed 値を入力欄に入れれば、同じビジュアルのキャラクターを登場させ続けられるのだ！
+    * **Phase 1: Script/Page**: プロットのパースと物語構成。
+    * **Phase 2: Panel/Design**: 画像生成。**特定インデックスの部分生成**にも対応。
+    * **Phase 3: Publish**: 成果物の保存。ディレクトリ名は `UnixNano` で衝突を回避。
+    * **Phase 4: Notification**: Slack への完了報告。**Designモードの場合は Seed 値を明記。**
 
 ---
 
