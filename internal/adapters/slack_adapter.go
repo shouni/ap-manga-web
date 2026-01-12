@@ -69,7 +69,6 @@ func (a *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string,
 }
 
 // buildSlackContent は漫画生成に特化したメッセージ本文を組み立てるのだ。
-// 修正案のイメージ
 func (a *SlackAdapter) buildSlackContent(publicURL, storageURI string, req domain.NotificationRequest) string {
 	consoleURL := "https://console.cloud.google.com/storage/browser/" + strings.TrimPrefix(storageURI, "gs://")
 
