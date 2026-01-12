@@ -17,7 +17,6 @@ const (
 	DefaultImageModel   = "gemini-3-pro-image-preview"
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
 	DefaultHTTPTimeout         = 30 * time.Second
-	DefaultPanelLimit          = 10
 	DefaultGCSOutputPathFormat = "manga/%d/index.html"
 	DefaultRateLimit           = 30 * time.Second
 	DefaultCharactersFile      = "internal/config/characters.json" // キャラクターの視覚情報（DNA）を定義したJSONパス
