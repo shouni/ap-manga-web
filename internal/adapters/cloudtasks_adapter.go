@@ -22,10 +22,11 @@ type TaskAdapter interface {
 
 // CloudTasksAdapter は Google Cloud Tasks を使用した TaskAdapter の実装です。
 type CloudTasksAdapter struct {
-	client    *cloudtasks.Client
-	parent    string // キューの親リソース名 (プロジェクト、ロケーション、キューIDを含む)
-	workerURL string // タスクが送信されるワーカーのエンドポイントURL
-	audience  string // OIDCトークンの検証に使用する Audience
+	client              *cloudtasks.Client
+	parent              string // キューの親リソース名
+	workerURL           string // タスクが送信されるワーカーのエンドポイントURL
+	audience            string // OIDCトークンの検証に使用する Audience
+	serviceAccountEmail string // OIDCトークン生成に使用するサービスアカウント ★追加
 }
 
 // NewCloudTasksAdapter は Cloud Tasks クライアントを初期化し、固定の設定値を事前構築します。
@@ -40,15 +41,15 @@ func NewCloudTasksAdapter(ctx context.Context, cfg config.Config) (*CloudTasksAd
 
 	workerURL, err := url.JoinPath(cfg.ServiceURL, "/tasks/generate")
 	if err != nil {
-		// このエラーは通常発生し得ないが、念のためハンドリング
 		return nil, fmt.Errorf("failed to construct worker URL: %w", err)
 	}
 
 	return &CloudTasksAdapter{
-		client:    client,
-		parent:    parent,
-		workerURL: workerURL,
-		audience:  cfg.TaskAudienceURL,
+		client:              client,
+		parent:              parent,
+		workerURL:           workerURL,
+		audience:            cfg.TaskAudienceURL,
+		serviceAccountEmail: cfg.ServiceAccountEmail,
 	}, nil
 }
 
@@ -64,22 +65,18 @@ func (a *CloudTasksAdapter) EnqueueGenerateTask(ctx context.Context, payload dom
 	req := &cloudtaskspb.CreateTaskRequest{
 		Parent: a.parent,
 		Task: &cloudtaskspb.Task{
-			// MessageType は oneof であり、ここでは HttpRequest を指定します。
 			MessageType: &cloudtaskspb.Task_HttpRequest{
 				HttpRequest: &cloudtaskspb.HttpRequest{
-					// HttpMethod は enum 値で指定します。
 					HttpMethod: cloudtaskspb.HttpMethod_POST,
 					Url:        a.workerURL,
 					Body:       body,
 					Headers: map[string]string{
 						"Content-Type": "application/json",
 					},
-					// AuthorizationHeader は oneof であり、ここでは OidcToken を指定します。
-					// Cloud Tasks が有効な ID トークンを自動的に取得し、Authorization ヘッダーを付与します。
+					// AuthorizationHeader に OIDCトークンを設定
 					AuthorizationHeader: &cloudtaskspb.HttpRequest_OidcToken{
 						OidcToken: &cloudtaskspb.OidcToken{
-							// 空文字の場合、環境のデフォルトサービスアカウントが使用されます。
-							ServiceAccountEmail: "",
+							ServiceAccountEmail: a.serviceAccountEmail,
 							Audience:            a.audience,
 						},
 					},
@@ -90,12 +87,16 @@ func (a *CloudTasksAdapter) EnqueueGenerateTask(ctx context.Context, payload dom
 
 	createdTask, err := a.client.CreateTask(ctx, req)
 	if err != nil {
+		// エラー時も詳細をログに残すと助かるのだ
+		slog.Error("Failed to create task",
+			"error", err,
+			"target_url", a.workerURL,
+		)
 		return fmt.Errorf("failed to create task: %w", err)
 	}
 
 	slog.Info("Task enqueued successfully",
 		"task_name", createdTask.GetName(),
-		"audience", a.audience,
 	)
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"ap-manga-web/internal/domain"
 
@@ -69,17 +70,20 @@ func (a *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string,
 
 // buildSlackContent は漫画生成に特化したメッセージ本文を組み立てるのだ。
 func (a *SlackAdapter) buildSlackContent(publicURL, storageURI string, req domain.NotificationRequest) string {
-	content := fmt.Sprintf(
+	consoleURL := "https://console.cloud.google.com/storage/browser/" + strings.TrimPrefix(storageURI, "gs://")
+
+	return fmt.Sprintf(
 		"**作品タイトル:** `%s`\n"+
 			"**実行モード:** `%s`\n"+
 			"**ソース:** %s\n\n"+
 			"**詳細(ブラウザ):** <%s|ここから確認するのだ！>\n"+
-			"**保存場所(GCS):** `%s`",
+			"**管理者(Console):** <%s|GCSで直接見るのだ！>\n"+
+			"**保存場所(URI):** `%s`",
 		req.TargetTitle,
 		req.ExecutionMode,
 		req.SourceURL,
 		publicURL,
+		consoleURL,
 		storageURI,
 	)
-	return content
 }

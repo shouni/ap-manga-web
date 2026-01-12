@@ -3,11 +3,12 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/url"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -38,6 +39,9 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		"mode", payload.Mode,
 	)
 
+	// 実行開始時の時刻を固定
+	executionTime := time.Now()
+
 	var notificationReq *domain.NotificationRequest
 	var publicURL string
 	var storageURI string
@@ -49,26 +53,26 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 	switch payload.Command {
 	case "generate":
-		if manga, scriptPath, err = p.runScriptStep(ctx, payload); err != nil {
+		if manga, scriptPath, err = p.runScriptStep(ctx, payload, executionTime); err != nil {
 			return err
 		}
 		if images, err = p.runPanelStep(ctx, manga, payload); err != nil {
 			return err
 		}
-		if err = p.runPublishStep(ctx, manga, images); err == nil {
-			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
+		if err = p.runPublishStep(ctx, manga, images, executionTime); err == nil {
+			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, executionTime)
 		}
 
 	case "design":
 		var outputURL string
 		var finalSeed int64
-		outputURL, finalSeed, err = p.runDesignStep(ctx, payload)
+		outputURL, finalSeed, err = p.runDesignStep(ctx, payload, executionTime)
 		if err == nil {
 			notificationReq, publicURL, storageURI = p.buildDesignNotification(payload, outputURL, finalSeed)
 		}
 
 	case "script":
-		manga, scriptPath, err = p.runScriptStep(ctx, payload)
+		manga, scriptPath, err = p.runScriptStep(ctx, payload, executionTime)
 		if err == nil {
 			notificationReq, publicURL, storageURI = p.buildScriptNotification(payload, manga, scriptPath)
 		}
@@ -81,8 +85,8 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		if images, err = p.runPanelStep(ctx, manga, payload); err != nil {
 			return err
 		}
-		if err = p.runPublishStep(ctx, manga, images); err == nil {
-			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
+		if err = p.runPublishStep(ctx, manga, images, executionTime); err == nil {
+			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, executionTime)
 		}
 
 	case "page":
@@ -107,7 +111,7 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 // --- 内部ステップ群 ---
 
-func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.GenerateTaskPayload) (mngdom.MangaResponse, string, error) {
+func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.GenerateTaskPayload, t time.Time) (mngdom.MangaResponse, string, error) {
 	slog.Info("Step: Script generation", "url", payload.ScriptURL)
 
 	runner, err := builder.BuildScriptRunner(ctx, p.appCtx)
@@ -120,8 +124,9 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 		return mngdom.MangaResponse{}, "", err
 	}
 
-	safeTitle := p.getSafeTitle(manga.Title)
-	outputPath := path.Join("output", safeTitle, "script.json")
+	safeTitle := p.getSafeTitle(manga.Title, t)
+	outputPath := fmt.Sprintf("gs://%s/output/%s/script.json", p.appCtx.Config.GCSBucket, safeTitle)
+
 	data, err := json.MarshalIndent(manga, "", "  ")
 	if err != nil {
 		return manga, "", fmt.Errorf("script JSON serialization failed: %w", err)
@@ -134,7 +139,6 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	return manga, outputPath, nil
 }
 
-// runPanelStep は解析ロジックを分離してスッキリさせたのだ
 func (p *MangaPipeline) runPanelStep(ctx context.Context, manga mngdom.MangaResponse, payload domain.GenerateTaskPayload) ([]*imagedom.ImageResponse, error) {
 	targetIndices := p.parseTargetPanels(ctx, payload.TargetPanels, len(manga.Pages))
 
@@ -150,7 +154,7 @@ func (p *MangaPipeline) runPanelStep(ctx context.Context, manga mngdom.MangaResp
 	return runner.Run(ctx, manga, targetIndices)
 }
 
-func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.GenerateTaskPayload) (string, int64, error) {
+func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.GenerateTaskPayload, t time.Time) (string, int64, error) {
 	slog.Info("Step: Design sheet generation")
 
 	runner, err := builder.BuildDesignRunner(ctx, p.appCtx)
@@ -163,7 +167,11 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.Genera
 		return "", 0, fmt.Errorf("at least one character ID is required")
 	}
 
-	return runner.Run(ctx, charIDs, payload.Seed, p.appCtx.Config.GCSBucket)
+	titleForDir := fmt.Sprintf("design_%s", strings.Join(charIDs, "_"))
+	safeDirName := p.getSafeTitle(titleForDir, t)
+	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, safeDirName)
+
+	return runner.Run(ctx, charIDs, payload.Seed, outputDir)
 }
 
 func (p *MangaPipeline) runPageStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
@@ -177,7 +185,7 @@ func (p *MangaPipeline) runPageStep(ctx context.Context, payload domain.Generate
 	return err
 }
 
-func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaResponse, images []*imagedom.ImageResponse) error {
+func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaResponse, images []*imagedom.ImageResponse, t time.Time) error {
 	slog.Info("Step: Publishing")
 
 	runner, err := builder.BuildPublishRunner(ctx, p.appCtx)
@@ -185,14 +193,14 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaRe
 		return err
 	}
 
-	outputDir := path.Join("output", p.getSafeTitle(manga.Title))
+	safeTitle := p.getSafeTitle(manga.Title, t)
+	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, safeTitle)
 	_, err = runner.Run(ctx, manga, images, outputDir)
 	return err
 }
 
 // --- ヘルパー関数 ---
 
-// parseTargetPanels は文字列を解析し、全件か特定インデックスかを判定するのだ
 func (p *MangaPipeline) parseTargetPanels(ctx context.Context, panelsStr string, totalPanels int) []int {
 	trimmedStr := strings.TrimSpace(panelsStr)
 	if trimmedStr == "" {
@@ -222,13 +230,12 @@ func (p *MangaPipeline) parseTargetPanels(ctx context.Context, panelsStr string,
 	return targetIndices
 }
 
-func (p *MangaPipeline) getSafeTitle(title string) string {
-	safe := invalidPathChars.ReplaceAllString(title, "_")
-	if safe == "" {
-		// 💡 UnixNano() を使用して衝突の可能性を低減させるのだ！
-		return fmt.Sprintf("untitled_%d", time.Now().UnixNano())
-	}
-	return safe
+func (p *MangaPipeline) getSafeTitle(title string, t time.Time) string {
+	h := md5.New()
+	io.WriteString(h, title)
+	hash := fmt.Sprintf("%x", h.Sum(nil))[:8]
+	nowStr := t.Format("20060102_150405")
+	return fmt.Sprintf("%s_%s", nowStr, hash)
 }
 
 func (p *MangaPipeline) parseCSV(input string) []string {
@@ -244,8 +251,8 @@ func (p *MangaPipeline) parseCSV(input string) []string {
 
 // --- 通知ビルダ ---
 
-func (p *MangaPipeline) buildMangaNotification(payload domain.GenerateTaskPayload, manga mngdom.MangaResponse) (*domain.NotificationRequest, string, string) {
-	safeTitle := p.getSafeTitle(manga.Title)
+func (p *MangaPipeline) buildMangaNotification(payload domain.GenerateTaskPayload, manga mngdom.MangaResponse, t time.Time) (*domain.NotificationRequest, string, string) {
+	safeTitle := p.getSafeTitle(manga.Title, t)
 	publicURL, _ := url.JoinPath(p.appCtx.Config.ServiceURL, "outputs", safeTitle)
 	storageURI := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, safeTitle)
 
@@ -258,13 +265,12 @@ func (p *MangaPipeline) buildMangaNotification(payload domain.GenerateTaskPayloa
 }
 
 func (p *MangaPipeline) buildScriptNotification(payload domain.GenerateTaskPayload, manga mngdom.MangaResponse, scriptPath string) (*domain.NotificationRequest, string, string) {
-	storageURI := fmt.Sprintf("gs://%s/%s", p.appCtx.Config.GCSBucket, scriptPath)
 	return &domain.NotificationRequest{
 		SourceURL:      payload.ScriptURL,
 		OutputCategory: "script-json",
 		TargetTitle:    manga.Title,
 		ExecutionMode:  "script-only",
-	}, "N/A", storageURI
+	}, "N/A", scriptPath
 }
 
 func (p *MangaPipeline) buildDesignNotification(payload domain.GenerateTaskPayload, url string, seed int64) (*domain.NotificationRequest, string, string) {

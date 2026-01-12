@@ -32,6 +32,7 @@ type Config struct {
 	LocationID          string
 	QueueID             string
 	TaskAudienceURL     string // OIDC トークンの検証に使用する Audience URL
+	ServiceAccountEmail string
 	GCSBucket           string // 漫画画像とHTMLを保存するバケット
 	GCSOutputPathFormat string // 出力パスのテンプレート (例: "manga/%d/index.html")
 	SlackWebhookURL     string
@@ -73,6 +74,7 @@ func LoadConfig() Config {
 		LocationID:          envutil.GetEnv("GCP_LOCATION_ID", "asia-northeast1"),
 		QueueID:             envutil.GetEnv("CLOUD_TASKS_QUEUE_ID", "manga-queue"),
 		TaskAudienceURL:     envutil.GetEnv("TASK_AUDIENCE_URL", serviceURL), // デフォルトは ServiceURL
+		ServiceAccountEmail: envutil.GetEnv("SERVICE_ACCOUNT_EMAIL", ""),
 		GCSBucket:           envutil.GetEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
 		GCSOutputPathFormat: envutil.GetEnv("GCS_OUTPUT_PATH_FORMAT", DefaultGCSOutputPathFormat),
 		SlackWebhookURL:     envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
