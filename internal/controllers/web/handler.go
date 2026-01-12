@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +15,9 @@ import (
 	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
 // target_panels のバリデーション（数字、カンマ、スペースのみ許可）
@@ -33,10 +38,11 @@ type Handler struct {
 	cfg           config.Config
 	templateCache map[string]*template.Template
 	taskAdapter   adapters.TaskAdapter
+	reader        remoteio.InputReader
 }
 
 // NewHandler はテンプレートをキャッシュし、ハンドラーを初期化するのだ。
-func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter) (*Handler, error) {
+func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
@@ -66,6 +72,7 @@ func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter) (*Handler, 
 		cfg:           cfg,
 		templateCache: cache,
 		taskAdapter:   taskAdapter,
+		reader:        reader,
 	}, nil
 }
 
@@ -100,13 +107,58 @@ func (h *Handler) Design(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Script(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "script.html", IndexPageData{Title: "Script Generation - AP Manga Web"})
 }
-
 func (h *Handler) Panel(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "panel.html", IndexPageData{Title: "Panel Generation - AP Manga Web"})
 }
-
 func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "page.html", IndexPageData{Title: "Page Layout - AP Manga Web"})
+}
+
+// ServeOutput は GCS 上の生成物を安全にブラウザへ配信するのだ！
+func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// chi ルーターのパスパラメータから情報を抽出するのだ
+	title := chi.URLParam(r, "title")
+	file := chi.URLParam(r, "*")
+
+	// ファイル名が指定されていない場合は index.html を探すのだ
+	if file == "" {
+		file = "manga_plot.md"
+	}
+
+	// GCS上の絶対パスを構築するのだ
+	gcsPath := fmt.Sprintf("gs://%s/output/%s/%s", h.cfg.GCSBucket, title, file)
+
+	// 1. InputReader.Open を使ってストリームを開くのだ
+	rc, err := h.reader.Open(ctx, gcsPath)
+	if err != nil {
+		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
+		http.Error(w, "Output not found", http.StatusNotFound)
+		return
+	}
+	defer rc.Close() // 使い終わったら必ず閉じるのだ！
+
+	// 2. 拡張子から Content-Type を判定するのだ
+	ext := filepath.Ext(file)
+	contentType := mime.TypeByExtension(ext)
+
+	// Markdown の場合はブラウザで表示されやすいように text/plain に寄せるか、
+	// 明示的に text/markdown を指定するのだ
+	if ext == ".md" {
+		contentType = "text/markdown; charset=utf-8"
+	} else if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	// 3. 適切なヘッダーをセットして、ストリームをそのままブラウザにコピーするのだ
+	w.Header().Set("Content-Type", contentType)
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := io.Copy(w, rc); err != nil {
+		slog.ErrorContext(ctx, "Failed to stream output to response", "path", gcsPath, "error", err)
+		// ヘッダーは送信済みなので、ここではログを出すことしかできないのだ
+	}
 }
 
 // HandleSubmit は、HTMLフォームからの送信を処理し、タスクをエンキューするのだ。

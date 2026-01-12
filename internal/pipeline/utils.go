@@ -18,8 +18,12 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
-// getSafeTitle は実行開始時刻とタイトルから一意で安全なディレクトリ名を生成するのだ
-func (p *MangaPipeline) getSafeTitle(title string) string {
+// resolveSafeTitle は実行開始時刻とタイトルから一意で安全なディレクトリ名を生成するのだ
+func (p *MangaPipeline) resolveSafeTitle(title string) string {
+	if p.resolvedSafeTitle != "" {
+		return p.resolvedSafeTitle
+	}
+
 	t := p.startTime
 	if t.IsZero() {
 		t = time.Now()
@@ -44,6 +48,7 @@ func (p *MangaPipeline) getSafeTitle(title string) string {
 	h.Write(nanoBytes)
 
 	hash := fmt.Sprintf("%x", h.Sum(nil))[:8]
+	p.resolvedSafeTitle = fmt.Sprintf("%s_%s", tJST.Format("20060102_150405"), hash)
 
 	// 例: 20260112_174500_a1b2c3d4
 	return fmt.Sprintf("%s_%s", tJST.Format("20060102_150405"), hash)
@@ -55,7 +60,7 @@ func (p *MangaPipeline) buildMangaNotification(
 	manga mangadom.MangaResponse,
 	result publisher.PublishResult,
 ) (*domain.NotificationRequest, string, string) {
-	safeTitle := p.getSafeTitle(manga.Title)
+	safeTitle := p.resolveSafeTitle(manga.Title)
 	publicURL, _ := url.JoinPath(p.appCtx.Config.ServiceURL, "outputs", safeTitle)
 
 	// 3. url.Parse のエラー可視化

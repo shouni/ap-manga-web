@@ -31,7 +31,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	}
 
 	// 内部で一貫したタイムスタンプを持つディレクトリ名を生成するのだ
-	outputPath := fmt.Sprintf("gs://%s/output/%s/script.json", p.appCtx.Config.GCSBucket, p.getSafeTitle(manga.Title))
+	outputPath := fmt.Sprintf("gs://%s/output/%s/script.json", p.appCtx.Config.GCSBucket, p.resolveSafeTitle(manga.Title))
 
 	data, err := json.MarshalIndent(manga, "", "  ")
 	if err != nil {
@@ -61,7 +61,7 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mangadom.Manga
 		return publisher.PublishResult{}, err
 	}
 
-	safeTitle := p.getSafeTitle(manga.Title)
+	safeTitle := p.resolveSafeTitle(manga.Title)
 	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, safeTitle)
 
 	return runner.Run(ctx, manga, images, outputDir)
@@ -125,7 +125,7 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.Genera
 
 	// ★修正ポイント：path.Join ではなく strings.Join を使用してフラットなディレクトリ名を作るのだ！
 	dirName := "design_" + strings.Join(charIDs, "_")
-	dir := p.getSafeTitle(dirName)
+	dir := p.resolveSafeTitle(dirName)
 
 	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, dir)
 	return runner.Run(ctx, charIDs, payload.Seed, outputDir)

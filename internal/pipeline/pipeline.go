@@ -15,8 +15,9 @@ import (
 )
 
 type MangaPipeline struct {
-	appCtx    *builder.AppContext
-	startTime time.Time
+	appCtx            *builder.AppContext
+	startTime         time.Time
+	resolvedSafeTitle string
 }
 
 func NewMangaPipeline(appCtx *builder.AppContext) *MangaPipeline {

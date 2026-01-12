@@ -18,6 +18,7 @@ import (
 // NewServerHandler は HTTP ルーティング、認証、各ハンドラーの依存関係をすべて組み立てるのだ。
 func NewServerHandler(
 	cfg config.Config,
+	appCtx *AppContext,
 	taskAdapter adapters.TaskAdapter,
 	pipelineExecutor worker.MangaPipelineExecutor,
 ) (http.Handler, error) {
@@ -44,7 +45,7 @@ func NewServerHandler(
 	})
 
 	// --- 2. Web Handler (UI) の初期化 ---
-	webHandler, err := web.NewHandler(cfg, taskAdapter)
+	webHandler, err := web.NewHandler(cfg, taskAdapter, appCtx.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize web handler: %w", err)
 	}
@@ -59,14 +60,11 @@ func NewServerHandler(
 	// --- 5. 認証が必要なルート (Web UI 用) ---
 	r.Group(func(r chi.Router) {
 		r.Use(authHandler.Middleware)
-
 		r.Get("/", webHandler.Index)        // 一括生成 (main)
 		r.Get("/design", webHandler.Design) // キャラ設計
 		r.Get("/script", webHandler.Script) // 台本抽出
-
-		// 💡 メソッド名とパスを panel / page に変更したのだ！
-		r.Get("/panel", webHandler.Panel) // コマ画像生成 (旧 Image)
-		r.Get("/page", webHandler.Page)   // ページ構成 (旧 Story)
+		r.Get("/panel", webHandler.Panel)   // コマ画像生成 (旧 Image)
+		r.Get("/page", webHandler.Page)     // ページ構成 (旧 Story)
 
 		// 全ての POST はここへ集約なのだ
 		r.Post("/generate", webHandler.HandleSubmit)
