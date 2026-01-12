@@ -3,8 +3,9 @@ package pipeline
 import (
 	"context"
 	"crypto/md5"
+	"encoding/binary"
 	"fmt"
-	"io"
+	"log/slog"
 	"net/url"
 	"path"
 	"strconv"
@@ -17,43 +18,56 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
-// getSafeTitle は引数から t を削除し、インスタンスの startTime を使うようにしたのだ
+// getSafeTitle は実行開始時刻とタイトルから一意で安全なディレクトリ名を生成するのだ
 func (p *MangaPipeline) getSafeTitle(title string) string {
-	// startTime が未設定（初期値）の場合は、その場で現在時刻を入れるバックアップなのだ
 	t := p.startTime
 	if t.IsZero() {
 		t = time.Now()
 	}
 
-	// タイムゾーンを日本時間に変換
-	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
+	// 1. time.LoadLocation による堅牢なJST変換
+	jst, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		// Dockerにtzdataがない場合などのフォールバックなのだ
+		slog.Warn("Failed to load Asia/Tokyo location, using FixedZone", "error", err)
+		jst = time.FixedZone("Asia/Tokyo", 9*60*60)
+	}
 	tJST := t.In(jst)
 
+	// 2. 効率的で安全なハッシュ生成
 	h := md5.New()
-	io.WriteString(h, title)
-	// 同時実行時の衝突を防ぐため、ナノ秒もハッシュに混ぜるのがおすすめなのだ
-	io.WriteString(h, fmt.Sprintf("%d", t.UnixNano()))
+	h.Write([]byte(title))
+
+	// ナノ秒をバイナリ形式で直接書き込んで衝突を防止するのだ
+	nanoBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(nanoBytes, uint64(t.UnixNano()))
+	h.Write(nanoBytes)
+
 	hash := fmt.Sprintf("%x", h.Sum(nil))[:8]
 
+	// 例: 20260112_174500_a1b2c3d4
 	return fmt.Sprintf("%s_%s", tJST.Format("20060102_150405"), hash)
 }
 
-// buildMangaNotification も引数から t を削除したのだ
+// buildMangaNotification は生成結果を基にSlack通知用のリクエストを構築するのだ
 func (p *MangaPipeline) buildMangaNotification(
 	payload domain.GenerateTaskPayload,
 	manga mangadom.MangaResponse,
 	result publisher.PublishResult,
 ) (*domain.NotificationRequest, string, string) {
-	// 内部で一貫した safeTitle を生成できるのだ
 	safeTitle := p.getSafeTitle(manga.Title)
-
 	publicURL, _ := url.JoinPath(p.appCtx.Config.ServiceURL, "outputs", safeTitle)
 
-	// PublishResult から実際のパスを取得。url.Parse を使って gs:// を守るのだ
+	// 3. url.Parse のエラー可視化
 	storageURI := "N/A"
-	if u, err := url.Parse(result.MarkdownPath); err == nil {
-		u.Path = path.Dir(u.Path)
-		storageURI = u.String()
+	if result.MarkdownPath != "" {
+		u, err := url.Parse(result.MarkdownPath)
+		if err != nil {
+			slog.Error("Failed to parse MarkdownPath for storageURI", "path", result.MarkdownPath, "error", err)
+		} else {
+			u.Path = path.Dir(u.Path)
+			storageURI = u.String()
+		}
 	}
 
 	return &domain.NotificationRequest{
@@ -63,8 +77,6 @@ func (p *MangaPipeline) buildMangaNotification(
 		ExecutionMode:  payload.Command + " / " + payload.Mode,
 	}, publicURL, storageURI
 }
-
-// --- 他のユーティリティはそのまま維持するのだ ---
 
 func (p *MangaPipeline) parseTargetPanels(ctx context.Context, s string, total int) []int {
 	if strings.TrimSpace(s) == "" {
