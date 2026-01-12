@@ -13,7 +13,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 WORKDIR /app
 
 COPY templates /app/templates
-COPY internal/config /app/internal/config
+COPY internal/config/characters.json /app/internal/config/characters.json
 
 # ビルドされたバイナリをコピー
 COPY --from=builder /app/main /app/main
