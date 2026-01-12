@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 
+	"cloud.google.com/go/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
@@ -209,23 +211,31 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	// GCSからオブジェクトのストリームを取得
 	rc, err := h.reader.Open(ctx, gcsPath)
 	if err != nil {
-		// オブジェクトが見つからない場合のエラー調査のため、リクエストされたパスをログに出力します。
 		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
-		http.Error(w, "Output not found", http.StatusNotFound)
+
+		// オブジェクトが存在しない場合と、その他のエラー（権限等）を区別します。
+		if errors.Is(err, storage.ErrObjectNotExist) {
+			http.Error(w, "Output not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 	defer rc.Close()
 
 	// 拡張子に基づいて Content-Type を判定
 	ext := path.Ext(file)
-	contentType := mime.TypeByExtension(ext)
+	var contentType string
 
-	// 特定の拡張子について Content-Type をオーバーライド
+	// 特定の拡張子について Content-Type を優先的に処理
 	switch ext {
 	case ".md":
 		contentType = "text/markdown; charset=utf-8"
 	case ".html":
 		contentType = "text/html; charset=utf-8"
+	default:
+		// それ以外は標準ライブラリによる推測に任せる
+		contentType = mime.TypeByExtension(ext)
 	}
 
 	// Content-Type が最終的に決定できなかった場合のフォールバック
