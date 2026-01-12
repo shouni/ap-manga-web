@@ -223,13 +223,12 @@ func (p *MangaPipeline) parseTargetPanels(ctx context.Context, panelsStr string,
 	return targetIndices
 }
 
+// getSafeTitle generates a unique, sanitized string based on the given title and current timestamp.
+// A hash of the title is appended to a timestamp to ensure uniqueness and avoid using unsupported characters.
 func (p *MangaPipeline) getSafeTitle(title string) string {
-	// 日本語タイトルをそのまま使うのはやめて、ハッシュ値にするのだ
 	h := md5.New()
 	io.WriteString(h, title)
 	hash := fmt.Sprintf("%x", h.Sum(nil))[:8] // 最初の8文字だけで十分なのだ
-
-	// 「20260112_abcd1234」のような形式にするのだ
 	now := time.Now().Format("20060102_150405")
 	return fmt.Sprintf("%s_%s", now, hash)
 }
