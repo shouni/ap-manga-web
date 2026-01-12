@@ -22,8 +22,8 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | **Design** | DNA抽出。設定画を生成し、**固定用のSeed値を特定**する。 | キャラID / Design Image, **Final Seed** |
 | **Generate** | 一括生成。台本解析から全パネルのパブリッシュまで一気通貫。 | URL・プロット / HTML, Images, MD |
 | **Script** | 台本抽出。AIによる構成案（JSON）のみを出力。 | URL・テキスト / JSON (Script) |
-| **Panel** | パネル作画。既存の台本JSONから画像とHTMLを生成。 | 台本JSON / Images, HTML, MD |
-| **Page** | 魂の注入。**Markdownプロット**から精密な配置案を生成。 | **Markdown** / Manga Structure (JSON) |
+| **Panel** | パネル作画。既存の台本JSONから画像とHTMLを生成。 | 台本JSON / Images |
+| **Page** | 生成済みのパネル画像を、Markdown形式に基づきページ単位にレイアウトし、ページ画像を生成 | Images |
 
 ---
 
@@ -46,7 +46,6 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 
 1. **Controller 層**: Web/Worker ハンドラーが外部との窓口となる。
 2. **Pipeline 層**: `MangaPipeline` が全体の指揮官となり、台本・画像生成・公開・Slack通知を制御。
-3. **Runner 層**: 画像生成やGCSアップロードなど、特定のタスクを実行する最小単位のコンポーネント。
 
 ---
 
@@ -111,14 +110,20 @@ go run main.go
 2. **Enqueue**: `web.Handler` が `CloudTasksAdapter` を介してジョブを投入。
 3. **Worker**: `worker.Handler` がリクエストを受け、`MangaPipeline` を起動。
 4. **Pipeline**:
-    * **Phase 1: Script/Page**: 台本生成や構成案の作成。
-    * **Phase 2: Panel/Design**: 画像生成。指定された Seed またはランダム Seed を使用。
-    * **Phase 3: Publish**: 成果物の保存。GCS へ保存し、公開用 URL を発行。
-    * **Phase 4: Notification**: Slack へ完了報告。**Designモードの場合は決定された Seed 値を明記。**
     * **Phase 1: Script/Page**: プロットのパースと物語構成。
     * **Phase 2: Panel/Design**: 画像生成。**特定インデックスの部分生成**にも対応。
-    * **Phase 3: Publish**: 成果物の保存。ディレクトリ名は `UnixNano` で衝突を回避。
+    * **Phase 3: Publish**: 成果物の保存。ディレクトリ名は `UnixNano` を使用し、衝突リスクを最小化。
     * **Phase 4: Notification**: Slack への完了報告。**Designモードの場合は Seed 値を明記。**
+
+---
+
+## 💡 Tips: キャラクタービジュアルの固定方法
+
+生成されるキャラクターの見た目を一貫させるためには、以下の手順でSeed値を特定・利用します。
+
+1.  **Seed値の特定**: `Design`ワークフローを実行し、好みのビジュアルが生成されるまで試行します。
+2.  **Seed値の確認**: 処理完了後、Slackに通知される`Final Seed`の値を控えます。
+3.  **Seed値の利用**: `Generate`や`Panel`ワークフロー実行時に、控えたSeed値をフォームに入力することで、同じビジュアルのキャラクターを再現できます。
 
 ---
 
