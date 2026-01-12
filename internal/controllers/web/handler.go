@@ -168,22 +168,26 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// ServeOutput は GCS に保存された成果物を配信するのだ。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// URLパラメータから取得（ここは悪意のある文字列が含まれる可能性があるのだ）
+	// URLパラメータから取得
 	title := chi.URLParam(r, "title")
 	file := chi.URLParam(r, "*")
 
-	if file == "" {
-		file = "manga_plot.md"
+	// ファイル指定がない、またはスラッシュのみの場合はデフォルトのHTMLを表示するのだ
+	if file == "" || file == "/" {
+		file = "manga_plot.html"
 	}
 
 	// パス トラバーサル対策
-	safeSubPath := path.Join("output", title, file)
+	// GCS上の構成に合わせて "output" をベースにするのだ
+	const baseDir = "output"
+	safeSubPath := path.Join(baseDir, title, file)
 
 	// 正規化後のパスが依然として "output/" 配下であることを厳格に確認するのだ
-	if !strings.HasPrefix(safeSubPath, "output/") {
+	if !strings.HasPrefix(safeSubPath, baseDir+"/") {
 		slog.WarnContext(ctx, "Security alert: attempted path traversal", "input_title", title, "input_file", file)
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
@@ -195,6 +199,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	// 1. InputReader.Open を使ってストリームを開くのだ
 	rc, err := h.reader.Open(ctx, gcsPath)
 	if err != nil {
+		// 404のデバッグ用にパスをログに出力しておくのだ
 		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
 		http.Error(w, "Output not found", http.StatusNotFound)
 		return
@@ -202,11 +207,13 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	defer rc.Close()
 
 	// 2. 拡張子から Content-Type を判定するのだ
-	ext := path.Ext(file) // GCSパスなので path パッケージを使うのが正解なのだ
+	ext := path.Ext(file)
 	contentType := mime.TypeByExtension(ext)
 
 	if ext == ".md" {
 		contentType = "text/markdown; charset=utf-8"
+	} else if ext == ".html" {
+		contentType = "text/html; charset=utf-8"
 	} else if contentType == "" {
 		contentType = "application/octet-stream"
 	}
