@@ -1,18 +1,24 @@
 package web
 
 import (
-	"bytes"
-	"fmt"
-	"html/template"
-	"log/slog"
-	"net/http"
-	"os"
-	"path/filepath"
-	"regexp"
-
 	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
+	"bytes"
+	"fmt"
+	"html/template"
+	"io"
+	"log/slog"
+	"mime"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
 // target_panels のバリデーション（数字、カンマ、スペースのみ許可）
@@ -33,10 +39,11 @@ type Handler struct {
 	cfg           config.Config
 	templateCache map[string]*template.Template
 	taskAdapter   adapters.TaskAdapter
+	reader        remoteio.InputReader
 }
 
 // NewHandler はテンプレートをキャッシュし、ハンドラーを初期化するのだ。
-func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter) (*Handler, error) {
+func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
@@ -66,6 +73,7 @@ func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter) (*Handler, 
 		cfg:           cfg,
 		templateCache: cache,
 		taskAdapter:   taskAdapter,
+		reader:        reader,
 	}, nil
 }
 
@@ -100,11 +108,9 @@ func (h *Handler) Design(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Script(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "script.html", IndexPageData{Title: "Script Generation - AP Manga Web"})
 }
-
 func (h *Handler) Panel(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "panel.html", IndexPageData{Title: "Panel Generation - AP Manga Web"})
 }
-
 func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "page.html", IndexPageData{Title: "Page Layout - AP Manga Web"})
 }
@@ -160,4 +166,56 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		Command:   payload.Command,
 		ScriptURL: payload.ScriptURL,
 	})
+}
+
+func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// URLパラメータから取得（ここは悪意のある文字列が含まれる可能性があるのだ）
+	title := chi.URLParam(r, "title")
+	file := chi.URLParam(r, "*")
+
+	if file == "" {
+		file = "manga_plot.md"
+	}
+
+	// パス トラバーサル対策
+	safeSubPath := path.Join("output", title, file)
+
+	// 正規化後のパスが依然として "output/" 配下であることを厳格に確認するのだ
+	if !strings.HasPrefix(safeSubPath, "output/") {
+		slog.WarnContext(ctx, "Security alert: attempted path traversal", "input_title", title, "input_file", file)
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	// GCS上の絶対パスを構築するのだ
+	gcsPath := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, safeSubPath)
+
+	// 1. InputReader.Open を使ってストリームを開くのだ
+	rc, err := h.reader.Open(ctx, gcsPath)
+	if err != nil {
+		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
+		http.Error(w, "Output not found", http.StatusNotFound)
+		return
+	}
+	defer rc.Close()
+
+	// 2. 拡張子から Content-Type を判定するのだ
+	ext := path.Ext(file) // GCSパスなので path パッケージを使うのが正解なのだ
+	contentType := mime.TypeByExtension(ext)
+
+	if ext == ".md" {
+		contentType = "text/markdown; charset=utf-8"
+	} else if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	// 3. ヘッダーをセットしてブラウザに流し込むのだ
+	w.Header().Set("Content-Type", contentType)
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := io.Copy(w, rc); err != nil {
+		slog.ErrorContext(ctx, "Failed to stream output to response", "path", gcsPath, "error", err)
+	}
 }

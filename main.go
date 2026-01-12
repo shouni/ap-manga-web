@@ -54,7 +54,7 @@ func run(ctx context.Context) error {
 	mangaPipeline := pipeline.NewMangaPipeline(appCtx)
 
 	// 4. ハンドラーの作成 (Web & Worker を含む)
-	handler, err := builder.NewServerHandler(cfg, taskAdapter, mangaPipeline)
+	handler, err := builder.NewServerHandler(cfg, appCtx, taskAdapter, mangaPipeline)
 	if err != nil {
 		return fmt.Errorf("failed to create server handler: %w", err)
 	}
