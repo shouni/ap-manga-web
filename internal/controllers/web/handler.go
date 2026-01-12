@@ -1,10 +1,8 @@
 package web
 
 import (
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -17,6 +15,11 @@ import (
 	"regexp"
 	"strings"
 
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
+
+	"cloud.google.com/go/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
@@ -34,7 +37,7 @@ type AcceptedPageData struct {
 	ScriptURL string
 }
 
-// Handler はテンプレート管理とリクエスト処理を行うのだ。
+// Handler はテンプレート管理とリクエスト処理を制御します。
 type Handler struct {
 	cfg           config.Config
 	templateCache map[string]*template.Template
@@ -42,7 +45,7 @@ type Handler struct {
 	reader        remoteio.InputReader
 }
 
-// NewHandler はテンプレートをキャッシュし、ハンドラーを初期化するのだ。
+// NewHandler はテンプレートをキャッシュし、ハンドラーを初期化します。
 func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
@@ -115,7 +118,7 @@ func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "page.html", IndexPageData{Title: "Page Layout - AP Manga Web"})
 }
 
-// HandleSubmit は、HTMLフォームからの送信を処理し、タスクをエンキューするのだ。
+// HandleSubmit は、HTMLフォームからの送信を処理し、非同期タスクをエンキューします。
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -168,50 +171,79 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// ServeOutput は GCS に保存された成果物をクライアントに配信します。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// URLパラメータから取得（ここは悪意のある文字列が含まれる可能性があるのだ）
+	// URLパラメータからタイトルとファイルパスを取得
 	title := chi.URLParam(r, "title")
 	file := chi.URLParam(r, "*")
 
-	if file == "" {
-		file = "manga_plot.md"
+	// title にパス区切り文字が含まれていないことを検証します。
+	if strings.ContainsAny(title, "/\\") {
+		slog.WarnContext(ctx, "Security alert: path separator in title", "input_title", title)
+		http.Error(w, "Invalid title parameter", http.StatusBadRequest)
+		return
 	}
 
-	// パス トラバーサル対策
-	safeSubPath := path.Join("output", title, file)
+	// ファイル指定がない、またはスラッシュのみの場合は、デフォルトのHTMLファイル名を使用します。
+	if file == "" || file == "/" {
+		file = "manga_plot.html"
+	}
 
-	// 正規化後のパスが依然として "output/" 配下であることを厳格に確認するのだ
-	if !strings.HasPrefix(safeSubPath, "output/") {
+	// パストラバーサル対策およびベースディレクトリの定義
+	const (
+		baseDir       = "output"
+		baseDirPrefix = baseDir + "/"
+	)
+	safeSubPath := path.Join(baseDir, title, file)
+
+	// 正規化後のパスが、意図したベースディレクトリ配下であることを厳格に検証します。
+	if !strings.HasPrefix(safeSubPath, baseDirPrefix) {
 		slog.WarnContext(ctx, "Security alert: attempted path traversal", "input_title", title, "input_file", file)
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
 
-	// GCS上の絶対パスを構築するのだ
+	// GCS上の絶対パスを構築
 	gcsPath := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, safeSubPath)
 
-	// 1. InputReader.Open を使ってストリームを開くのだ
+	// GCSからオブジェクトのストリームを取得
 	rc, err := h.reader.Open(ctx, gcsPath)
 	if err != nil {
 		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
-		http.Error(w, "Output not found", http.StatusNotFound)
+
+		// オブジェクトが存在しない場合と、その他のエラー（権限等）を区別します。
+		if errors.Is(err, storage.ErrObjectNotExist) {
+			http.Error(w, "Output not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 	defer rc.Close()
 
-	// 2. 拡張子から Content-Type を判定するのだ
-	ext := path.Ext(file) // GCSパスなので path パッケージを使うのが正解なのだ
-	contentType := mime.TypeByExtension(ext)
+	// 拡張子に基づいて Content-Type を判定
+	ext := path.Ext(file)
+	var contentType string
 
-	if ext == ".md" {
+	// 特定の拡張子について Content-Type を優先的に処理
+	switch ext {
+	case ".md":
 		contentType = "text/markdown; charset=utf-8"
-	} else if contentType == "" {
+	case ".html":
+		contentType = "text/html; charset=utf-8"
+	default:
+		// それ以外は標準ライブラリによる推測に任せる
+		contentType = mime.TypeByExtension(ext)
+	}
+
+	// Content-Type が最終的に決定できなかった場合のフォールバック
+	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 
-	// 3. ヘッダーをセットしてブラウザに流し込むのだ
+	// ヘッダーを設定し、ブラウザへデータを転送
 	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(http.StatusOK)
 
