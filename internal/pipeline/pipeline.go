@@ -49,15 +49,12 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 	switch payload.Command {
 	case "generate":
-		// Phase 1: Script
 		if manga, scriptPath, err = p.runScriptStep(ctx, payload); err != nil {
 			return err
 		}
-		// Phase 2: Panel
 		if images, err = p.runPanelStep(ctx, manga, payload); err != nil {
 			return err
 		}
-		// Phase 3: Publish
 		if err = p.runPublishStep(ctx, manga, images); err == nil {
 			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
 		}
@@ -76,7 +73,7 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 			notificationReq, publicURL, storageURI = p.buildScriptNotification(payload, manga, scriptPath)
 		}
 
-	case "panel": // 💡 image から panel に変更なのだ
+	case "panel":
 		if err = json.Unmarshal([]byte(payload.InputText), &manga); err != nil {
 			slog.WarnContext(ctx, "Failed to parse input JSON for panel mode", "error", err)
 			return nil
@@ -88,7 +85,7 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
 		}
 
-	case "page": // 💡 story から page に変更なのだ
+	case "page":
 		err = p.runPageStep(ctx, payload)
 
 	default:
@@ -137,33 +134,9 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	return manga, outputPath, nil
 }
 
-// 💡 runImageStep から runPanelStep に改名したのだ
+// runPanelStep は解析ロジックを分離してスッキリさせたのだ
 func (p *MangaPipeline) runPanelStep(ctx context.Context, manga mngdom.MangaResponse, payload domain.GenerateTaskPayload) ([]*imagedom.ImageResponse, error) {
-	var targetIndices []int
-
-	if payload.TargetPanels != "" {
-		parts := strings.Split(payload.TargetPanels, ",")
-		for _, part := range parts {
-			trimmed := strings.TrimSpace(part)
-			if trimmed == "" {
-				continue
-			}
-			idx, err := strconv.Atoi(trimmed)
-			if err != nil {
-				slog.WarnContext(ctx, "Invalid panel index found in target_panels, skipping", "input", trimmed)
-				continue
-			}
-			if idx >= 0 && idx < len(manga.Pages) {
-				targetIndices = append(targetIndices, idx)
-			}
-		}
-	}
-
-	if len(targetIndices) == 0 {
-		for i := 0; i < len(manga.Pages); i++ {
-			targetIndices = append(targetIndices, i)
-		}
-	}
+	targetIndices := p.parseTargetPanels(ctx, payload.TargetPanels, len(manga.Pages))
 
 	slog.Info("Step: Panel image generation",
 		"target_count", len(targetIndices),
@@ -193,7 +166,6 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.Genera
 	return runner.Run(ctx, charIDs, payload.Seed, p.appCtx.Config.GCSBucket)
 }
 
-// 💡 runStoryStep から runPageStep に改名したのだ
 func (p *MangaPipeline) runPageStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
 	slog.Info("Step: Page image generation", "asset_path", payload.ScriptURL)
 
@@ -220,10 +192,41 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaRe
 
 // --- ヘルパー関数 ---
 
+// parseTargetPanels は文字列を解析し、全件か特定インデックスかを判定するのだ
+func (p *MangaPipeline) parseTargetPanels(ctx context.Context, panelsStr string, totalPanels int) []int {
+	trimmedStr := strings.TrimSpace(panelsStr)
+	if trimmedStr == "" {
+		indices := make([]int, totalPanels)
+		for i := 0; i < totalPanels; i++ {
+			indices[i] = i
+		}
+		return indices
+	}
+
+	var targetIndices []int
+	parts := strings.Split(trimmedStr, ",")
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed == "" {
+			continue
+		}
+		idx, err := strconv.Atoi(trimmed)
+		if err != nil {
+			slog.WarnContext(ctx, "Invalid panel index found in target_panels, skipping", "input", trimmed)
+			continue
+		}
+		if idx >= 0 && idx < totalPanels {
+			targetIndices = append(targetIndices, idx)
+		}
+	}
+	return targetIndices
+}
+
 func (p *MangaPipeline) getSafeTitle(title string) string {
 	safe := invalidPathChars.ReplaceAllString(title, "_")
 	if safe == "" {
-		return fmt.Sprintf("untitled_%d", time.Now().Unix())
+		// 💡 UnixNano() を使用して衝突の可能性を低減させるのだ！
+		return fmt.Sprintf("untitled_%d", time.Now().UnixNano())
 	}
 	return safe
 }
