@@ -154,7 +154,7 @@ ap-manga-web/
 
 ---
 
-## 🔄 生成シーケンスフロー (Image Generation Sequence Flow)
+## 🔄 シーケンスフロー (Sequence Flow)
 
 ```mermaid
 sequenceDiagram
