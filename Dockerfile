@@ -12,13 +12,12 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 WORKDIR /app
 
-# テンプレートディレクトリを作業ディレクトリのサブディレクトリにコピー
 COPY templates /app/templates
+COPY internal/config /app/internal/config
 
 # ビルドされたバイナリをコピー
 COPY --from=builder /app/main /app/main
 
 EXPOSE 8080
 
-# 起動コマンドも /app/main に修正
 CMD ["/app/main"]
