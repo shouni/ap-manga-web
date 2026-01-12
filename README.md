@@ -158,7 +158,7 @@ go run main.go
 
 ```mermaid
 sequenceDiagram
-    participant User as ユーザー (Web UI)
+    participant User as User (Web UI)
     participant Web as Web Controller
     participant Queue as Cloud Tasks
     participant Worker as Worker Controller
@@ -183,8 +183,7 @@ sequenceDiagram
     Pipeline->>GCS: 画像・HTML・JSONを保存
     Pipeline->>Slack: 完了通知 (閲覧URL & Seed値)
     
-    Note over User, Slack: 完了！Slackで結果を確認
-
+    Note over User, Slack: User confirms the result via Slack notification
 ```
 
 ---
@@ -210,4 +209,3 @@ sequenceDiagram
 このプロジェクトは [MIT License](https://opensource.org/licenses/MIT) の下で公開されています。
 
 ---
-
