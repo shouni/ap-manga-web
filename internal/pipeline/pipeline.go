@@ -48,6 +48,7 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		assetPath := fmt.Sprintf("gs://%s/output/%s/manga.md", p.appCtx.Config.GCSBucket, safeTitle)
 		if _, err = p.runPageStepWithAsset(ctx, assetPath, executionTime); err != nil {
 			slog.ErrorContext(ctx, "Page generation failed", "error", err)
+			return fmt.Errorf("page generation step failed: %w", err)
 		}
 		notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, executionTime)
 
