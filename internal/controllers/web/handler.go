@@ -177,6 +177,13 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	title := chi.URLParam(r, "title")
 	file := chi.URLParam(r, "*")
 
+	// title にパス区切り文字が含まれていないことを検証します。
+	if strings.ContainsAny(title, "/\\") {
+		slog.WarnContext(ctx, "Security alert: path separator in title", "input_title", title)
+		http.Error(w, "Invalid title parameter", http.StatusBadRequest)
+		return
+	}
+
 	// ファイル指定がない、またはスラッシュのみの場合は、デフォルトのHTMLファイル名を使用します。
 	if file == "" || file == "/" {
 		file = "manga_plot.html"
@@ -213,16 +220,17 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ext := path.Ext(file)
 	contentType := mime.TypeByExtension(ext)
 
+	// 特定の拡張子について Content-Type をオーバーライド
 	switch ext {
 	case ".md":
 		contentType = "text/markdown; charset=utf-8"
 	case ".html":
 		contentType = "text/html; charset=utf-8"
-	default:
-		// 未定義または不明な拡張子の場合のフォールバック
-		if contentType == "" {
-			contentType = "application/octet-stream"
-		}
+	}
+
+	// Content-Type が最終的に決定できなかった場合のフォールバック
+	if contentType == "" {
+		contentType = "application/octet-stream"
 	}
 
 	// ヘッダーを設定し、ブラウザへデータを転送
