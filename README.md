@@ -154,6 +154,41 @@ go run main.go
 
 ---
 
+## 🔄 生成シーケンスフロー (Image Generation Sequence Flow)
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー (Web UI)
+    participant Web as Web Controller
+    participant Queue as Cloud Tasks
+    participant Worker as Worker Controller
+    participant Pipeline as Manga Pipeline
+    participant Gemini as Gemini API
+    participant GCS as Cloud Storage
+    participant Slack as Slack Notification
+
+    User->>Web: フォーム送信 (Prompt/URL/Seed)
+    Web->>Queue: タスクをエンキュー (Async)
+    Web-->>User: 受付完了画面を表示
+    
+    Queue->>Worker: HTTP POST (タスク実行)
+    Worker->>Pipeline: Execute() 起動
+    
+    rect rgb(240, 240, 240)
+        Note over Pipeline, Gemini: 生成フェーズ
+        Pipeline->>Gemini: 台本生成 / 画像生成リクエスト
+        Gemini-->>Pipeline: 生成データ返却
+    end
+    
+    Pipeline->>GCS: 画像・HTML・JSONを保存
+    Pipeline->>Slack: 完了通知 (閲覧URL & Seed値)
+    
+    Note over User, Slack: 完了！Slackで結果を確認
+
+```
+
+---
+
 ## 💡 Tips: キャラクタービジュアルの固定方法
 
 生成されるキャラクターの見た目を一貫させるためには、以下の手順でSeed値を特定・利用します。
@@ -175,3 +210,4 @@ go run main.go
 このプロジェクトは [MIT License](https://opensource.org/licenses/MIT) の下で公開されています。
 
 ---
+
