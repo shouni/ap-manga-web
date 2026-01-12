@@ -21,7 +21,7 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | --- | --- | --- |
 | **Design** | DNA抽出。設定画を生成し、**固定用のSeed値を特定**する。 | キャラID / Design Image, **Final Seed** |
 | **Generate** | 一括生成。台本解析から全パネルのパブリッシュまで一気通貫。 | URL・プロット / HTML, Images, MD |
-| **Script** | 台本抽出。AIによる構成案（JSON）のみを出力。 | URL・テキスト / JSON (Script) |
+| **Script** | 台本生成。URLやテキストからAIが物語構成案（JSON）を生成。 | URL・テキスト / JSON (Script) |
 | **Panel** | パネル作画。既存の台本JSONから画像とHTMLを生成。 | 台本JSON / Images |
 | **Page** | 生成済みのパネル画像を、Markdown形式に基づきページ単位にレイアウトし、ページ画像を生成 | Images |
 
@@ -45,7 +45,7 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 本プロジェクトは、拡張性を高めるために以下の3層構造で設計されています。
 
 1. **Controller 層**: Web/Worker ハンドラーが外部との窓口となる。
-2. **Pipeline 層**: `MangaPipeline` が全体の指揮官となり、台本・画像生成・公開・Slack通知を制御。
+2. **Pipeline 層**: `MangaPipeline` が全体の指揮官となり、台本・画像生成・公開・Slack通知を制御。内部で個別のタスク実行コンポーネント（Runner）を呼び出す。
 
 ---
 
@@ -89,7 +89,7 @@ go run main.go
 .
 ├── internal/
 │   ├── adapters/     # Cloud Tasks連携、Slack通知等の外部アダプター
-│   ├── builder/      # Appコンテキスト、Runner構築、サーバー初期化
+│   ├── builder/      # Appコンテキスト、タスク実行コンポーネント(Runner)の構築、サーバー初期化
 │   ├── config/       # 環境変数管理、キャラクターDNA定義 (characters.json)
 │   ├── controllers/
 │   │   ├── auth/     # Google OAuth 2.0 & OIDC Token検証
