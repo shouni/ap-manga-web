@@ -164,6 +164,12 @@ go run main.go
 
 ---
 
+## 🤝 依存関係 (Dependencies)
+
+* [shouni/go-manga-kit](https://github.com/shouni/go-manga-kit) - 自動ページ分割対応・漫画制作Workflow
+* [shouni/gemini-image-kit](https://github.com/shouni/gemini-image-kit) - Gemini 画像作成抽象化
+* [shouni/go-remote-io](https://github.com/shouni/go-remote-io) - GCS、およびローカルファイルシステムへの I/O 操作を統一化
+
 ## 📜 ライセンス (License)
 
 このプロジェクトは [MIT License](https://opensource.org/licenses/MIT) の下で公開されています。
