@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/url"
 	"path"
+	"strings"
 
 	"ap-manga-web/internal/builder"
 	"ap-manga-web/internal/domain"
@@ -17,7 +18,7 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
-// runScriptStep は引数から t を削除したのだ
+// runScriptStep はスクリプト生成フェーズを実行するのだ
 func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.GenerateTaskPayload) (mangadom.MangaResponse, string, error) {
 	runner, err := builder.BuildScriptRunner(ctx, p.appCtx)
 	if err != nil {
@@ -29,7 +30,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 		return mangadom.MangaResponse{}, "", err
 	}
 
-	// 修正：内部でタイムスタンプを扱うようにしたのだ
+	// 内部で一貫したタイムスタンプを持つディレクトリ名を生成するのだ
 	outputPath := fmt.Sprintf("gs://%s/output/%s/script.json", p.appCtx.Config.GCSBucket, p.getSafeTitle(manga.Title))
 
 	data, err := json.MarshalIndent(manga, "", "  ")
@@ -43,6 +44,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	return manga, outputPath, nil
 }
 
+// runPanelStep は各パネルの画像を生成するのだ
 func (p *MangaPipeline) runPanelStep(ctx context.Context, manga mangadom.MangaResponse, payload domain.GenerateTaskPayload) ([]*imagedom.ImageResponse, error) {
 	indices := p.parseTargetPanels(ctx, payload.TargetPanels, len(manga.Pages))
 	runner, err := builder.BuildPanelImageRunner(ctx, p.appCtx)
@@ -52,7 +54,7 @@ func (p *MangaPipeline) runPanelStep(ctx context.Context, manga mangadom.MangaRe
 	return runner.Run(ctx, manga, indices)
 }
 
-// runPublishStep も引数から t を削除したのだ
+// runPublishStep は生成された画像と台本をパブリッシュするのだ
 func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mangadom.MangaResponse, images []*imagedom.ImageResponse) (publisher.PublishResult, error) {
 	runner, err := builder.BuildPublishRunner(ctx, p.appCtx)
 	if err != nil {
@@ -65,6 +67,7 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mangadom.Manga
 	return runner.Run(ctx, manga, images, outputDir)
 }
 
+// runPageStepWithAsset は既存のアセット（Markdown）から最終ページ画像を生成するのだ
 func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, assetPath string) ([]string, error) {
 	runner, err := builder.BuildPageImageRunner(ctx, p.appCtx)
 	if err != nil {
@@ -76,6 +79,7 @@ func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, assetPath stri
 		return nil, fmt.Errorf("page runner failed for asset %s: %w", assetPath, err)
 	}
 
+	// URLとしてパースして gs:// を保護したまま親ディレクトリを取得するのだ
 	u, err := url.Parse(assetPath)
 	if err != nil {
 		return nil, fmt.Errorf("invalid asset path format: %w", err)
@@ -98,6 +102,7 @@ func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, assetPath stri
 	return savedPaths, nil
 }
 
+// runPageStep はURLから直接ページ生成を行うのだ
 func (p *MangaPipeline) runPageStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
 	runner, err := builder.BuildPageImageRunner(ctx, p.appCtx)
 	if err != nil {
@@ -107,7 +112,7 @@ func (p *MangaPipeline) runPageStep(ctx context.Context, payload domain.Generate
 	return err
 }
 
-// runDesignStep も引数から t を削除したのだ
+// runDesignStep はキャラクターのデザインシートを生成するのだ
 func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.GenerateTaskPayload) (string, int64, error) {
 	runner, err := builder.BuildDesignRunner(ctx, p.appCtx)
 	if err != nil {
@@ -118,7 +123,10 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.Genera
 		return "", 0, fmt.Errorf("character ID required")
 	}
 
-	dir := p.getSafeTitle("design_" + path.Join(charIDs...))
+	// ★修正ポイント：path.Join ではなく strings.Join を使用してフラットなディレクトリ名を作るのだ！
+	dirName := "design_" + strings.Join(charIDs, "_")
+	dir := p.getSafeTitle(dirName)
+
 	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, dir)
 	return runner.Run(ctx, charIDs, payload.Seed, outputDir)
 }
