@@ -68,13 +68,21 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 	case "panel":
 		if err = json.Unmarshal([]byte(payload.InputText), &manga); err != nil {
-			return nil
+			slog.ErrorContext(ctx, "Failed to parse input JSON for panel mode",
+				"error", err,
+				"input_length", len(payload.InputText))
+			return fmt.Errorf("panel mode input JSON unmarshal failed: %w", err)
 		}
+
 		if images, err = p.runPanelStep(ctx, manga, payload); err != nil {
 			return err
 		}
+
+		// Publish まで実行して一貫性を保つのだ
 		if err = p.runPublishStep(ctx, manga, images, executionTime); err == nil {
 			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, executionTime)
+		} else {
+			return err
 		}
 
 	case "page":
@@ -84,9 +92,11 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		return fmt.Errorf("unsupported command: %s", payload.Command)
 	}
 
+	// 共通のエラーチェックと通知処理
 	if err != nil {
 		return err
 	}
+
 	if notificationReq != nil {
 		if notifyErr := p.appCtx.SlackNotifier.Notify(ctx, publicURL, storageURI, *notificationReq); notifyErr != nil {
 			slog.ErrorContext(ctx, "Notification failed", "error", notifyErr)

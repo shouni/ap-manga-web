@@ -28,7 +28,13 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	}
 
 	outputPath := fmt.Sprintf("gs://%s/output/%s/script.json", p.appCtx.Config.GCSBucket, p.getSafeTitle(manga.Title, t))
-	data, _ := json.MarshalIndent(manga, "", "  ")
+
+	// MarshalIndent のエラーを適切にハンドリングするのだ
+	data, err := json.MarshalIndent(manga, "", "  ")
+	if err != nil {
+		return mangadom.MangaResponse{}, "", fmt.Errorf("failed to marshal manga script to JSON: %w", err)
+	}
+
 	if err := p.appCtx.Writer.Write(ctx, outputPath, bytes.NewReader(data), "application/json"); err != nil {
 		return manga, "", err
 	}
