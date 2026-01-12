@@ -1,9 +1,6 @@
 package web
 
 import (
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
 	"bytes"
 	"fmt"
 	"html/template"
@@ -16,6 +13,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
@@ -34,7 +35,7 @@ type AcceptedPageData struct {
 	ScriptURL string
 }
 
-// Handler はテンプレート管理とリクエスト処理を行うのだ。
+// Handler はテンプレート管理とリクエスト処理を制御します。
 type Handler struct {
 	cfg           config.Config
 	templateCache map[string]*template.Template
@@ -42,7 +43,7 @@ type Handler struct {
 	reader        remoteio.InputReader
 }
 
-// NewHandler はテンプレートをキャッシュし、ハンドラーを初期化するのだ。
+// NewHandler はテンプレートをキャッシュし、ハンドラーを初期化します。
 func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
@@ -115,7 +116,7 @@ func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "page.html", IndexPageData{Title: "Page Layout - AP Manga Web"})
 }
 
-// HandleSubmit は、HTMLフォームからの送信を処理し、タスクをエンキューするのだ。
+// HandleSubmit は、HTMLフォームからの送信を処理し、非同期タスクをエンキューします。
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -168,57 +169,63 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ServeOutput は GCS に保存された成果物を配信するのだ。
+// ServeOutput は GCS に保存された成果物をクライアントに配信します。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// URLパラメータから取得
+	// URLパラメータからタイトルとファイルパスを取得
 	title := chi.URLParam(r, "title")
 	file := chi.URLParam(r, "*")
 
-	// ファイル指定がない、またはスラッシュのみの場合はデフォルトのHTMLを表示するのだ
+	// ファイル指定がない、またはスラッシュのみの場合は、デフォルトのHTMLファイル名を使用します。
 	if file == "" || file == "/" {
 		file = "manga_plot.html"
 	}
 
-	// パス トラバーサル対策
-	// GCS上の構成に合わせて "output" をベースにするのだ
-	const baseDir = "output"
+	// パストラバーサル対策およびベースディレクトリの定義
+	const (
+		baseDir       = "output"
+		baseDirPrefix = baseDir + "/"
+	)
 	safeSubPath := path.Join(baseDir, title, file)
 
-	// 正規化後のパスが依然として "output/" 配下であることを厳格に確認するのだ
-	if !strings.HasPrefix(safeSubPath, baseDir+"/") {
+	// 正規化後のパスが、意図したベースディレクトリ配下であることを厳格に検証します。
+	if !strings.HasPrefix(safeSubPath, baseDirPrefix) {
 		slog.WarnContext(ctx, "Security alert: attempted path traversal", "input_title", title, "input_file", file)
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
 
-	// GCS上の絶対パスを構築するのだ
+	// GCS上の絶対パスを構築
 	gcsPath := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, safeSubPath)
 
-	// 1. InputReader.Open を使ってストリームを開くのだ
+	// GCSからオブジェクトのストリームを取得
 	rc, err := h.reader.Open(ctx, gcsPath)
 	if err != nil {
-		// 404のデバッグ用にパスをログに出力しておくのだ
+		// オブジェクトが見つからない場合のエラー調査のため、リクエストされたパスをログに出力します。
 		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
 		http.Error(w, "Output not found", http.StatusNotFound)
 		return
 	}
 	defer rc.Close()
 
-	// 2. 拡張子から Content-Type を判定するのだ
+	// 拡張子に基づいて Content-Type を判定
 	ext := path.Ext(file)
 	contentType := mime.TypeByExtension(ext)
 
-	if ext == ".md" {
+	switch ext {
+	case ".md":
 		contentType = "text/markdown; charset=utf-8"
-	} else if ext == ".html" {
+	case ".html":
 		contentType = "text/html; charset=utf-8"
-	} else if contentType == "" {
-		contentType = "application/octet-stream"
+	default:
+		// 未定義または不明な拡張子の場合のフォールバック
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
 	}
 
-	// 3. ヘッダーをセットしてブラウザに流し込むのだ
+	// ヘッダーを設定し、ブラウザへデータを転送
 	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(http.StatusOK)
 
