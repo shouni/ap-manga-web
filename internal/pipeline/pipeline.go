@@ -3,8 +3,10 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/url"
 	"regexp"
@@ -222,11 +224,14 @@ func (p *MangaPipeline) parseTargetPanels(ctx context.Context, panelsStr string,
 }
 
 func (p *MangaPipeline) getSafeTitle(title string) string {
-	safe := invalidPathChars.ReplaceAllString(title, "_")
-	if safe == "" {
-		return fmt.Sprintf("untitled_%d", time.Now().UnixNano())
-	}
-	return safe
+	// 日本語タイトルをそのまま使うのはやめて、ハッシュ値にするのだ
+	h := md5.New()
+	io.WriteString(h, title)
+	hash := fmt.Sprintf("%x", h.Sum(nil))[:8] // 最初の8文字だけで十分なのだ
+
+	// 「20260112_abcd1234」のような形式にするのだ
+	now := time.Now().Format("20060102_150405")
+	return fmt.Sprintf("%s_%s", now, hash)
 }
 
 func (p *MangaPipeline) parseCSV(input string) []string {
