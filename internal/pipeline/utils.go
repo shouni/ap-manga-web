@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"regexp"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -14,9 +14,8 @@ import (
 	"ap-manga-web/internal/domain"
 
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
-
-var invalidPathChars = regexp.MustCompile(`[\\/:\*\?"<>\|]`)
 
 func (p *MangaPipeline) getSafeTitle(title string, t time.Time) string {
 	h := md5.New()
@@ -52,13 +51,21 @@ func (p *MangaPipeline) parseCSV(input string) []string {
 	return res
 }
 
-func (p *MangaPipeline) buildMangaNotification(payload domain.GenerateTaskPayload, manga mangadom.MangaResponse, t time.Time) (*domain.NotificationRequest, string, string) {
+func (p *MangaPipeline) buildMangaNotification(
+	payload domain.GenerateTaskPayload,
+	manga mangadom.MangaResponse,
+	result publisher.PublishResult,
+	t time.Time,
+) (*domain.NotificationRequest, string, string) {
 	safeTitle := p.getSafeTitle(manga.Title, t)
 	publicURL, _ := url.JoinPath(p.appCtx.Config.ServiceURL, "outputs", safeTitle)
-	storageURI := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, safeTitle)
+	storageURI := path.Dir(result.MarkdownPath)
+
 	return &domain.NotificationRequest{
-		SourceURL: payload.ScriptURL, OutputCategory: "manga-output",
-		TargetTitle: manga.Title, ExecutionMode: payload.Command + " / " + payload.Mode,
+		SourceURL:      payload.ScriptURL,
+		OutputCategory: "manga-output",
+		TargetTitle:    manga.Title,
+		ExecutionMode:  payload.Command + " / " + payload.Mode,
 	}, publicURL, storageURI
 }
 

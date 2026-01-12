@@ -14,6 +14,7 @@ import (
 
 	imagedom "github.com/shouni/gemini-image-kit/pkg/domain"
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
 func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.GenerateTaskPayload, t time.Time) (mangadom.MangaResponse, string, error) {
@@ -50,14 +51,16 @@ func (p *MangaPipeline) runPanelStep(ctx context.Context, manga mangadom.MangaRe
 	return runner.Run(ctx, manga, indices)
 }
 
-func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mangadom.MangaResponse, images []*imagedom.ImageResponse, t time.Time) error {
+func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mangadom.MangaResponse, images []*imagedom.ImageResponse, t time.Time) (publisher.PublishResult, error) {
 	runner, err := builder.BuildPublishRunner(ctx, p.appCtx)
 	if err != nil {
-		return err
+		return publisher.PublishResult{}, err
 	}
-	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, p.getSafeTitle(manga.Title, t))
-	_, err = runner.Run(ctx, manga, images, outputDir)
-	return err
+
+	safeTitle := p.getSafeTitle(manga.Title, t)
+	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, safeTitle)
+
+	return runner.Run(ctx, manga, images, outputDir)
 }
 
 func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, assetPath string, t time.Time) ([]string, error) {

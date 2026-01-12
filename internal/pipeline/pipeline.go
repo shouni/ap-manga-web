@@ -34,24 +34,27 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 	switch payload.Command {
 	case "generate":
+		// --- Phase 1: Script Phase ---
 		if manga, _, err = p.runScriptStep(ctx, payload, executionTime); err != nil {
 			return err
 		}
+		// --- Phase 2: Panel Generation Phase ---
 		if images, err = p.runPanelStep(ctx, manga, payload); err != nil {
 			return err
 		}
-		if err = p.runPublishStep(ctx, manga, images, executionTime); err != nil {
+		// --- Phase 3: Publish Phase ---
+		publishResult, err := p.runPublishStep(ctx, manga, images, executionTime)
+		if err != nil {
 			return err
 		}
 
-		safeTitle := p.getSafeTitle(manga.Title, executionTime)
-		assetPath := fmt.Sprintf("gs://%s/output/%s/manga_plot.md", p.appCtx.Config.GCSBucket, safeTitle)
-
-		if _, err = p.runPageStepWithAsset(ctx, assetPath, executionTime); err != nil {
+		// --- Phase 4: Page Generation Phase ---
+		if _, err = p.runPageStepWithAsset(ctx, publishResult.MarkdownPath, executionTime); err != nil {
 			slog.ErrorContext(ctx, "Page generation failed", "error", err)
 			return fmt.Errorf("page generation step failed: %w", err)
 		}
-		notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, executionTime)
+
+		notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, publishResult, executionTime)
 
 	case "design":
 		var outputURL string
@@ -80,12 +83,12 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 			return err
 		}
 
-		// Publish まで実行して一貫性を保つのだ
-		if err = p.runPublishStep(ctx, manga, images, executionTime); err == nil {
-			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, executionTime)
-		} else {
+		publishResult, err := p.runPublishStep(ctx, manga, images, executionTime)
+		if err != nil {
 			return err
 		}
+
+		notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, publishResult, executionTime)
 
 	case "page":
 		err = p.runPageStep(ctx, payload)
