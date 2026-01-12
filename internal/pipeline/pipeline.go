@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -20,8 +19,6 @@ import (
 	imagedom "github.com/shouni/gemini-image-kit/pkg/domain"
 	mngdom "github.com/shouni/go-manga-kit/pkg/domain"
 )
-
-var invalidPathChars = regexp.MustCompile(`[\\/:\*\?"<>\|]`)
 
 type MangaPipeline struct {
 	appCtx *builder.AppContext
@@ -39,6 +36,8 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		"mode", payload.Mode,
 	)
 
+	executionTime := time.Now()
+
 	var notificationReq *domain.NotificationRequest
 	var publicURL string
 	var storageURI string
@@ -50,14 +49,15 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 	switch payload.Command {
 	case "generate":
-		if manga, scriptPath, err = p.runScriptStep(ctx, payload); err != nil {
+		// 各ステップに executionTime を渡して、ディレクトリ名がズレないようにするのだ
+		if manga, scriptPath, err = p.runScriptStep(ctx, payload, executionTime); err != nil {
 			return err
 		}
 		if images, err = p.runPanelStep(ctx, manga, payload); err != nil {
 			return err
 		}
-		if err = p.runPublishStep(ctx, manga, images); err == nil {
-			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
+		if err = p.runPublishStep(ctx, manga, images, executionTime); err == nil {
+			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, executionTime)
 		}
 
 	case "design":
@@ -69,7 +69,7 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		}
 
 	case "script":
-		manga, scriptPath, err = p.runScriptStep(ctx, payload)
+		manga, scriptPath, err = p.runScriptStep(ctx, payload, executionTime)
 		if err == nil {
 			notificationReq, publicURL, storageURI = p.buildScriptNotification(payload, manga, scriptPath)
 		}
@@ -82,8 +82,8 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		if images, err = p.runPanelStep(ctx, manga, payload); err != nil {
 			return err
 		}
-		if err = p.runPublishStep(ctx, manga, images); err == nil {
-			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
+		if err = p.runPublishStep(ctx, manga, images, executionTime); err == nil {
+			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga, executionTime)
 		}
 
 	case "page":
@@ -108,7 +108,7 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 // --- 内部ステップ群 ---
 
-func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.GenerateTaskPayload) (mngdom.MangaResponse, string, error) {
+func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.GenerateTaskPayload, t time.Time) (mngdom.MangaResponse, string, error) {
 	slog.Info("Step: Script generation", "url", payload.ScriptURL)
 
 	runner, err := builder.BuildScriptRunner(ctx, p.appCtx)
@@ -121,7 +121,8 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 		return mngdom.MangaResponse{}, "", err
 	}
 
-	safeTitle := p.getSafeTitle(manga.Title)
+	// 固定された時刻 t を使ってパスを生成するのだ
+	safeTitle := p.getSafeTitle(manga.Title, t)
 	outputPath := fmt.Sprintf("gs://%s/output/%s/script.json", p.appCtx.Config.GCSBucket, safeTitle)
 
 	data, err := json.MarshalIndent(manga, "", "  ")
@@ -179,7 +180,7 @@ func (p *MangaPipeline) runPageStep(ctx context.Context, payload domain.Generate
 	return err
 }
 
-func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaResponse, images []*imagedom.ImageResponse) error {
+func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaResponse, images []*imagedom.ImageResponse, t time.Time) error {
 	slog.Info("Step: Publishing")
 
 	runner, err := builder.BuildPublishRunner(ctx, p.appCtx)
@@ -187,7 +188,9 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaRe
 		return err
 	}
 
-	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, p.getSafeTitle(manga.Title))
+	// ここでも同じ固定時刻 t を使うのだ！
+	safeTitle := p.getSafeTitle(manga.Title, t)
+	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, safeTitle)
 	_, err = runner.Run(ctx, manga, images, outputDir)
 	return err
 }
@@ -223,14 +226,13 @@ func (p *MangaPipeline) parseTargetPanels(ctx context.Context, panelsStr string,
 	return targetIndices
 }
 
-// getSafeTitle generates a unique, sanitized string based on the given title and current timestamp.
-// A hash of the title is appended to a timestamp to ensure uniqueness and avoid using unsupported characters.
-func (p *MangaPipeline) getSafeTitle(title string) string {
+// getSafeTitle は外部から渡された時刻 t を元に ID を生成するようにしたのだ。
+func (p *MangaPipeline) getSafeTitle(title string, t time.Time) string {
 	h := md5.New()
 	io.WriteString(h, title)
-	hash := fmt.Sprintf("%x", h.Sum(nil))[:8] // 最初の8文字だけで十分なのだ
-	now := time.Now().Format("20060102_150405")
-	return fmt.Sprintf("%s_%s", now, hash)
+	hash := fmt.Sprintf("%x", h.Sum(nil))[:8]
+	nowStr := t.Format("20060102_150405")
+	return fmt.Sprintf("%s_%s", nowStr, hash)
 }
 
 func (p *MangaPipeline) parseCSV(input string) []string {
@@ -246,8 +248,9 @@ func (p *MangaPipeline) parseCSV(input string) []string {
 
 // --- 通知ビルダ ---
 
-func (p *MangaPipeline) buildMangaNotification(payload domain.GenerateTaskPayload, manga mngdom.MangaResponse) (*domain.NotificationRequest, string, string) {
-	safeTitle := p.getSafeTitle(manga.Title)
+func (p *MangaPipeline) buildMangaNotification(payload domain.GenerateTaskPayload, manga mngdom.MangaResponse, t time.Time) (*domain.NotificationRequest, string, string) {
+	// 通知生成時も同じ safeTitle を使うのだ
+	safeTitle := p.getSafeTitle(manga.Title, t)
 	publicURL, _ := url.JoinPath(p.appCtx.Config.ServiceURL, "outputs", safeTitle)
 	storageURI := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, safeTitle)
 
