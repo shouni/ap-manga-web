@@ -1,6 +1,9 @@
 package web
 
 import (
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
 	"bytes"
 	"fmt"
 	"html/template"
@@ -9,12 +12,10 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
-
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
@@ -114,53 +115,6 @@ func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "page.html", IndexPageData{Title: "Page Layout - AP Manga Web"})
 }
 
-// ServeOutput は GCS 上の生成物を安全にブラウザへ配信するのだ！
-func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// chi ルーターのパスパラメータから情報を抽出するのだ
-	title := chi.URLParam(r, "title")
-	file := chi.URLParam(r, "*")
-
-	// ファイル名が指定されていない場合は index.html を探すのだ
-	if file == "" {
-		file = "manga_plot.md"
-	}
-
-	// GCS上の絶対パスを構築するのだ
-	gcsPath := fmt.Sprintf("gs://%s/output/%s/%s", h.cfg.GCSBucket, title, file)
-
-	// 1. InputReader.Open を使ってストリームを開くのだ
-	rc, err := h.reader.Open(ctx, gcsPath)
-	if err != nil {
-		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
-		http.Error(w, "Output not found", http.StatusNotFound)
-		return
-	}
-	defer rc.Close() // 使い終わったら必ず閉じるのだ！
-
-	// 2. 拡張子から Content-Type を判定するのだ
-	ext := filepath.Ext(file)
-	contentType := mime.TypeByExtension(ext)
-
-	// Markdown の場合はブラウザで表示されやすいように text/plain に寄せるか、
-	// 明示的に text/markdown を指定するのだ
-	if ext == ".md" {
-		contentType = "text/markdown; charset=utf-8"
-	} else if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-
-	// 3. 適切なヘッダーをセットして、ストリームをそのままブラウザにコピーするのだ
-	w.Header().Set("Content-Type", contentType)
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := io.Copy(w, rc); err != nil {
-		slog.ErrorContext(ctx, "Failed to stream output to response", "path", gcsPath, "error", err)
-		// ヘッダーは送信済みなので、ここではログを出すことしかできないのだ
-	}
-}
-
 // HandleSubmit は、HTMLフォームからの送信を処理し、タスクをエンキューするのだ。
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -212,4 +166,56 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		Command:   payload.Command,
 		ScriptURL: payload.ScriptURL,
 	})
+}
+
+func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// URLパラメータから取得（ここは悪意のある文字列が含まれる可能性があるのだ）
+	title := chi.URLParam(r, "title")
+	file := chi.URLParam(r, "*")
+
+	if file == "" {
+		file = "manga_plot.md"
+	}
+
+	// パス トラバーサル対策
+	safeSubPath := path.Join("output", title, file)
+
+	// 正規化後のパスが依然として "output/" 配下であることを厳格に確認するのだ
+	if !strings.HasPrefix(safeSubPath, "output/") {
+		slog.WarnContext(ctx, "Security alert: attempted path traversal", "input_title", title, "input_file", file)
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	// GCS上の絶対パスを構築するのだ
+	gcsPath := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, safeSubPath)
+
+	// 1. InputReader.Open を使ってストリームを開くのだ
+	rc, err := h.reader.Open(ctx, gcsPath)
+	if err != nil {
+		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
+		http.Error(w, "Output not found", http.StatusNotFound)
+		return
+	}
+	defer rc.Close()
+
+	// 2. 拡張子から Content-Type を判定するのだ
+	ext := path.Ext(file) // GCSパスなので path パッケージを使うのが正解なのだ
+	contentType := mime.TypeByExtension(ext)
+
+	if ext == ".md" {
+		contentType = "text/markdown; charset=utf-8"
+	} else if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	// 3. ヘッダーをセットしてブラウザに流し込むのだ
+	w.Header().Set("Content-Type", contentType)
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := io.Copy(w, rc); err != nil {
+		slog.ErrorContext(ctx, "Failed to stream output to response", "path", gcsPath, "error", err)
+	}
 }
