@@ -61,16 +61,6 @@ func (a *CloudTasksAdapter) EnqueueGenerateTask(ctx context.Context, payload dom
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	// --- ログ出力の追加なのだ！ ---
-	slog.Info("Preparing to create Cloud Task",
-		"parent", a.parent,
-		"worker_url", a.workerURL,
-		"service_account", a.serviceAccountEmail,
-		"audience", a.audience,
-		"payload_size", len(body),
-		"payload_json", string(body),
-	)
-
 	// タスクリクエストの構築
 	req := &cloudtaskspb.CreateTaskRequest{
 		Parent: a.parent,
@@ -107,8 +97,6 @@ func (a *CloudTasksAdapter) EnqueueGenerateTask(ctx context.Context, payload dom
 
 	slog.Info("Task enqueued successfully",
 		"task_name", createdTask.GetName(),
-		"audience", a.audience,
-		"service_account", a.serviceAccountEmail, // 確認用にログ出力
 	)
 	return nil
 }
