@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -121,7 +120,8 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	}
 
 	safeTitle := p.getSafeTitle(manga.Title)
-	outputPath := path.Join("output", safeTitle, "script.json")
+	outputPath := fmt.Sprintf("gs://%s/output/%s/script.json", p.appCtx.Config.GCSBucket, safeTitle)
+
 	data, err := json.MarshalIndent(manga, "", "  ")
 	if err != nil {
 		return manga, "", fmt.Errorf("script JSON serialization failed: %w", err)
@@ -134,7 +134,6 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	return manga, outputPath, nil
 }
 
-// runPanelStep は解析ロジックを分離してスッキリさせたのだ
 func (p *MangaPipeline) runPanelStep(ctx context.Context, manga mngdom.MangaResponse, payload domain.GenerateTaskPayload) ([]*imagedom.ImageResponse, error) {
 	targetIndices := p.parseTargetPanels(ctx, payload.TargetPanels, len(manga.Pages))
 
@@ -163,7 +162,8 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.Genera
 		return "", 0, fmt.Errorf("at least one character ID is required")
 	}
 
-	return runner.Run(ctx, charIDs, payload.Seed, p.appCtx.Config.GCSBucket)
+	outputDir := "gs://" + p.appCtx.Config.GCSBucket
+	return runner.Run(ctx, charIDs, payload.Seed, outputDir)
 }
 
 func (p *MangaPipeline) runPageStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
@@ -185,14 +185,13 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaRe
 		return err
 	}
 
-	outputDir := path.Join("output", p.getSafeTitle(manga.Title))
+	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, p.getSafeTitle(manga.Title))
 	_, err = runner.Run(ctx, manga, images, outputDir)
 	return err
 }
 
 // --- ヘルパー関数 ---
 
-// parseTargetPanels は文字列を解析し、全件か特定インデックスかを判定するのだ
 func (p *MangaPipeline) parseTargetPanels(ctx context.Context, panelsStr string, totalPanels int) []int {
 	trimmedStr := strings.TrimSpace(panelsStr)
 	if trimmedStr == "" {
@@ -225,7 +224,6 @@ func (p *MangaPipeline) parseTargetPanels(ctx context.Context, panelsStr string,
 func (p *MangaPipeline) getSafeTitle(title string) string {
 	safe := invalidPathChars.ReplaceAllString(title, "_")
 	if safe == "" {
-		// 💡 UnixNano() を使用して衝突の可能性を低減させるのだ！
 		return fmt.Sprintf("untitled_%d", time.Now().UnixNano())
 	}
 	return safe
@@ -258,13 +256,12 @@ func (p *MangaPipeline) buildMangaNotification(payload domain.GenerateTaskPayloa
 }
 
 func (p *MangaPipeline) buildScriptNotification(payload domain.GenerateTaskPayload, manga mngdom.MangaResponse, scriptPath string) (*domain.NotificationRequest, string, string) {
-	storageURI := fmt.Sprintf("gs://%s/%s", p.appCtx.Config.GCSBucket, scriptPath)
 	return &domain.NotificationRequest{
 		SourceURL:      payload.ScriptURL,
 		OutputCategory: "script-json",
 		TargetTitle:    manga.Title,
 		ExecutionMode:  "script-only",
-	}, "N/A", storageURI
+	}, "N/A", scriptPath
 }
 
 func (p *MangaPipeline) buildDesignNotification(payload domain.GenerateTaskPayload, url string, seed int64) (*domain.NotificationRequest, string, string) {

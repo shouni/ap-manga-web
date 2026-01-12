@@ -63,8 +63,8 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `TASK_AUDIENCE_URL` | OIDCトークンの検証用URL | `SERVICE_URL` と同じ |
 | `GCS_MANGA_BUCKET` | 漫画画像とHTMLを保存するバケット名 | - |
 | `GEMINI_API_KEY` | Google Gemini APIキー | - |
-| `GEMINI_MODEL` | 台本構成に使用するモデル名 | `gemini-3.0-flash-preview` |
-| `IMAGE_MODEL` | 画像生成に使用するモデル名 | `gemini-3.0-pro-image-preview` |
+| `GEMINI_MODEL` | 台本構成に使用するモデル名 | `gemini-3-flash-preview` |
+| `IMAGE_MODEL` | 画像生成に使用するモデル名 | `gemini-3-pro-image-preview` |
 | `GOOGLE_CLIENT_ID` | OAuthクライアントID | - |
 | `GOOGLE_CLIENT_SECRET` | OAuthクライアントシークレット | - |
 | `SESSION_SECRET` | セッション暗号化用のランダム文字列 | - |
@@ -72,6 +72,37 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `ALLOWED_DOMAINS` | 許可するドメイン（例: `example.com`） | - |
 | `SLACK_WEBHOOK_URL` | 通知を送る先の Slack Webhook URL | - |
 | `GCS_OUTPUT_PATH_FORMAT` | GCS上の保存パス形式 | `manga/%d/index.html` |
+
+---
+
+## 🔐 4. 必要なIAMロールの設定（重要）
+
+本アプリケーションを Google Cloud Run と Cloud Tasks で安全に運用するためには、各サービスアカウント（SA）に対し、**正確な権限付与**が必要です。設定が不足していると `PermissionDenied (actAs)` や `403 Forbidden` エラーが発生します。
+
+### A. Cloud Run 実行サービスアカウント
+
+*Webフロントエンドおよび非同期ワーカーとして動作する、アプリケーションの主体となるサービスアカウントです。*
+
+| 権限（IAMロール） | 目的 |
+| :--- | :--- |
+| **Cloud Tasks エンキューア** (`roles/cloudtasks.enqueuer`) | Webフォーム受付時に、タスクを Cloud Tasks キューに**追加**するために必要です。 |
+| **サービス アカウント ユーザー** (`roles/iam.serviceAccountUser`) | **最重要:** Cloud Tasks にタスクを託す際、指定した SA として振る舞う（ActAs）ために必要です。**SA自身に対してこの権限を付与**する必要があります。 |
+| **サービス アカウント トークン作成者** (`roles/iam.serviceAccountTokenCreator`) | OIDCトークンを生成し、安全なシステム間認証を行うために必要です。 |
+| **Cloud Run 起動元** (`roles/run.invoker`) | Cloud Tasks が自分自身（ワーカーエンドポイント）を認証付きで呼び出すことを許可するために必要です。 |
+| **Storage オブジェクト管理者** (`roles/storage.objectAdmin`) | 生成された画像やHTMLファイルを **GCS** バケットに保存するために必要です。 |
+| **Secret Manager のシークレット アクセサー** (`roles/secretmanager.secretAccessor`) | `GEMINI_API_KEY` や OAuth 情報を Secret Manager から安全に取得するために必要です。 |
+| **ログ書き込み** (`roles/logging.logWriter`) | Cloud Logging へ動作ログを出力するために必要です。 |
+
+### B. Cloud Tasks 用の設定（認証の紐付け）
+
+Cloud Tasks がワーカーを呼び出す際に使用する ID（`ServiceAccountEmail`）に関する設定です。
+
+| 項目 | 内容 |
+| :--- | :--- |
+| **対象エンドポイント** | `/tasks/generate` (POST) |
+| **認証方式** | OIDC トークン認証 |
+| **Audience** | アプリの `SERVICE_URL`（例: `https://...run.app`） |
+| **実行主体** | `SERVICE_ACCOUNT_EMAIL` に設定したサービスアカウント |
 
 ---
 
