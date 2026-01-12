@@ -71,7 +71,6 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `ALLOWED_EMAILS` | 許可するメールアドレス（カンマ区切り） | - |
 | `ALLOWED_DOMAINS` | 許可するドメイン（例: `example.com`） | - |
 | `SLACK_WEBHOOK_URL` | 通知を送る先の Slack Webhook URL | - |
-| `GCS_OUTPUT_PATH_FORMAT` | GCS上の保存パス形式 | `manga/%d/index.html` |
 
 ---
 
