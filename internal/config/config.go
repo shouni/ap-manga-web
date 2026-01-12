@@ -21,7 +21,7 @@ const (
 	DefaultGCSOutputPathFormat = "manga/%d/index.html"
 	DefaultRateLimit           = 30 * time.Second
 	DefaultCharactersFile      = "internal/config/characters.json" // キャラクターの視覚情報（DNA）を定義したJSONパス
-	DefaultImagePromptSuffix   = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
+	DefaultStyleSuffix         = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
 )
 
 // Config は環境変数から読み込まれたアプリケーションの全設定を保持します。
@@ -51,6 +51,7 @@ type Config struct {
 	AllowedDomains []string
 
 	CharacterConfig string
+	StyleSuffix     string
 }
 
 // LoadConfig は環境変数から設定を読み込み、Config 構造体を生成します。
@@ -89,6 +90,7 @@ func LoadConfig() Config {
 		AllowedDomains:     text.ParseCommaSeparatedList(allowedDomains),
 
 		CharacterConfig: DefaultCharactersFile,
+		StyleSuffix:     DefaultStyleSuffix,
 	}
 }
 

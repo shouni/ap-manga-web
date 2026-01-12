@@ -100,7 +100,7 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		GeminiAPIKey: cfg.GeminiAPIKey,
 		GeminiModel:  cfg.GeminiModel,
 		ImageModel:   cfg.ImageModel,
-		//		StyleSuffix:  cfg.StyleSuffix, // TODO::あと設定する
+		StyleSuffix:  cfg.StyleSuffix,
 		RateInterval: config.DefaultRateLimit,
 	}
 	wfBuilder, err := workflow.NewBuilder(
