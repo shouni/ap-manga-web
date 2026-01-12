@@ -8,10 +8,10 @@ type GenerateTaskPayload struct {
 	ScriptURL string `json:"script_url"`
 	// InputText は画面から直接入力されたテキストや台本JSONです。(Image/Story/Designモードで使用)
 	InputText string `json:"input_text"`
-	// Mode は使用するAIモデルを指定します。(config.GeminiModelなどを上書きする場合に使用)
+	// Mode は使用するAIモデルを指定します。
 	Mode string `json:"mode"`
-	// PanelLimit は生成する最大パネル数を指定します。
-	PanelLimit int `json:"panel_limit"`
+	// TargetPanels は生成したいパネルのインデックスをカンマ区切りで指定します（例: "0,2"）。
+	TargetPanels string `json:"target_panels"`
 	// Seed は乱数生成のためのシード値です。
 	Seed int64 `json:"seed"`
 }

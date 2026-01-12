@@ -24,8 +24,8 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | **Design** | DNA抽出。設定画を生成し、**固定用のSeed値を特定**する。 | Design Image, **Final Seed (via Slack)** |
 | **Generate** | 一括生成。解析から全ページのパブリッシュまで一気通貫。 | HTML, Images, MD |
 | **Script** | 台本生成。AIによる構成案（JSON）のみを出力。 | JSON (Script) |
-| **Image** | パネル作画。既存の台本から画像とHTMLを生成。 | Images, HTML, MD |
-| **Story** | 最終錬成。プロット（Markdown）から漫画構成案を生成。 | Manga Structure (JSON) |
+| **Panel** | パネル作画。既存の台本から画像とHTMLを生成。 | Images, HTML, MD |
+| **Page** | 最終錬成。プロット（Markdown）から漫画構成案を生成。 | Manga Structure (JSON) |
 
 ---
 
@@ -115,12 +115,10 @@ ap-manga-web/
 2. **Enqueue**: `web.Handler` が Cloud Tasks にジョブを投入。
 3. **Worker**: `worker.Handler` がリクエストを受け、`MangaPipeline` を起動。
 4. **Pipeline**:
-* **Phase 1**: 台本生成（Script/Story）
-* **Phase 2**: 画像生成（Image/Design）。指定された Seed またはランダム Seed を使用。
-* **Phase 3**: 保存（Publish）。GCS へ保存し、公開用 URL を発行。
-* **Phase 4**: **Notification**。Slack へ完了報告。**Designモードの場合は決定された Seed 値を明記。**
-
-
+    * **Phase 1: Script/Page**: 台本生成や構成案の作成。
+    * **Phase 2: Panel/Design**: 画像生成。指定された Seed またはランダム Seed を使用。
+    * **Phase 3: Publish**: 成果物の保存。GCS へ保存し、公開用 URL を発行。
+    * **Phase 4: Notification**: Slack へ完了報告。**Designモードの場合は決定された Seed 値を明記。**
 
 ---
 

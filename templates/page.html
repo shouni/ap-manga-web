@@ -1,0 +1,77 @@
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow-sm border-warning">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">📖 Page - プロットからページ構成なのだ</h4>
+                <span class="badge bg-dark">Markdown DNA Mode</span>
+            </div>
+            <div class="card-body">
+                <form action="/generate" method="POST">
+                    <input type="hidden" name="command" value="page">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">プロット・構成案 (Markdown Format)</label>
+                        <textarea name="input_text" class="form-control font-monospace" rows="20"
+                                  placeholder="## Panel: images/panel_1.png
+- layout: standard
+- speaker: speaker-91fa840984
+- text: これがGo Manga Kitなのだ！
+- tail: top
+- bottom: 10%
+- left: 10%" required></textarea>
+
+                        <div class="alert alert-info mt-3 py-3 shadow-sm">
+                            <div class="fw-bold mb-2">
+                                <i class="bi bi-lightbulb"></i> 💡 魂のDNA注入フォーマット（書き方ヒント）:
+                            </div>
+                            <ul class="mb-0 small" style="line-height: 1.6;">
+                                <li><code>## Panel: images/panel_n.png</code> — コマの区切りと画像パスを定義するのだ。</li>
+                                <li><code>- speaker: [ID]</code> — キャラクターID（DNA）を指定して外見を固定するのだ。</li>
+                                <li><code>- text: [内容]</code> — 吹き出しの中に入れるセリフなのだ。</li>
+                                <li><code>- tail: [top/bottom/left/right]</code> — 吹き出しの尻尾が出る方向なのだ。</li>
+                                <li><code>- [top/bottom/left/right]: [n%]</code> — 配置の座標。ミリ単位の調整が可能なのだ！</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">生成モード (Mode)</label>
+                            <select name="mode" class="form-select">
+                                <option value="standard" selected>標準 (Standard)</option>
+                                <option value="precise">詳細レイアウト (Precise)</option>
+                                <option value="draft">下書きモード (Draft)</option>
+                            </select>
+                            <div class="form-text">詳細レイアウトを選ぶと座標指定がより厳密に反映されるのだ。</div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-warning btn-lg text-dark fw-bold border-2">
+                            魂のDNA注入（ページ構成開始）なのだ！
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* テキストエリアを入力しやすく調整なのだ */
+    .font-monospace {
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        background-color: #f8f9fa;
+        line-height: 1.5;
+    }
+    .card-header {
+        border-bottom: 2px solid rgba(0,0,0,0.1);
+    }
+    .btn-warning:hover {
+        background-color: #ffca2c;
+        transform: translateY(-1px);
+        transition: all 0.2s;
+    }
+</style>
+{{end}}

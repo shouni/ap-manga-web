@@ -11,12 +11,14 @@
                     <div class="mb-3">
                         <label class="form-label">ソースURL</label>
                         <input type="url" name="script_url" class="form-control" placeholder="https://..." required>
+                        <div class="form-text">指定したURLから情報を抽出し、JSON形式の台本を作成するのだ。</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">台本構成モード</label>
                         <select name="mode" class="form-select">
-                            <option value="dialogue">Dialogue (基本解説)</option>
+                            <option value="dialogue" selected>Dialogue (基本解説)</option>
                             <option value="duet">Duet (掛け合い)</option>
+                            <option value="solo">Solo (独白)</option>
                         </select>
                     </div>
                     <button type="submit" class="btn btn-secondary w-100">台本を生成するのだ！</button>
