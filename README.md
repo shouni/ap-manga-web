@@ -57,6 +57,10 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | --- | --- | --- |
 | `SERVICE_URL` | アプリのルートURL（例: `https://myapp.run.app`） | `http://localhost:8080` |
 | `GCP_PROJECT_ID` | GCPのプロジェクトID | - |
+| `GCP_LOCATION_ID` | GCPのリージョン（Cloud Tasks用） | `asia-northeast1` |
+| `CLOUD_TASKS_QUEUE_ID` | 使用する Cloud Tasks のキュー名 | `manga-queue` |
+| `SERVICE_ACCOUNT_EMAIL` | タスク発行に使用するサービスアカウント | - |
+| `TASK_AUDIENCE_URL` | OIDCトークンの検証用URL | `SERVICE_URL` と同じ |
 | `GCS_MANGA_BUCKET` | 漫画画像とHTMLを保存するバケット名 | - |
 | `GEMINI_API_KEY` | Google Gemini APIキー | - |
 | `GEMINI_MODEL` | 台本構成に使用するモデル名 | `gemini-3.0-flash-preview` |
@@ -66,7 +70,10 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `SESSION_SECRET` | セッション暗号化用のランダム文字列 | - |
 | `ALLOWED_EMAILS` | 許可するメールアドレス（カンマ区切り） | - |
 | `ALLOWED_DOMAINS` | 許可するドメイン（例: `example.com`） | - |
-| `SLACK_WEBHOOK_URL` | 通知を送る先の Slack Webhook URL |
+| `SLACK_WEBHOOK_URL` | 通知を送る先の Slack Webhook URL | - |
+| `GCS_OUTPUT_PATH_FORMAT` | GCS上の保存パス形式 | `manga/%d/index.html` |
+
+---
 
 ### 2. ローカルでの実行方法
 
