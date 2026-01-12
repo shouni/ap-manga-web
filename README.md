@@ -24,8 +24,8 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | **Design** | DNA抽出。設定画を生成し、**固定用のSeed値を特定**する。 | Design Image, **Final Seed (via Slack)** |
 | **Generate** | 一括生成。解析から全ページのパブリッシュまで一気通貫。 | HTML, Images, MD |
 | **Script** | 台本生成。AIによる構成案（JSON）のみを出力。 | JSON (Script) |
-| **Image** | パネル作画。既存の台本から画像とHTMLを生成。 | Images, HTML, MD |
-| **Story** | 最終錬成。プロット（Markdown）から漫画構成案を生成。 | Manga Structure (JSON) |
+| **Panel** | パネル作画。既存の台本から画像とHTMLを生成。 | Images, HTML, MD |
+| **Page** | 最終錬成。プロット（Markdown）から漫画構成案を生成。 | Manga Structure (JSON) |
 
 ---
 

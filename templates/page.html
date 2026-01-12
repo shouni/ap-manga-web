@@ -1,0 +1,29 @@
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0">📖 Page - プロットからページ構成なのだ</h4>
+            </div>
+            <div class="card-body">
+                <form action="/generate" method="POST">
+                    <input type="hidden" name="command" value="page">
+
+                    <div class="mb-3">
+                        <label class="form-label">プロット・あらすじ (Input Text)</label>
+                        <textarea name="input_text" class="form-control" rows="15"
+                                  placeholder="ここに物語のあらすじや構成案を入力するのだ..." required></textarea>
+                        <div class="form-text">入力された内容に基づいて、ページごとの割り振りやレイアウトを検討するのだ。</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-warning btn-lg text-dark">
+                            ページ構成を開始するのだ！
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

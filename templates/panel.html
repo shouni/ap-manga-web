@@ -1,0 +1,39 @@
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-success">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">🖼 Panel - 台本からコマ画像生成なのだ</h4>
+            </div>
+            <div class="card-body">
+                <form action="/generate" method="POST">
+                    <input type="hidden" name="command" value="panel">
+
+                    <div class="mb-3">
+                        <label class="form-label">台本 JSON (JSON Input)</label>
+                        <textarea name="input_text" class="form-control" rows="15"
+                                  placeholder='{"title": "タイトル", "pages": [...]}' required></textarea>
+                        <div class="form-text">生成済みの台本JSONをここに貼り付けるのだ。</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">対象パネル (Target Panels)</label>
+                            <input type="text" name="target_panels" class="form-control" placeholder="例: 0,2,4">
+                            <div class="form-text">
+                                指定したインデックスのコマだけを生成するのだ。空欄なら全件生成なのだ！
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg text-white">
+                            パネル生成を開始するのだ！
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

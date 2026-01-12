@@ -49,15 +49,15 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 	switch payload.Command {
 	case "generate":
-		// Phase 1: Script (台本生成と保存)
+		// Phase 1: Script
 		if manga, scriptPath, err = p.runScriptStep(ctx, payload); err != nil {
 			return err
 		}
-		// Phase 2: Image (パネル画像生成 - TargetPanelsを考慮)
-		if images, err = p.runImageStep(ctx, manga, payload); err != nil {
+		// Phase 2: Panel
+		if images, err = p.runPanelStep(ctx, manga, payload); err != nil {
 			return err
 		}
-		// Phase 3: Publish (成果物の統合・公開)
+		// Phase 3: Publish
 		if err = p.runPublishStep(ctx, manga, images); err == nil {
 			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
 		}
@@ -76,21 +76,20 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 			notificationReq, publicURL, storageURI = p.buildScriptNotification(payload, manga, scriptPath)
 		}
 
-	case "image":
-		// 入力がJSON(台本)であることを想定
+	case "panel": // 💡 image から panel に変更なのだ
 		if err = json.Unmarshal([]byte(payload.InputText), &manga); err != nil {
-			slog.WarnContext(ctx, "Failed to parse input JSON for image mode", "error", err)
+			slog.WarnContext(ctx, "Failed to parse input JSON for panel mode", "error", err)
 			return nil
 		}
-		if images, err = p.runImageStep(ctx, manga, payload); err != nil {
+		if images, err = p.runPanelStep(ctx, manga, payload); err != nil {
 			return err
 		}
 		if err = p.runPublishStep(ctx, manga, images); err == nil {
 			notificationReq, publicURL, storageURI = p.buildMangaNotification(payload, manga)
 		}
 
-	case "story":
-		err = p.runStoryStep(ctx, payload)
+	case "page": // 💡 story から page に変更なのだ
+		err = p.runPageStep(ctx, payload)
 
 	default:
 		return fmt.Errorf("unsupported command: %s", payload.Command)
@@ -100,7 +99,6 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		return err
 	}
 
-	// Slackへの通知実行
 	if notificationReq != nil {
 		if notifyErr := p.appCtx.SlackNotifier.Notify(ctx, publicURL, storageURI, *notificationReq); notifyErr != nil {
 			slog.ErrorContext(ctx, "Notification failed", "error", notifyErr)
@@ -110,7 +108,7 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 	return nil
 }
 
-// --- 内部ステップ群 (workflow.Runner インターフェース準拠) ---
+// --- 内部ステップ群 ---
 
 func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.GenerateTaskPayload) (mngdom.MangaResponse, string, error) {
 	slog.Info("Step: Script generation", "url", payload.ScriptURL)
@@ -125,7 +123,6 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 		return mngdom.MangaResponse{}, "", err
 	}
 
-	// 成果物(JSON)の保存 - bytes.NewReaderでio.Readerに変換するのだ
 	safeTitle := p.getSafeTitle(manga.Title)
 	outputPath := path.Join("output", safeTitle, "script.json")
 	data, err := json.MarshalIndent(manga, "", "  ")
@@ -140,10 +137,10 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, payload domain.Genera
 	return manga, outputPath, nil
 }
 
-func (p *MangaPipeline) runImageStep(ctx context.Context, manga mngdom.MangaResponse, payload domain.GenerateTaskPayload) ([]*imagedom.ImageResponse, error) {
+// 💡 runImageStep から runPanelStep に改名したのだ
+func (p *MangaPipeline) runPanelStep(ctx context.Context, manga mngdom.MangaResponse, payload domain.GenerateTaskPayload) ([]*imagedom.ImageResponse, error) {
 	var targetIndices []int
 
-	// TargetPanels文字列をパースして[]intに変換するのだ
 	if payload.TargetPanels != "" {
 		parts := strings.Split(payload.TargetPanels, ",")
 		for _, part := range parts {
@@ -162,14 +159,13 @@ func (p *MangaPipeline) runImageStep(ctx context.Context, manga mngdom.MangaResp
 		}
 	}
 
-	// 指定がない場合は、上限なく全パネルを対象とするのだ
 	if len(targetIndices) == 0 {
 		for i := 0; i < len(manga.Pages); i++ {
 			targetIndices = append(targetIndices, i)
 		}
 	}
 
-	slog.Info("Step: Image generation",
+	slog.Info("Step: Panel image generation",
 		"target_count", len(targetIndices),
 		"indices", targetIndices,
 	)
@@ -197,8 +193,9 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, payload domain.Genera
 	return runner.Run(ctx, charIDs, payload.Seed, p.appCtx.Config.GCSBucket)
 }
 
-func (p *MangaPipeline) runStoryStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
-	slog.Info("Step: Page image generation (Story)", "asset_path", payload.ScriptURL)
+// 💡 runStoryStep から runPageStep に改名したのだ
+func (p *MangaPipeline) runPageStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
+	slog.Info("Step: Page image generation", "asset_path", payload.ScriptURL)
 
 	runner, err := builder.BuildPageImageRunner(ctx, p.appCtx)
 	if err != nil {
@@ -217,7 +214,6 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mngdom.MangaRe
 	}
 
 	outputDir := path.Join("output", p.getSafeTitle(manga.Title))
-	// publisher.PublishResultを受け取ってエラーチェックをするのだ
 	_, err = runner.Run(ctx, manga, images, outputDir)
 	return err
 }

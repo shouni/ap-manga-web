@@ -15,6 +15,7 @@ import (
 	"ap-manga-web/internal/domain"
 )
 
+// target_panels のバリデーション（数字、カンマ、スペースのみ許可）
 var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
 
 type IndexPageData struct {
@@ -27,12 +28,14 @@ type AcceptedPageData struct {
 	ScriptURL string
 }
 
+// Handler はテンプレート管理とリクエスト処理を行うのだ。
 type Handler struct {
 	cfg           config.Config
 	templateCache map[string]*template.Template
 	taskAdapter   adapters.TaskAdapter
 }
 
+// NewHandler はテンプレートをキャッシュし、ハンドラーを初期化するのだ。
 func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
@@ -86,6 +89,8 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageName string, dat
 	buf.WriteTo(w)
 }
 
+// --- 画面表示メソッド ---
+
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "index.html", IndexPageData{Title: "Generate - AP Manga Web"})
 }
@@ -95,14 +100,16 @@ func (h *Handler) Design(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Script(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "script.html", IndexPageData{Title: "Script Generation - AP Manga Web"})
 }
-func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, "image.html", IndexPageData{Title: "Image Generation - AP Manga Web"})
-}
-func (h *Handler) Story(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, "story.html", IndexPageData{Title: "Story Boarding - AP Manga Web"})
+
+func (h *Handler) Panel(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "panel.html", IndexPageData{Title: "Panel Generation - AP Manga Web"})
 }
 
-// HandleSubmit は、HTMLフォームからの送信を処理するのだ。
+func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "page.html", IndexPageData{Title: "Page Layout - AP Manga Web"})
+}
+
+// HandleSubmit は、HTMLフォームからの送信を処理し、タスクをエンキューするのだ。
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -119,14 +126,12 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 💡 domain.GenerateTaskPayload へのマッピングを最新化したのだ
 	payload := domain.GenerateTaskPayload{
-		Command:   r.FormValue("command"),
-		ScriptURL: r.FormValue("script_url"),
-		InputText: r.FormValue("input_text"),
-		Mode:      r.FormValue("mode"),
-		// 💡 panel_limit のパースを廃止し、target_panels を取得するように変更！
-		TargetPanels: r.FormValue("target_panels"),
+		Command:      r.FormValue("command"),
+		ScriptURL:    r.FormValue("script_url"),
+		InputText:    r.FormValue("input_text"),
+		Mode:         r.FormValue("mode"),
+		TargetPanels: targetPanels,
 	}
 
 	if payload.Command == "" {
@@ -138,7 +143,7 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Form submission received",
 		"command", payload.Command,
 		"url", payload.ScriptURL,
-		"panels", payload.TargetPanels, // ログも変更なのだ
+		"panels", payload.TargetPanels,
 	)
 
 	if err := h.taskAdapter.EnqueueGenerateTask(ctx, payload); err != nil {
