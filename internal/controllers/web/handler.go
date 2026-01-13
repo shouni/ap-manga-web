@@ -171,15 +171,11 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 // ServeOutput は GCS に保存された成果物への署名付きURLを生成し、307リダイレクトを行います。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	title := chi.URLParam(r, "title")
 	file := chi.URLParam(r, "*")
-
-	if title == "" || strings.Contains(title, "..") || strings.Contains(file, "..") {
-		slog.WarnContext(ctx, "Security alert: potential path traversal detected",
-			"input_title", title,
-			"input_file", file,
-			"remote_addr", r.RemoteAddr)
-		http.Error(w, "Invalid path parameters", http.StatusBadRequest)
+	if title == "" {
+		http.Error(w, "Invalid path parameters: title is missing", http.StatusBadRequest)
 		return
 	}
 
@@ -187,10 +183,21 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		file = "manga_plot.html"
 	}
 
-	// GCS上のオブジェクトパス（URI）を構築
-	// GetWorkDir(title) を通すことで "output/{title}" の階層を強制
-	objectPath := path.Join(h.cfg.GetWorkDir(title), file)
-	gcsURI := h.cfg.GetGCSObjectURL(objectPath)
+	baseDir := h.cfg.GetWorkDir(title)
+	objectPath := path.Join(baseDir, file)
+	cleanedPath := path.Clean(objectPath)
+	if !strings.HasPrefix(cleanedPath, baseDir) {
+		slog.WarnContext(ctx, "Security alert: potential path traversal detected",
+			"input_title", title,
+			"input_file", file,
+			"cleaned_path", cleanedPath,
+			"base_dir", baseDir,
+			"remote_addr", r.RemoteAddr)
+		http.Error(w, "Invalid path parameters", http.StatusForbidden)
+		return
+	}
+
+	gcsURI := h.cfg.GetGCSObjectURL(cleanedPath)
 	signedURL, err := h.signer.GenerateSignedURL(
 		ctx,
 		gcsURI,
