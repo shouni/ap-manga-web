@@ -1,9 +1,6 @@
 package web
 
 import (
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
 	"bytes"
 	"fmt"
 	"html/template"
@@ -15,13 +12,12 @@ import (
 	"regexp"
 	"strings"
 
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
-)
-
-const (
-	// defaultOutputFile は ServeOutput で相対パスが空の場合に配信されるデフォルトファイルです。
-	defaultOutputFile = "manga_plot.html"
 )
 
 // バリデーション用正規表現
@@ -195,7 +191,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 
 	// 定数を使用したデフォルトファイル決定
 	if file == "" {
-		file = defaultOutputFile
+		file = domain.DefaultOutputFile
 	}
 
 	// パスの正規化とサンドボックス境界チェック
