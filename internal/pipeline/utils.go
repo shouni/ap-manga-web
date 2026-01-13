@@ -41,7 +41,7 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 	h.Write(nanoBytes)
 
 	hash := fmt.Sprintf("%x", h.Sum(nil))[:8]
-	// この戻り値が ServeOutput の {title} パラメータになります。
+	// この戻り値が ServeOutput の {title} パラメータ、および GCS のディレクトリ名になります。
 	e.resolvedSafeTitle = fmt.Sprintf("%s_%s", tJST.Format("20060102_150405"), hash)
 
 	return e.resolvedSafeTitle
@@ -53,11 +53,19 @@ func (e *mangaExecution) buildMangaNotification(
 	result publisher.PublishResult,
 ) (*domain.NotificationRequest, string, string) {
 	safeTitle := e.resolveSafeTitle(manga.Title)
-	publicURL, _ := url.JoinPath(
+
+	// Web上の公開URLを構築
+	publicURL, err := url.JoinPath(
 		e.pipeline.appCtx.Config.ServiceURL,
 		e.pipeline.appCtx.Config.BaseOutputDir,
 		safeTitle,
 	)
+	if err != nil {
+		slog.Error("Failed to construct public URL", "error", err, "serviceURL", e.pipeline.appCtx.Config.ServiceURL)
+		publicURL = "N/A (URL Error)"
+	}
+
+	// GCS上の絶対パスを取得
 	workDir := e.pipeline.appCtx.Config.GetWorkDir(safeTitle)
 	storageURI := e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
 
@@ -80,11 +88,11 @@ func (e *mangaExecution) buildScriptNotification(manga mangadom.MangaResponse, g
 }
 
 // buildDesignNotification はデザインシート生成の結果に基づいてSlack通知用リクエストを構築します。
-func (e *mangaExecution) buildDesignNotification(outputFullURL string, seed int64) (*domain.NotificationRequest, string, string) {
+func (e *mangaExecution) buildDesignNotification(outputStorageURI string, seed int64) (*domain.NotificationRequest, string, string) {
 	return &domain.NotificationRequest{
 		SourceURL:      "N/A (Design)",
 		OutputCategory: "design-sheet",
 		TargetTitle:    fmt.Sprintf("Design: %s (Seed: %d)", e.payload.InputText, seed),
 		ExecutionMode:  "design",
-	}, "N/A", outputFullURL
+	}, "N/A", outputStorageURI
 }
