@@ -148,6 +148,7 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if payload.Command == "" {
+		slog.WarnContext(r.Context(), "Form submission rejected: command is missing")
 		http.Error(w, "Command is required", http.StatusBadRequest)
 		return
 	}
