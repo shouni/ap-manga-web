@@ -19,8 +19,17 @@ import (
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// target_panels のバリデーション
-var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
+const (
+	// defaultOutputFile は ServeOutput で相対パスが空の場合に配信されるデフォルトファイルです。
+	defaultOutputFile = "manga_plot.html"
+)
+
+// バリデーション用正規表現
+var (
+	validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
+	// validTitle はディレクトリ名として安全な文字（英数字、ハイフン、アンダースコア）のみを許可します。
+	validTitle = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+)
 
 type IndexPageData struct {
 	Title string
@@ -174,17 +183,26 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 
 	title := chi.URLParam(r, "title")
 	file := chi.URLParam(r, "*")
-	if title == "" {
-		http.Error(w, "Invalid path parameters: title is missing", http.StatusBadRequest)
+
+	// title パラメータのホワイトリスト形式バリデーション
+	if title == "" || !validTitle.MatchString(title) {
+		slog.WarnContext(ctx, "Security alert: invalid title parameter",
+			"input_title", title,
+			"remote_addr", r.RemoteAddr)
+		http.Error(w, "Invalid path parameters", http.StatusBadRequest)
 		return
 	}
 
+	// 定数を使用したデフォルトファイル決定
 	if file == "" {
-		file = "manga_plot.html"
+		file = defaultOutputFile
 	}
 
+	// パスの正規化とサンドボックス境界チェック
 	baseDir := h.cfg.GetWorkDir(title)
 	objectPath := path.Join(baseDir, file)
+
+	// Cleanを適用し、baseDir 配下から脱出していないかを厳密に検証
 	cleanedPath := path.Clean(objectPath)
 	if !strings.HasPrefix(cleanedPath, baseDir) {
 		slog.WarnContext(ctx, "Security alert: potential path traversal detected",
@@ -197,6 +215,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 正規化された安全なパスで GCS 署名付きURLを生成
 	gcsURI := h.cfg.GetGCSObjectURL(cleanedPath)
 	signedURL, err := h.signer.GenerateSignedURL(
 		ctx,
@@ -212,5 +231,6 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// セマンティクスに基づき 307 Temporary Redirect を使用
 	http.Redirect(w, r, signedURL, http.StatusTemporaryRedirect)
 }
