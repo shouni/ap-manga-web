@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path"
 	"time"
 
 	"github.com/shouni/go-utils/envutil"
@@ -65,8 +66,8 @@ func LoadConfig() Config {
 		baseDir = "/app"
 	}
 
-	templateDir := fmt.Sprintf("%s/templates", baseDir)
-	charConfig := fmt.Sprintf("%s/%s", baseDir, DefaultCharactersFile)
+	templateDir := path.Join(baseDir, "templates")
+	charConfig := path.Join(baseDir, DefaultCharactersFile)
 
 	return Config{
 		ServiceURL:          serviceURL,
