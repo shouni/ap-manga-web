@@ -19,14 +19,14 @@ import (
 // AppContext はアプリケーションの依存関係を保持します。
 // 各フィールドをインターフェースで定義することで、将来的なモック利用を容易にします。
 type AppContext struct {
-	Config        config.Config
-	Reader        remoteio.InputReader
-	Writer        remoteio.OutputWriter
-	Signer        remoteio.URLSigner
-	WkBuilder     *workflow.Builder
-	SlackNotifier adapters.SlackNotifier
-	AIClient      gemini.GenerativeModel
-	HTTPClient    httpkit.ClientInterface
+	Config          config.Config
+	Reader          remoteio.InputReader
+	Writer          remoteio.OutputWriter
+	Signer          remoteio.URLSigner
+	WorkflowBuilder *workflow.Builder
+	SlackNotifier   adapters.SlackNotifier
+	AIClient        gemini.GenerativeModel
+	HTTPClient      httpkit.ClientInterface
 }
 
 // BuildAppContext は外部サービスとの接続を確立し、依存関係を組み立てます。
@@ -89,14 +89,14 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 	}
 
 	return &AppContext{
-		Config:        cfg,
-		Reader:        reader,
-		Writer:        writer,
-		Signer:        signer,
-		WkBuilder:     wfBuilder,
-		SlackNotifier: slack,
-		AIClient:      aiClient,
-		HTTPClient:    httpClient,
+		Config:          cfg,
+		Reader:          reader,
+		Writer:          writer,
+		Signer:          signer,
+		WorkflowBuilder: wfBuilder,
+		SlackNotifier:   slack,
+		AIClient:        aiClient,
+		HTTPClient:      httpClient,
 	}, nil
 }
 
