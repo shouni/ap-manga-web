@@ -66,6 +66,10 @@ func NewServerHandler(
 		r.Get("/panel", webHandler.Panel)   // コマ画像生成 (旧 Image)
 		r.Get("/page", webHandler.Page)     // ページ構成 (旧 Story)
 
+		// 成果物配信ルート (config.BaseOutputDir の値に合わせる)
+		r.Get("/"+cfg.BaseOutputDir+"/{title}", webHandler.ServeOutput)
+		r.Get("/"+cfg.BaseOutputDir+"/{title}/*", webHandler.ServeOutput)
+
 		// 全ての POST はここへ集約なのだ
 		r.Post("/generate", webHandler.HandleSubmit)
 	})
