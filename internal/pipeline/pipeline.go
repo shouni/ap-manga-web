@@ -24,14 +24,21 @@ func NewMangaPipeline(appCtx *builder.AppContext) *MangaPipeline {
 	return &MangaPipeline{appCtx: appCtx}
 }
 
-func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTaskPayload) error {
+// Execute は名前付き戻り値 (err error) を使うことで defer 内でエラーを判定できるようにしたのだ
+func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTaskPayload) (err error) {
 	p.startTime = time.Now()
+
+	// 失敗時の通知を defer で一括管理する
+	defer func() {
+		if err != nil {
+			p.notifyError(ctx, payload, err)
+		}
+	}()
 
 	slog.Info("Pipeline execution started", "command", payload.Command, "mode", payload.Mode)
 
 	var notificationReq *domain.NotificationRequest
 	var publicURL, storageURI string
-	var err error
 	var manga mangadom.MangaResponse
 
 	switch payload.Command {
@@ -42,7 +49,8 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		}
 
 		// --- Phase 2 & 3: Panel & Publish ---
-		publishResult, err := p.runPanelAndPublishSteps(ctx, manga, payload)
+		var publishResult publisher.PublishResult
+		publishResult, err = p.runPanelAndPublishSteps(ctx, manga, payload)
 		if err != nil {
 			return err
 		}
@@ -78,7 +86,8 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 			return fmt.Errorf("panel mode input JSON unmarshal failed: %w", err)
 		}
 
-		publishResult, err := p.runPanelAndPublishSteps(ctx, manga, payload)
+		var publishResult publisher.PublishResult
+		publishResult, err = p.runPanelAndPublishSteps(ctx, manga, payload)
 		if err != nil {
 			return err
 		}
@@ -91,15 +100,18 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		}
 
 	default:
-		return fmt.Errorf("unsupported command: %s", payload.Command)
+		err = fmt.Errorf("unsupported command: %s", payload.Command)
+		return err
 	}
 
-	// 共通の通知処理
+	// 成功時の共通通知処理
 	if notificationReq != nil {
 		if notifyErr := p.appCtx.SlackNotifier.Notify(ctx, publicURL, storageURI, *notificationReq); notifyErr != nil {
 			slog.ErrorContext(ctx, "Notification failed", "error", notifyErr)
+			// 通知自体の失敗はパイプラインのメインエラーにはしないでおくのだ
 		}
 	}
+
 	return nil
 }
 

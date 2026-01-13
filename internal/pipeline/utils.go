@@ -50,8 +50,7 @@ func (p *MangaPipeline) resolveSafeTitle(title string) string {
 	hash := fmt.Sprintf("%x", h.Sum(nil))[:8]
 	p.resolvedSafeTitle = fmt.Sprintf("%s_%s", tJST.Format("20060102_150405"), hash)
 
-	// 例: 20260112_174500_a1b2c3d4
-	return fmt.Sprintf("%s_%s", tJST.Format("20060102_150405"), hash)
+	return p.resolvedSafeTitle
 }
 
 // buildMangaNotification は生成結果を基にSlack通知用のリクエストを構築するのだ
@@ -81,6 +80,22 @@ func (p *MangaPipeline) buildMangaNotification(
 		TargetTitle:    manga.Title,
 		ExecutionMode:  payload.Command + " / " + payload.Mode,
 	}, publicURL, storageURI
+}
+
+// notifyError は失敗時に SlackAdapter.NotifyError を呼び出してエラーを報告するのだ
+func (p *MangaPipeline) notifyError(ctx context.Context, payload domain.GenerateTaskPayload, opErr error) {
+	// エラー通知用のリクエスト情報を構築
+	req := domain.NotificationRequest{
+		SourceURL:      payload.ScriptURL,
+		OutputCategory: "error-report",
+		TargetTitle:    "漫画錬成エラー",
+		ExecutionMode:  payload.Command,
+	}
+
+	// SlackAdapter 側の新設メソッド NotifyError を使用するのだ
+	if err := p.appCtx.SlackNotifier.NotifyError(ctx, opErr, req); err != nil {
+		slog.ErrorContext(ctx, "Failed to send error notification", "error", err)
+	}
 }
 
 func (p *MangaPipeline) parseTargetPanels(ctx context.Context, s string, total int) []int {

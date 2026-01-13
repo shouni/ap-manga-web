@@ -17,6 +17,7 @@ import (
 
 type SlackNotifier interface {
 	Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error
+	NotifyError(ctx context.Context, errDetail error, req domain.NotificationRequest) error
 }
 
 // --- 具象アダプター ---
@@ -65,6 +66,39 @@ func (a *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string,
 	}
 
 	slog.Info("Slack に完了通知を送信しました。", "public_url", publicURL)
+	return nil
+}
+
+func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req domain.NotificationRequest) error {
+	if a.slackClient == nil {
+		slog.Info("Slackクライアントが初期化されていないため、エラー通知をスキップします。", "error", errDetail)
+		return nil
+	}
+
+	// Slackの mrkdwn 形式に合わせて、太字を *...* に修正しているのだ
+	title := "❌ 処理中にエラーが発生しました"
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("*作品タイトル:* `%s`\n", req.TargetTitle))
+	sb.WriteString(fmt.Sprintf("*実行モード:* `%s`\n", req.ExecutionMode))
+	sb.WriteString(fmt.Sprintf("*ソース:* %s\n\n", req.SourceURL))
+
+	// エラー詳細をコードブロックで囲むことで、スタックトレースなども読みやすくなるのだ
+	sb.WriteString("*エラー内容:*\n")
+	sb.WriteString(fmt.Sprintf("```\n%v\n```\n", errDetail))
+
+	// もしエラー発生時でもある程度の保存先が判明している場合は、GCSへのリンクを添えると調査が捗るのだ
+	if req.OutputCategory != "" && req.OutputCategory != "N/A" {
+		sb.WriteString(fmt.Sprintf("\n📍 *カテゴリ:* `%s`", req.OutputCategory))
+	}
+
+	content := sb.String()
+
+	if err := a.slackClient.SendTextWithHeader(ctx, title, content); err != nil {
+		return fmt.Errorf("Slackへのエラー通知に失敗しました: %w", err)
+	}
+
+	slog.Info("Slack にエラー通知を送信しました。", "error", errDetail)
 	return nil
 }
 
