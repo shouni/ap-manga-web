@@ -30,19 +30,21 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution)
 		return mangadom.MangaResponse{}, "", err
 	}
 
-	// 実行コンテキストから一貫したディレクトリ名を生成します。
+	// config のヘルパーを使用してパスを決定
 	safeTitle := exec.resolveSafeTitle(manga.Title)
-	outputPath := fmt.Sprintf("gs://%s/output/%s/script.json", p.appCtx.Config.GCSBucket, safeTitle)
+	workDir := p.appCtx.Config.GetWorkDir(safeTitle)
+	outputObjectPath := fmt.Sprintf("%s/script.json", workDir)
+	outputFullURL := p.appCtx.Config.GetGCSObjectURL(outputObjectPath)
 
 	data, err := json.MarshalIndent(manga, "", "  ")
 	if err != nil {
 		return mangadom.MangaResponse{}, "", fmt.Errorf("failed to marshal manga script to JSON: %w", err)
 	}
 
-	if err := p.appCtx.Writer.Write(ctx, outputPath, bytes.NewReader(data), "application/json"); err != nil {
+	if err := p.appCtx.Writer.Write(ctx, outputFullURL, bytes.NewReader(data), "application/json"); err != nil {
 		return manga, "", err
 	}
-	return manga, outputPath, nil
+	return manga, outputFullURL, nil
 }
 
 // runPanelStep は台本に基づき、指定されたインデックスのパネル画像を生成します。
@@ -63,9 +65,10 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mangadom.Manga
 	}
 
 	safeTitle := exec.resolveSafeTitle(manga.Title)
-	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, safeTitle)
+	workDir := p.appCtx.Config.GetWorkDir(safeTitle)
+	outputFullURL := p.appCtx.Config.GetGCSObjectURL(workDir)
 
-	return runner.Run(ctx, manga, images, outputDir)
+	return runner.Run(ctx, manga, images, outputFullURL)
 }
 
 // runPanelAndPublishSteps はパネル画像生成とパブリッシュ処理を連続して実行する共通ロジックです。
@@ -140,6 +143,8 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution)
 	dirName := "design_" + strings.Join(charIDs, "_")
 	dir := exec.resolveSafeTitle(dirName)
 
-	outputDir := fmt.Sprintf("gs://%s/output/%s", p.appCtx.Config.GCSBucket, dir)
-	return runner.Run(ctx, charIDs, exec.payload.Seed, outputDir)
+	workDir := p.appCtx.Config.GetWorkDir(dir)
+	outputFullURL := p.appCtx.Config.GetGCSObjectURL(workDir)
+
+	return runner.Run(ctx, charIDs, exec.payload.Seed, outputFullURL)
 }

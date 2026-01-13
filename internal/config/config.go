@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path"
 	"time"
 
 	"github.com/shouni/go-utils/envutil"
@@ -16,9 +17,9 @@ const (
 	DefaultModel        = "gemini-3-flash-preview"
 	DefaultImageModel   = "gemini-3-pro-image-preview"
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
-	DefaultHTTPTimeout    = 30 * time.Second
+	DefaultHTTPTimeout    = 60 * time.Second
 	DefaultRateLimit      = 30 * time.Second
-	DefaultCharactersFile = "internal/config/characters.json" // キャラクターの視覚情報（DNA）を定義したJSONパス
+	DefaultCharactersFile = "internal/config/characters.json"
 	DefaultStyleSuffix    = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
 )
 
@@ -32,13 +33,13 @@ type Config struct {
 	TaskAudienceURL     string // OIDC トークンの検証に使用する Audience URL
 	ServiceAccountEmail string
 	GCSBucket           string // 漫画画像とHTMLを保存するバケット
-	GCSOutputPathFormat string // 出力パスのテンプレート (例: "manga/%d/index.html")
+	BaseOutputDir       string // GCS内のベースルート (例: "output")
 	SlackWebhookURL     string
 	GeminiAPIKey        string
-	GeminiModel         string        // 台本生成用モデル
-	ImageModel          string        // 画像生成用モデル
-	TemplateDir         string        // HTMLテンプレートの格納ディレクトリ
-	ShutdownTimeout     time.Duration // 追加
+	GeminiModel         string // 台本生成用モデル
+	ImageModel          string // 画像生成用モデル
+	TemplateDir         string // HTMLテンプレートの格納ディレクトリ
+	ShutdownTimeout     time.Duration
 
 	// OAuth & Session Settings
 	GoogleClientID     string
@@ -59,11 +60,14 @@ func LoadConfig() Config {
 	allowedEmails := envutil.GetEnv("ALLOWED_EMAILS", "")
 	allowedDomains := envutil.GetEnv("ALLOWED_DOMAINS", "")
 
-	// 実行環境（Local, Cloud Run, ko）に応じたテンプレートパスの解決
-	templateDir := "templates"
+	// 実行環境（Cloud Run, ko）に応じたパスの解決
+	baseDir := "."
 	if os.Getenv("KO_DATA_PATH") != "" || os.Getenv("K_SERVICE") != "" {
-		templateDir = "/app/templates"
+		baseDir = "/app"
 	}
+
+	templateDir := path.Join(baseDir, "templates")
+	charConfig := path.Join(baseDir, DefaultCharactersFile)
 
 	return Config{
 		ServiceURL:          serviceURL,
@@ -71,9 +75,10 @@ func LoadConfig() Config {
 		ProjectID:           envutil.GetEnv("GCP_PROJECT_ID", "your-gcp-project"),
 		LocationID:          envutil.GetEnv("GCP_LOCATION_ID", "asia-northeast1"),
 		QueueID:             envutil.GetEnv("CLOUD_TASKS_QUEUE_ID", "manga-queue"),
-		TaskAudienceURL:     envutil.GetEnv("TASK_AUDIENCE_URL", serviceURL), // デフォルトは ServiceURL
+		TaskAudienceURL:     envutil.GetEnv("TASK_AUDIENCE_URL", serviceURL),
 		ServiceAccountEmail: envutil.GetEnv("SERVICE_ACCOUNT_EMAIL", ""),
 		GCSBucket:           envutil.GetEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
+		BaseOutputDir:       envutil.GetEnv("BASE_OUTPUT_DIR", "output"),
 		SlackWebhookURL:     envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
 		GeminiAPIKey:        envutil.GetEnv("GEMINI_API_KEY", ""),
 		GeminiModel:         envutil.GetEnv("GEMINI_MODEL", DefaultModel),
@@ -88,39 +93,53 @@ func LoadConfig() Config {
 		AllowedEmails:      text.ParseCommaSeparatedList(allowedEmails),
 		AllowedDomains:     text.ParseCommaSeparatedList(allowedDomains),
 
-		CharacterConfig: DefaultCharactersFile,
+		CharacterConfig: charConfig,
 		StyleSuffix:     DefaultStyleSuffix,
 	}
 }
 
-// ValidateEssentialConfig はアプリケーション実行に不可欠な設定が正しく提供されているか検証します。
+// --- パス管理用ヘルパーメソッド ---
+
+// GetWorkDir は特定のリクエストに対する一意の作業ディレクトリを返します。
+// 例: "output/20260113-ABCD"
+func (c Config) GetWorkDir(requestID string) string {
+	return path.Join(c.BaseOutputDir, requestID)
+}
+
+// GetImageDir は画像保存用のサブディレクトリパスを返します。
+func (c Config) GetImageDir(requestID string) string {
+	return path.Join(c.GetWorkDir(requestID), "images")
+}
+
+// GetGCSObjectURL はGCS内のオブジェクトパスを組み立てます。
+func (c Config) GetGCSObjectURL(path string) string {
+	return fmt.Sprintf("gs://%s/%s", c.GCSBucket, path)
+}
+
+// --- バリデーション ---
+
+// ValidateEssentialConfig はアプリケーション実行に不可欠な設定を検証します。
 func ValidateEssentialConfig(cfg Config) error {
-	// 本番環境（localhost 以外）では HTTPS を強制
 	if !IsSecureURL(cfg.ServiceURL) {
-		return fmt.Errorf("security error: SERVICE_URL ('%s') must be HTTPS in production for session protection", cfg.ServiceURL)
+		return fmt.Errorf("security error: SERVICE_URL ('%s') must be HTTPS in production", cfg.ServiceURL)
 	}
 
 	if cfg.GoogleClientID == "" || cfg.GoogleClientSecret == "" || cfg.SessionSecret == "" {
-		return fmt.Errorf("configuration error: OAuth requirements (CLIENT_ID, SECRET, SESSION_SECRET) are missing")
+		return fmt.Errorf("configuration error: OAuth settings are missing")
 	}
 
 	if len(cfg.AllowedEmails) == 0 && len(cfg.AllowedDomains) == 0 {
-		return fmt.Errorf("configuration error: authorization lists (ALLOWED_EMAILS/DOMAINS) are empty")
+		return fmt.Errorf("configuration error: authorization lists are empty")
 	}
 
 	if cfg.GeminiAPIKey == "" {
 		return fmt.Errorf("configuration error: GEMINI_API_KEY is not set")
 	}
 
-	// Audience URL のチェック (OIDC検証に必須)
-	if cfg.TaskAudienceURL == "" {
-		return fmt.Errorf("configuration error: TASK_AUDIENCE_URL is required for secure worker communication")
-	}
-
 	return nil
 }
 
-// IsSecureURL は指定された URL がセキュア（HTTPS または開発用 localhost）であるか判定します。
+// IsSecureURL は指定された URL が HTTPS または localhost であるか判定します。
 func IsSecureURL(rawURL string) bool {
 	return urlpath.IsSecureServiceURL(rawURL)
 }

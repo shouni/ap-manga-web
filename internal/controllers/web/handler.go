@@ -24,7 +24,7 @@ import (
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// target_panels のバリデーション（数字、カンマ、スペースのみ許可）
+// target_panels のバリデーション
 var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
 
 type IndexPageData struct {
@@ -175,45 +175,42 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// URLパラメータからタイトルとファイルパスを取得
+	// 1. URLパラメータからタイトル（ディレクトリ名）と相対パスを取得
 	title := chi.URLParam(r, "title")
-	file := chi.URLParam(r, "*")
+	remainingPath := chi.URLParam(r, "*")
 
-	// title にパス区切り文字が含まれていないことを検証します。
-	if strings.ContainsAny(title, "/\\") {
-		slog.WarnContext(ctx, "Security alert: path separator in title", "input_title", title)
+	if title == "" || strings.ContainsAny(title, "/\\") {
+		slog.WarnContext(ctx, "Security alert: invalid title parameter", "input_title", title)
 		http.Error(w, "Invalid title parameter", http.StatusBadRequest)
 		return
 	}
 
-	// ファイル指定がない、またはスラッシュのみの場合は、デフォルトのHTMLファイル名を使用します。
+	// 2. デフォルトのHTMLファイルを決定
+	file := remainingPath
 	if file == "" || file == "/" {
 		file = "manga_plot.html"
 	}
 
-	// パストラバーサル対策およびベースディレクトリの定義
-	const (
-		baseDir       = "output"
-		baseDirPrefix = baseDir + "/"
-	)
-	safeSubPath := path.Join(baseDir, title, file)
+	// 3. Config を使用して GCS 上のオブジェクトパスを構築
+	// title は実質的なリクエストID（または一意の名称）として扱う
+	objectPath := path.Join(h.cfg.GetWorkDir(title), file)
 
-	// 正規化後のパスが、意図したベースディレクトリ配下であることを厳格に検証します。
-	if !strings.HasPrefix(safeSubPath, baseDirPrefix) {
-		slog.WarnContext(ctx, "Security alert: attempted path traversal", "input_title", title, "input_file", file)
+	// 安全性の検証: GetWorkDir で生成されたディレクトリ配下であることを確認
+	expectedPrefix := h.cfg.GetWorkDir(title)
+	if !strings.HasPrefix(objectPath, expectedPrefix) {
+		slog.WarnContext(ctx, "Security alert: attempted path traversal", "result_path", objectPath)
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
 
-	// GCS上の絶対パスを構築
-	gcsPath := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, safeSubPath)
+	// gs:// 形式のフルパスを取得
+	gcsPath := h.cfg.GetGCSObjectURL(objectPath)
 
-	// GCSからオブジェクトのストリームを取得
+	// 4. GCSからオブジェクトのストリームを取得
 	rc, err := h.reader.Open(ctx, gcsPath)
 	if err != nil {
 		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
 
-		// オブジェクトが存在しない場合と、その他のエラー（権限等）を区別します。
 		if errors.Is(err, storage.ErrObjectNotExist) {
 			http.Error(w, "Output not found", http.StatusNotFound)
 		} else {
@@ -223,27 +220,21 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rc.Close()
 
-	// 拡張子に基づいて Content-Type を判定
+	// 5. Content-Type の決定
 	ext := path.Ext(file)
-	var contentType string
-
-	// 特定の拡張子について Content-Type を優先的に処理
+	contentType := mime.TypeByExtension(ext)
 	switch ext {
 	case ".md":
 		contentType = "text/markdown; charset=utf-8"
 	case ".html":
 		contentType = "text/html; charset=utf-8"
-	default:
-		// それ以外は標準ライブラリによる推測に任せる
-		contentType = mime.TypeByExtension(ext)
 	}
 
-	// Content-Type が最終的に決定できなかった場合のフォールバック
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 
-	// ヘッダーを設定し、ブラウザへデータを転送
+	// 6. ヘッダー設定とデータ転送
 	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(http.StatusOK)
 
