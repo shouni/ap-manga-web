@@ -1,5 +1,7 @@
 package domain
 
+const CategoryNotAvailable = "N/A"
+
 // NotificationRequest は Slack 等の通知コンポーネントで共有されるデータ構造です。
 // 生成された漫画のメタデータを通知先に伝えるために使用します。
 type NotificationRequest struct {
