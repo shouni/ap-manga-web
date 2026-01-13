@@ -81,17 +81,17 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 	title := "❌ 処理中にエラーが発生しました"
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("*作品タイトル:* `%s`\n", req.TargetTitle))
-	sb.WriteString(fmt.Sprintf("*実行モード:* `%s`\n", req.ExecutionMode))
-	sb.WriteString(fmt.Sprintf("*ソース:* %s\n\n", req.SourceURL))
+	fmt.Fprintf(&sb, "*作品タイトル:* `%s`\n", req.TargetTitle)
+	fmt.Fprintf(&sb, "*実行モード:* `%s`\n", req.ExecutionMode)
+	fmt.Fprintf(&sb, "*ソース:* %s\n\n", req.SourceURL)
 
 	// エラー詳細をコードブロックで囲むことで、スタックトレースなどの可読性を向上させます。
 	sb.WriteString("*エラー内容:*\n")
-	sb.WriteString(fmt.Sprintf("```\n%v\n```\n", errDetail))
+	fmt.Fprintf(&sb, "```\n%v\n```\n", errDetail)
 
 	// エラー発生時でも保存先カテゴリが判明している場合は、その情報を通知に含めることで調査を容易にします。
 	if req.OutputCategory != "" && req.OutputCategory != domain.CategoryNotAvailable {
-		sb.WriteString(fmt.Sprintf("\n📍 *カテゴリ:* `%s`", req.OutputCategory))
+		fmt.Fprintf(&sb, "\n📍 *カテゴリ:* `%s`", req.OutputCategory)
 	}
 
 	content := sb.String()
