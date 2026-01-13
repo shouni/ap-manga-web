@@ -75,7 +75,7 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 		return nil
 	}
 
-	// Slackの mrkdwn 形式に合わせて、太字を *...* に修正しているのだ
+	// Slackのmrkdwn形式では、アスタリスク(*)でテキストを囲むと太字として解釈されます。
 	title := "❌ 処理中にエラーが発生しました"
 
 	var sb strings.Builder
@@ -88,7 +88,7 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 	sb.WriteString(fmt.Sprintf("```\n%v\n```\n", errDetail))
 
 	// もしエラー発生時でもある程度の保存先が判明している場合は、GCSへのリンクを添えると調査が捗るのだ
-	if req.OutputCategory != "" && req.OutputCategory != "N/A" {
+	if req.OutputCategory != "" && req.OutputCategory != domain.CategoryNotAvailable {
 		sb.WriteString(fmt.Sprintf("\n📍 *カテゴリ:* `%s`", req.OutputCategory))
 	}
 

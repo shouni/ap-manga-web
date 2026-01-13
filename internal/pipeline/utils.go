@@ -83,21 +83,25 @@ func (p *MangaPipeline) buildMangaNotification(
 }
 
 // notifyError は失敗時に SlackAdapter.NotifyError を呼び出してエラーを報告するのだ
-func (p *MangaPipeline) notifyError(ctx context.Context, payload domain.GenerateTaskPayload, opErr error) {
+func (p *MangaPipeline) notifyError(ctx context.Context, payload domain.GenerateTaskPayload, opErr error, titleHint string) {
 	// エラー通知用のリクエスト情報を構築
+	reqTitle := "漫画錬成エラー"
+	if titleHint != "" {
+		reqTitle = titleHint // 引数で渡されたタイトルを優先する
+	}
+
 	req := domain.NotificationRequest{
 		SourceURL:      payload.ScriptURL,
 		OutputCategory: "error-report",
-		TargetTitle:    "漫画錬成エラー",
+		TargetTitle:    reqTitle,
 		ExecutionMode:  payload.Command,
 	}
 
-	// SlackAdapter 側の新設メソッド NotifyError を使用するのだ
+	// SlackAdapter側のNotifyErrorメソッドを使用します。
 	if err := p.appCtx.SlackNotifier.NotifyError(ctx, opErr, req); err != nil {
 		slog.ErrorContext(ctx, "Failed to send error notification", "error", err)
 	}
 }
-
 func (p *MangaPipeline) parseTargetPanels(ctx context.Context, s string, total int) []int {
 	if strings.TrimSpace(s) == "" {
 		res := make([]int, total)

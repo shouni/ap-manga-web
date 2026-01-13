@@ -27,11 +27,13 @@ func NewMangaPipeline(appCtx *builder.AppContext) *MangaPipeline {
 // Execute は名前付き戻り値 (err error) を使うことで defer 内でエラーを判定できるようにしたのだ
 func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTaskPayload) (err error) {
 	p.startTime = time.Now()
+	var manga mangadom.MangaResponse
 
 	// 失敗時の通知を defer で一括管理する
 	defer func() {
 		if err != nil {
-			p.notifyError(ctx, payload, err)
+			// manga.Titleが設定されていれば、それをエラー通知に利用する
+			p.notifyError(ctx, payload, err, manga.Title)
 		}
 	}()
 
@@ -39,7 +41,6 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 
 	var notificationReq *domain.NotificationRequest
 	var publicURL, storageURI string
-	var manga mangadom.MangaResponse
 
 	switch payload.Command {
 	case "generate":
