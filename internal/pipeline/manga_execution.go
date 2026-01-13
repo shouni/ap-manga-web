@@ -28,8 +28,12 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 	// 失敗時の通知を defer 文で一括管理します。
 	defer func() {
 		if err != nil {
-			// manga.Title が取得できている場合は、エラー通知のコンテキストとして利用します。
-			e.pipeline.notifyError(ctx, e.payload, err, manga.Title)
+			titleHint := manga.Title
+			// タイトルが不明な場合でも、ソースURLなどからコンテキストを提供する
+			if titleHint == "" && e.payload.ScriptURL != "" {
+				titleHint = fmt.Sprintf("Source: %s", e.payload.ScriptURL)
+			}
+			e.pipeline.notifyError(ctx, e.payload, err, titleHint)
 		}
 	}()
 

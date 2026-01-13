@@ -44,6 +44,7 @@ func NewSlackAdapter(httpClient httpkit.ClientInterface, webhookURL string) (*Sl
 	}, nil
 }
 
+// Notify 公開URLとストレージ情報を含む、プロセス完了時のSlack通知送信。
 func (a *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error {
 	if a.slackClient == nil {
 		slog.Info("Slackクライアントが初期化されていないため、通知をスキップします。", "storage_uri", storageURI)
@@ -69,6 +70,7 @@ func (a *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string,
 	return nil
 }
 
+// NotifyError エラー詳細と実行メタデータを含むSlackエラー通知の送信。
 func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req domain.NotificationRequest) error {
 	if a.slackClient == nil {
 		slog.Info("Slackクライアントが初期化されていないため、エラー通知をスキップします。", "error", errDetail)
@@ -83,11 +85,11 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 	sb.WriteString(fmt.Sprintf("*実行モード:* `%s`\n", req.ExecutionMode))
 	sb.WriteString(fmt.Sprintf("*ソース:* %s\n\n", req.SourceURL))
 
-	// エラー詳細をコードブロックで囲むことで、スタックトレースなども読みやすくなるのだ
+	// エラー詳細をコードブロックで囲むことで、スタックトレースなどの可読性を向上させます。
 	sb.WriteString("*エラー内容:*\n")
 	sb.WriteString(fmt.Sprintf("```\n%v\n```\n", errDetail))
 
-	// もしエラー発生時でもある程度の保存先が判明している場合は、GCSへのリンクを添えると調査が捗るのだ
+	// エラー発生時でも保存先カテゴリが判明している場合は、その情報を通知に含めることで調査を容易にします。
 	if req.OutputCategory != "" && req.OutputCategory != domain.CategoryNotAvailable {
 		sb.WriteString(fmt.Sprintf("\n📍 *カテゴリ:* `%s`", req.OutputCategory))
 	}
@@ -102,6 +104,7 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 	return nil
 }
 
+// buildSlackContent 指定された公開URL、ストレージURI、通知リクエストに基づき、Slack メッセージの内容を生成します。
 func (a *SlackAdapter) buildSlackContent(publicURL, storageURI string, req domain.NotificationRequest) string {
 	// GCS Console URL の構築
 	consoleURL := "https://console.cloud.google.com/storage/browser/" + strings.TrimPrefix(storageURI, "gs://")
