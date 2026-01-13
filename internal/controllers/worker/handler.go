@@ -40,12 +40,11 @@ func (h *Handler) GenerateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 処理開始のログ（panel_limit を削除し、target_panels を追加したのだ）
 	slog.Info("Starting worker task execution",
 		"command", payload.Command,
 		"script_url", payload.ScriptURL,
 		"mode", payload.Mode,
-		"target_panels", payload.TargetPanels, // 💡 最新のフィールドを出力
+		"target_panels", payload.TargetPanels,
 	)
 
 	// 2. パイプラインを実行
