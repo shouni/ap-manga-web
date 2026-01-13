@@ -20,25 +20,14 @@ import (
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// バリデーション用正規表現
 var (
 	validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
-	// validTitle は、ファイルシステムのパスやURLの一部として安全に使用できる文字セットを定義します。
-	// パス・トラバーサル攻撃を防ぐため、英数字、ハイフン、アンダースコアのみを許可しています。
-	validTitle = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	validTitle        = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 )
 
-type IndexPageData struct {
-	Title string
-}
+// ページタイトルのプレフィックスを一元管理
+const titleSuffix = " - AP Manga Web"
 
-type AcceptedPageData struct {
-	Title     string
-	Command   string
-	ScriptURL string
-}
-
-// Handler はテンプレート管理とリクエスト処理を制御します。
 type Handler struct {
 	cfg           config.Config
 	templateCache map[string]*template.Template
@@ -47,7 +36,8 @@ type Handler struct {
 	signer        remoteio.URLSigner
 }
 
-// NewHandler はテンプレートをキャッシュし、ハンドラーを初期化します。
+// NewHandler initializes a new Handler struct by loading templates, setting up configuration, and preparing dependencies.
+// It returns a pointer to the Handler instance or an error if initialization fails.
 func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader, signer remoteio.URLSigner) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
@@ -83,7 +73,8 @@ func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remo
 	}, nil
 }
 
-func (h *Handler) render(w http.ResponseWriter, status int, pageName string, data any) {
+// render はテンプレートのレンダリングを一手に引き受けます。
+func (h *Handler) render(w http.ResponseWriter, status int, pageName string, title string, data any) {
 	tmpl, ok := h.templateCache[pageName]
 	if !ok {
 		slog.Error("Template not found in cache", "page", pageName)
@@ -91,8 +82,17 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageName string, dat
 		return
 	}
 
+	// 共通のデータ構造を構築
+	renderData := struct {
+		Title string
+		Data  any
+	}{
+		Title: title + titleSuffix,
+		Data:  data,
+	}
+
 	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "layout.html", data); err != nil {
+	if err := tmpl.ExecuteTemplate(&buf, "layout.html", renderData); err != nil {
 		slog.Error("Failed to render template", "page", pageName, "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -106,25 +106,26 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageName string, dat
 // --- 画面表示メソッド ---
 
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, "index.html", IndexPageData{Title: "Generate - AP Manga Web"})
+	h.render(w, http.StatusOK, "index.html", "Generate", nil)
 }
 func (h *Handler) Design(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, "design.html", IndexPageData{Title: "Character Design - AP Manga Web"})
+	h.render(w, http.StatusOK, "design.html", "Character Design", nil)
 }
 func (h *Handler) Script(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, "script.html", IndexPageData{Title: "Script Generation - AP Manga Web"})
+	h.render(w, http.StatusOK, "script.html", "Script Generation", nil)
 }
 func (h *Handler) Panel(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, "panel.html", IndexPageData{Title: "Panel Generation - AP Manga Web"})
+	h.render(w, http.StatusOK, "panel.html", "Panel Generation", nil)
 }
 func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, "page.html", IndexPageData{Title: "Page Layout - AP Manga Web"})
+	h.render(w, http.StatusOK, "page.html", "Page Layout", nil)
 }
 
-// HandleSubmit は、HTMLフォームからの送信を処理し、非同期タスクをエンキューします。
-func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+// --- アクションメソッド ---
 
+// HandleSubmit processes form submissions for task generation requests and enqueues tasks via the task adapter.
+// It validates inputs, parses the form, and builds a task payload. On success, renders an acceptance response.
+func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		slog.Warn("Failed to parse form", "error", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -133,8 +134,8 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 
 	targetPanels := r.FormValue("target_panels")
 	if !validTargetPanels.MatchString(targetPanels) {
-		slog.WarnContext(ctx, "Invalid characters in target_panels", "input", targetPanels)
-		http.Error(w, "Bad Request: target_panels contains invalid characters.", http.StatusBadRequest)
+		slog.WarnContext(r.Context(), "Invalid characters in target_panels", "input", targetPanels)
+		http.Error(w, "Bad Request: invalid panel format.", http.StatusBadRequest)
 		return
 	}
 
@@ -147,89 +148,61 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if payload.Command == "" {
-		slog.Warn("Missing command in form submission")
 		http.Error(w, "Command is required", http.StatusBadRequest)
 		return
 	}
 
-	slog.Info("Form submission received",
-		"command", payload.Command,
-		"url", payload.ScriptURL,
-		"panels", payload.TargetPanels,
-	)
-
-	if err := h.taskAdapter.EnqueueGenerateTask(ctx, payload); err != nil {
-		slog.Error("Failed to enqueue task",
-			"error", err,
-			"command", payload.Command,
-		)
+	if err := h.taskAdapter.EnqueueGenerateTask(r.Context(), payload); err != nil {
+		slog.Error("Failed to enqueue task", "error", err, "command", payload.Command)
 		http.Error(w, "Failed to schedule task", http.StatusInternalServerError)
 		return
 	}
 
-	h.render(w, http.StatusAccepted, "accepted.html", AcceptedPageData{
-		Title:     "Accepted - AP Manga Web",
-		Command:   payload.Command,
-		ScriptURL: payload.ScriptURL,
-	})
+	h.render(w, http.StatusAccepted, "accepted.html", "Accepted", payload)
 }
 
-// ServeOutput は GCS に保存された成果物への署名付きURLを生成し、307リダイレクトを行います。
+// ServeOutput handles incoming requests to retrieve generated content by redirecting to a signed GCS URL.
+// It validates the request parameters, ensures path safety, and generates a temporary signed URL for secure access.
+// If validation or URL generation fails, the method sends an appropriate HTTP error response.
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
 	title := chi.URLParam(r, "title")
 	file := chi.URLParam(r, "*")
 
-	// title パラメータのホワイトリスト形式バリデーション
-	if title == "" || !validTitle.MatchString(title) {
-		slog.WarnContext(ctx, "Security alert: invalid title parameter",
-			"input_title", title,
-			"remote_addr", r.RemoteAddr)
-		http.Error(w, "Invalid path parameters", http.StatusBadRequest)
-		return
-	}
-
-	// 定数を使用したデフォルトファイル決定
 	if file == "" {
 		file = domain.DefaultOutputFile
 	}
 
-	// パスの正規化とサンドボックス境界チェック
-	baseDir := h.cfg.GetWorkDir(title)
-	objectPath := path.Join(baseDir, file)
-
-	// Cleanを適用し、baseDir 配下から脱出していないかを厳密に検証
-	cleanedPath := path.Clean(objectPath)
-	if !strings.HasPrefix(cleanedPath, baseDir) {
-		slog.WarnContext(ctx, "Security alert: potential path traversal detected",
-			"input_title", title,
-			"input_file", file,
-			"cleaned_path", cleanedPath,
-			"base_dir", baseDir,
-			"remote_addr", r.RemoteAddr)
+	// パスの安全性を検証
+	safePath, err := h.validateAndCleanPath(title, file)
+	if err != nil {
+		slog.WarnContext(ctx, "Security alert: path validation failed", "error", err, "remote_addr", r.RemoteAddr)
 		http.Error(w, "Invalid path parameters", http.StatusForbidden)
 		return
 	}
 
-	// 正規化された安全なパスで GCS 署名付きURLを生成
-	gcsURI := h.cfg.GetGCSObjectURL(cleanedPath)
-	signedURL, err := h.signer.GenerateSignedURL(
-		ctx,
-		gcsURI,
-		http.MethodGet,
-		h.cfg.SignedURLExpiration,
-	)
+	gcsURI := h.cfg.GetGCSObjectURL(safePath)
+	signedURL, err := h.signer.GenerateSignedURL(ctx, gcsURI, http.MethodGet, h.cfg.SignedURLExpiration)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate signed URL",
-			"gcs_uri", gcsURI,
-			"error", err)
-		// 署名付きURLの生成失敗はサーバー側の設定ミス（例: IAM権限不足）の可能性が高い。
-		// そのため、クライアントにはInternal Server Errorを返すのが適切です。
-		http.Error(w, "Could not process request", http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "Failed to generate signed URL", "uri", gcsURI, "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	// セマンティクスに基づき 307 Temporary Redirect を使用
 	http.Redirect(w, r, signedURL, http.StatusTemporaryRedirect)
+}
+
+// validateAndCleanPath はパスの安全性を検証し、クリーニングされたパスを返します。
+func (h *Handler) validateAndCleanPath(title, file string) (string, error) {
+	if title == "" || !validTitle.MatchString(title) {
+		return "", fmt.Errorf("invalid title: %s", title)
+	}
+
+	baseDir := h.cfg.GetWorkDir(title)
+	cleaned := path.Clean(path.Join(baseDir, file))
+
+	if !strings.HasPrefix(cleaned, baseDir) {
+		return "", fmt.Errorf("potential traversal: %s", cleaned)
+	}
+	return cleaned, nil
 }
