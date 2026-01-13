@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"path"
 	"time"
 
 	"ap-manga-web/internal/domain"
@@ -15,7 +14,14 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
-// resolveSafeTitle は実行開始時刻とタイトルから一意で安全なディレクトリ名を生成します。
+const (
+	publicURLConstructionError = "N/A (URL construction failed)"
+	NotAvailable               = "N/A"
+)
+
+// resolveSafeTitle は、衝突を避けるための一意で安全なタイトル文字列を生成します。
+// 生成された文字列は、公開URLのパスパラメータやGCSのディレクトリ名として使用されることを想定しています。
+// フォーマット: YYYYMMDD_HHMMSS_<8桁のハッシュ>
 func (e *mangaExecution) resolveSafeTitle(title string) string {
 	if e.resolvedSafeTitle != "" {
 		return e.resolvedSafeTitle
@@ -26,7 +32,7 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 		t = time.Now()
 	}
 
-	// Asia/Tokyo ロケーションでの時刻変換を行います。
+	// Asia/Tokyo ロケーションでの時刻変換
 	jst, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		slog.Warn("Failed to load Asia/Tokyo location, using FixedZone", "error", err)
@@ -34,7 +40,7 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 	}
 	tJST := t.In(jst)
 
-	// タイトルとナノ秒バイナリを用いて衝突を防止するハッシュを生成します。
+	// ハッシュ生成（タイトル + ナノ秒）
 	h := md5.New()
 	h.Write([]byte(title))
 	nanoBytes := make([]byte, 8)
@@ -42,6 +48,7 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 	h.Write(nanoBytes)
 
 	hash := fmt.Sprintf("%x", h.Sum(nil))[:8]
+	// この戻り値が ServeOutput の {title} パラメータ、および GCS のディレクトリ名になります。
 	e.resolvedSafeTitle = fmt.Sprintf("%s_%s", tJST.Format("20060102_150405"), hash)
 
 	return e.resolvedSafeTitle
@@ -53,18 +60,21 @@ func (e *mangaExecution) buildMangaNotification(
 	result publisher.PublishResult,
 ) (*domain.NotificationRequest, string, string) {
 	safeTitle := e.resolveSafeTitle(manga.Title)
-	publicURL, _ := url.JoinPath(e.pipeline.appCtx.Config.ServiceURL, "outputs", safeTitle)
 
-	storageURI := "N/A"
-	if result.MarkdownPath != "" {
-		u, err := url.Parse(result.MarkdownPath)
-		if err != nil {
-			slog.Error("Failed to parse MarkdownPath for storageURI", "path", result.MarkdownPath, "error", err)
-		} else {
-			u.Path = path.Dir(u.Path)
-			storageURI = u.String()
-		}
+	// Web上の公開URLを構築
+	publicURL, err := url.JoinPath(
+		e.pipeline.appCtx.Config.ServiceURL,
+		e.pipeline.appCtx.Config.BaseOutputDir,
+		safeTitle,
+	)
+	if err != nil {
+		slog.Error("Failed to construct public URL", "error", err, "serviceURL", e.pipeline.appCtx.Config.ServiceURL)
+		publicURL = publicURLConstructionError
 	}
+
+	// GCS上の絶対パスを取得
+	workDir := e.pipeline.appCtx.Config.GetWorkDir(safeTitle)
+	storageURI := e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
 
 	return &domain.NotificationRequest{
 		SourceURL:      e.payload.ScriptURL,
@@ -75,21 +85,21 @@ func (e *mangaExecution) buildMangaNotification(
 }
 
 // buildScriptNotification はスクリプト生成の結果に基づいてSlack通知用リクエストを構築します。
-func (e *mangaExecution) buildScriptNotification(manga mangadom.MangaResponse, path string) (*domain.NotificationRequest, string, string) {
+func (e *mangaExecution) buildScriptNotification(manga mangadom.MangaResponse, gcsPath string) (*domain.NotificationRequest, string, string) {
 	return &domain.NotificationRequest{
 		SourceURL:      e.payload.ScriptURL,
 		OutputCategory: "script-json",
 		TargetTitle:    manga.Title,
 		ExecutionMode:  "script-only",
-	}, "N/A", path
+	}, NotAvailable, gcsPath
 }
 
 // buildDesignNotification はデザインシート生成の結果に基づいてSlack通知用リクエストを構築します。
-func (e *mangaExecution) buildDesignNotification(url string, seed int64) (*domain.NotificationRequest, string, string) {
+func (e *mangaExecution) buildDesignNotification(outputStorageURI string, seed int64) (*domain.NotificationRequest, string, string) {
 	return &domain.NotificationRequest{
 		SourceURL:      "N/A (Design)",
 		OutputCategory: "design-sheet",
 		TargetTitle:    fmt.Sprintf("Design: %s (Seed: %d)", e.payload.InputText, seed),
 		ExecutionMode:  "design",
-	}, url, "N/A"
+	}, NotAvailable, outputStorageURI
 }
