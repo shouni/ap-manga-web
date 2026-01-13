@@ -169,35 +169,46 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ServeOutput は GCS に保存された成果物をクライアントに配信します。
+// ServeOutput は GCS に保存された成果物への署名付きURLを生成し、リダイレクトします。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	// 1. URLパラメータからタイトル（ディレクトリ名）と相対パスを取得
 	title := chi.URLParam(r, "title")
 	file := chi.URLParam(r, "*")
 
-	// 1. パスのバリデーション（安全確認）
-	if title == "" || strings.Contains(title, "..") {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
+	// どちらかに ".." が含まれる場合、または title が空の場合は不正とみなす
+	if title == "" || strings.Contains(title, "..") || strings.Contains(file, "..") {
+		slog.WarnContext(ctx, "Security alert: potential path traversal detected",
+			"input_title", title,
+			"input_file", file,
+			"remote_addr", r.RemoteAddr)
+		http.Error(w, "Invalid path parameters", http.StatusBadRequest)
 		return
 	}
+
+	// 2. デフォルトファイル名の決定
 	if file == "" || file == "/" {
 		file = "manga_plot.html"
 	}
+	file = strings.TrimPrefix(file, "/")
 
-	// 2. GCS上のオブジェクトパスを構築
-	// config.GetWorkDir を通じてベースパス(output/ 等)を強制する
+	// 3. GCS上のオブジェクトパス（URI）を構築
+	// GetWorkDir(title) を通すことで "output/{title}" の階層を強制する
 	objectPath := path.Join(h.cfg.GetWorkDir(title), file)
 	gcsURI := h.cfg.GetGCSObjectURL(objectPath)
 
-	// 3. 署名付きURLの生成（15分間有効など）
-	signedURL, err := h.signer.GenerateSignedURL(ctx, gcsURI, "GET", 15*time.Minute)
+	// 4. 署名付きURLの生成（例：15分間有効）
+	signedURL, err := h.signer.GenerateSignedURL(ctx, gcsURI, http.MethodGet, 15*time.Minute)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to sign URL", "path", gcsURI, "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "Failed to generate signed URL",
+			"gcs_uri", gcsURI,
+			"error", err)
+		http.Error(w, "Output not found", http.StatusNotFound)
 		return
 	}
 
-	// 4. クライアントを署名付きURLへリダイレクト
-	// 302 (Found) または 307 (Temporary Redirect) を使用します
-	http.Redirect(w, r, signedURL, http.StatusFound)
+	// 307 Temporary Redirect を使用してリダイレクト
+	// ブラウザはこの指示を受け取り、直接 GCS の署名付きURLへ GET リクエストを飛ばします
+	http.Redirect(w, r, signedURL, http.StatusTemporaryRedirect)
 }
