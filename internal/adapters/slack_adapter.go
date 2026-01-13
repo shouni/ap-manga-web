@@ -13,6 +13,11 @@ import (
 	"github.com/shouni/go-notifier/pkg/slack"
 )
 
+const (
+	slackErrorTitle         = "❌ 処理中にエラーが発生しました"
+	slackErrorContentHeader = "*エラー内容:*\n"
+)
+
 // --- インターフェース定義 ---
 
 type SlackNotifier interface {
@@ -77,16 +82,14 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 		return nil
 	}
 
-	// Slackのmrkdwn形式では、アスタリスク(*)でテキストを囲むと太字として解釈されます。
-	title := "❌ 処理中にエラーが発生しました"
-
+	title := slackErrorTitle
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "*作品タイトル:* `%s`\n", req.TargetTitle)
 	fmt.Fprintf(&sb, "*実行モード:* `%s`\n", req.ExecutionMode)
 	fmt.Fprintf(&sb, "*ソース:* %s\n\n", req.SourceURL)
 
 	// エラー詳細をコードブロックで囲むことで、スタックトレースなどの可読性を向上させます。
-	sb.WriteString("*エラー内容:*\n")
+	sb.WriteString(slackErrorContentHeader)
 	fmt.Fprintf(&sb, "```\n%v\n```\n", errDetail)
 
 	// エラー発生時でも保存先カテゴリが判明している場合は、その情報を通知に含めることで調査を容易にします。

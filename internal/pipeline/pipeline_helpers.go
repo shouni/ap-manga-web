@@ -9,16 +9,21 @@ import (
 	"ap-manga-web/internal/domain"
 )
 
+const (
+	defaultErrorTitle   = "漫画錬成エラー"
+	errorReportCategory = "error-report"
+)
+
 // notifyError はエラー発生時に SlackAdapter を通じて通知を行います。
 func (p *MangaPipeline) notifyError(ctx context.Context, payload domain.GenerateTaskPayload, opErr error, titleHint string) {
-	reqTitle := "漫画錬成エラー"
+	reqTitle := defaultErrorTitle
 	if titleHint != "" {
 		reqTitle = titleHint
 	}
 
 	req := domain.NotificationRequest{
 		SourceURL:      payload.ScriptURL,
-		OutputCategory: "error-report",
+		OutputCategory: errorReportCategory,
 		TargetTitle:    reqTitle,
 		ExecutionMode:  payload.Command,
 	}
