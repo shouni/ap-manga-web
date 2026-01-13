@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
@@ -169,15 +168,12 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ServeOutput は GCS に保存された成果物への署名付きURLを生成し、リダイレクトします。
+// ServeOutput は GCS に保存された成果物への署名付きURLを生成し、307リダイレクトを行います。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	// 1. URLパラメータからタイトル（ディレクトリ名）と相対パスを取得
 	title := chi.URLParam(r, "title")
 	file := chi.URLParam(r, "*")
 
-	// どちらかに ".." が含まれる場合、または title が空の場合は不正とみなす
 	if title == "" || strings.Contains(title, "..") || strings.Contains(file, "..") {
 		slog.WarnContext(ctx, "Security alert: potential path traversal detected",
 			"input_title", title,
@@ -187,19 +183,20 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. デフォルトファイル名の決定
-	if file == "" || file == "/" {
+	if file == "" {
 		file = "manga_plot.html"
 	}
-	file = strings.TrimPrefix(file, "/")
 
-	// 3. GCS上のオブジェクトパス（URI）を構築
-	// GetWorkDir(title) を通すことで "output/{title}" の階層を強制する
+	// GCS上のオブジェクトパス（URI）を構築
+	// GetWorkDir(title) を通すことで "output/{title}" の階層を強制
 	objectPath := path.Join(h.cfg.GetWorkDir(title), file)
 	gcsURI := h.cfg.GetGCSObjectURL(objectPath)
-
-	// 4. 署名付きURLの生成（例：15分間有効）
-	signedURL, err := h.signer.GenerateSignedURL(ctx, gcsURI, http.MethodGet, 15*time.Minute)
+	signedURL, err := h.signer.GenerateSignedURL(
+		ctx,
+		gcsURI,
+		http.MethodGet,
+		h.cfg.SignedURLExpiration,
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to generate signed URL",
 			"gcs_uri", gcsURI,
@@ -208,7 +205,5 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 307 Temporary Redirect を使用してリダイレクト
-	// ブラウザはこの指示を受け取り、直接 GCS の署名付きURLへ GET リクエストを飛ばします
 	http.Redirect(w, r, signedURL, http.StatusTemporaryRedirect)
 }

@@ -34,6 +34,7 @@ type Config struct {
 	ServiceAccountEmail string
 	GCSBucket           string // 漫画画像とHTMLを保存するバケット
 	BaseOutputDir       string // GCS内のベースルート (例: "output")
+	SignedURLExpiration time.Duration
 	SlackWebhookURL     string
 	GeminiAPIKey        string
 	GeminiModel         string // 台本生成用モデル
@@ -79,6 +80,7 @@ func LoadConfig() Config {
 		ServiceAccountEmail: envutil.GetEnv("SERVICE_ACCOUNT_EMAIL", ""),
 		GCSBucket:           envutil.GetEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
 		BaseOutputDir:       envutil.GetEnv("BASE_OUTPUT_DIR", "output"),
+		SignedURLExpiration: SignedURLExpiration,
 		SlackWebhookURL:     envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
 		GeminiAPIKey:        envutil.GetEnv("GEMINI_API_KEY", ""),
 		GeminiModel:         envutil.GetEnv("GEMINI_MODEL", DefaultModel),
