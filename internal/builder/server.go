@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
@@ -45,7 +46,7 @@ func NewServerHandler(
 	})
 
 	// --- 2. Web Handler (UI) の初期化 ---
-	webHandler, err := web.NewHandler(cfg, taskAdapter, appCtx.Reader)
+	webHandler, err := web.NewHandler(cfg, taskAdapter, appCtx.Reader, appCtx.Signer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize web handler: %w", err)
 	}
@@ -63,8 +64,18 @@ func NewServerHandler(
 		r.Get("/", webHandler.Index)        // 一括生成 (main)
 		r.Get("/design", webHandler.Design) // キャラ設計
 		r.Get("/script", webHandler.Script) // 台本抽出
-		r.Get("/panel", webHandler.Panel)   // コマ画像生成 (旧 Image)
-		r.Get("/page", webHandler.Page)     // ページ構成 (旧 Story)
+		r.Get("/panel", webHandler.Panel)   // コマ画像生成
+		r.Get("/page", webHandler.Page)     // ページ構成
+
+		// 成果物配信ルートの構築
+		if cfg.BaseOutputDir != "" {
+			routePrefix := "/" + strings.Trim(cfg.BaseOutputDir, "/")
+
+			r.Route(routePrefix, func(r chi.Router) {
+				// "/output/{title}" および "/output/{title}/path/to/file" の両方に対応
+				r.Get("/{title}/*", webHandler.ServeOutput)
+			})
+		}
 
 		// 全ての POST はここへ集約なのだ
 		r.Post("/generate", webHandler.HandleSubmit)

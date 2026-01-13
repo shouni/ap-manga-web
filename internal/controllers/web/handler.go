@@ -2,12 +2,9 @@ package web
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"log/slog"
-	"mime"
 	"net/http"
 	"os"
 	"path"
@@ -19,13 +16,17 @@ import (
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 
-	"cloud.google.com/go/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// target_panels のバリデーション
-var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
+// バリデーション用正規表現
+var (
+	validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
+	// validTitle は、ファイルシステムのパスやURLの一部として安全に使用できる文字セットを定義します。
+	// パス・トラバーサル攻撃を防ぐため、英数字、ハイフン、アンダースコアのみを許可しています。
+	validTitle = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+)
 
 type IndexPageData struct {
 	Title string
@@ -43,10 +44,11 @@ type Handler struct {
 	templateCache map[string]*template.Template
 	taskAdapter   adapters.TaskAdapter
 	reader        remoteio.InputReader
+	signer        remoteio.URLSigner
 }
 
 // NewHandler はテンプレートをキャッシュし、ハンドラーを初期化します。
-func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader) (*Handler, error) {
+func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader, signer remoteio.URLSigner) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
@@ -77,6 +79,7 @@ func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remo
 		templateCache: cache,
 		taskAdapter:   taskAdapter,
 		reader:        reader,
+		signer:        signer,
 	}, nil
 }
 
@@ -171,74 +174,62 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ServeOutput は GCS に保存された成果物をクライアントに配信します。
+// ServeOutput は GCS に保存された成果物への署名付きURLを生成し、307リダイレクトを行います。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// 1. URLパラメータからタイトル（ディレクトリ名）と相対パスを取得
 	title := chi.URLParam(r, "title")
-	remainingPath := chi.URLParam(r, "*")
+	file := chi.URLParam(r, "*")
 
-	if title == "" || strings.ContainsAny(title, "/\\") {
-		slog.WarnContext(ctx, "Security alert: invalid title parameter", "input_title", title)
-		http.Error(w, "Invalid title parameter", http.StatusBadRequest)
+	// title パラメータのホワイトリスト形式バリデーション
+	if title == "" || !validTitle.MatchString(title) {
+		slog.WarnContext(ctx, "Security alert: invalid title parameter",
+			"input_title", title,
+			"remote_addr", r.RemoteAddr)
+		http.Error(w, "Invalid path parameters", http.StatusBadRequest)
 		return
 	}
 
-	// 2. デフォルトのHTMLファイルを決定
-	file := remainingPath
-	if file == "" || file == "/" {
-		file = "manga_plot.html"
+	// 定数を使用したデフォルトファイル決定
+	if file == "" {
+		file = domain.DefaultOutputFile
 	}
 
-	// 3. Config を使用して GCS 上のオブジェクトパスを構築
-	// title は実質的なリクエストID（または一意の名称）として扱う
-	objectPath := path.Join(h.cfg.GetWorkDir(title), file)
+	// パスの正規化とサンドボックス境界チェック
+	baseDir := h.cfg.GetWorkDir(title)
+	objectPath := path.Join(baseDir, file)
 
-	// 安全性の検証: GetWorkDir で生成されたディレクトリ配下であることを確認
-	expectedPrefix := h.cfg.GetWorkDir(title)
-	if !strings.HasPrefix(objectPath, expectedPrefix) {
-		slog.WarnContext(ctx, "Security alert: attempted path traversal", "result_path", objectPath)
-		http.Error(w, "Invalid path", http.StatusBadRequest)
+	// Cleanを適用し、baseDir 配下から脱出していないかを厳密に検証
+	cleanedPath := path.Clean(objectPath)
+	if !strings.HasPrefix(cleanedPath, baseDir) {
+		slog.WarnContext(ctx, "Security alert: potential path traversal detected",
+			"input_title", title,
+			"input_file", file,
+			"cleaned_path", cleanedPath,
+			"base_dir", baseDir,
+			"remote_addr", r.RemoteAddr)
+		http.Error(w, "Invalid path parameters", http.StatusForbidden)
 		return
 	}
 
-	// gs:// 形式のフルパスを取得
-	gcsPath := h.cfg.GetGCSObjectURL(objectPath)
-
-	// 4. GCSからオブジェクトのストリームを取得
-	rc, err := h.reader.Open(ctx, gcsPath)
+	// 正規化された安全なパスで GCS 署名付きURLを生成
+	gcsURI := h.cfg.GetGCSObjectURL(cleanedPath)
+	signedURL, err := h.signer.GenerateSignedURL(
+		ctx,
+		gcsURI,
+		http.MethodGet,
+		h.cfg.SignedURLExpiration,
+	)
 	if err != nil {
-		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
-
-		if errors.Is(err, storage.ErrObjectNotExist) {
-			http.Error(w, "Output not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-		}
+		slog.ErrorContext(ctx, "Failed to generate signed URL",
+			"gcs_uri", gcsURI,
+			"error", err)
+		// 署名付きURLの生成失敗はサーバー側の設定ミス（例: IAM権限不足）の可能性が高い。
+		// そのため、クライアントにはInternal Server Errorを返すのが適切です。
+		http.Error(w, "Could not process request", http.StatusInternalServerError)
 		return
 	}
-	defer rc.Close()
 
-	// 5. Content-Type の決定
-	ext := path.Ext(file)
-	contentType := mime.TypeByExtension(ext)
-	switch ext {
-	case ".md":
-		contentType = "text/markdown; charset=utf-8"
-	case ".html":
-		contentType = "text/html; charset=utf-8"
-	}
-
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-
-	// 6. ヘッダー設定とデータ転送
-	w.Header().Set("Content-Type", contentType)
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := io.Copy(w, rc); err != nil {
-		slog.ErrorContext(ctx, "Failed to stream output to response", "path", gcsPath, "error", err)
-	}
+	// セマンティクスに基づき 307 Temporary Redirect を使用
+	http.Redirect(w, r, signedURL, http.StatusTemporaryRedirect)
 }
