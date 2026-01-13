@@ -72,9 +72,7 @@ func NewServerHandler(
 			routePrefix := "/" + strings.Trim(cfg.BaseOutputDir, "/")
 
 			r.Route(routePrefix, func(r chi.Router) {
-				// "/output/{title}" にアクセスした場合はデフォルトファイルへ
-				r.Get("/{title}", webHandler.ServeOutput)
-				// "/output/{title}/images/1.png" などのサブパスに対応
+				// "/output/{title}" および "/output/{title}/path/to/file" の両方に対応
 				r.Get("/{title}/*", webHandler.ServeOutput)
 			})
 		}
