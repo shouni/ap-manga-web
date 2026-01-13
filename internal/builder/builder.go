@@ -31,7 +31,7 @@ func BuildPanelImageRunner(ctx context.Context, appCtx *AppContext) (workflow.Pa
 func BuildPageImageRunner(ctx context.Context, appCtx *AppContext) (workflow.PageImageRunner, error) {
 	runner, err := appCtx.WorkflowBuilder.BuildPageImageRunner()
 	if err != nil {
-		return nil, fmt.Errorf("PanelImageRunner の構築に失敗しました: %w", err)
+		return nil, fmt.Errorf("PageImageRunner の構築に失敗しました: %w", err)
 	}
 	return runner, nil
 }
