@@ -111,6 +111,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
+// Callback handles the OAuth2 callback by validating the state, exchanging the code for a token, and managing the session.
 func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	queryState := r.URL.Query().Get("state")
 	cookieState, err := r.Cookie(stateCookieName)
@@ -178,6 +179,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+// Middleware provides an HTTP middleware that checks user authentication from session data and redirects if unauthenticated.
 func (h *Handler) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, _ := h.store.Get(r, sessionName)
@@ -225,6 +227,7 @@ func (h *Handler) TaskOIDCVerificationMiddleware(next http.Handler) http.Handler
 	})
 }
 
+// isAuthorized checks if the provided email is authorized based on the allowed emails or domains in the Handler instance.
 func (h *Handler) isAuthorized(email string) bool {
 	if len(h.allowedEmails) == 0 && len(h.allowedDomains) == 0 {
 		return false
@@ -242,6 +245,7 @@ func (h *Handler) isAuthorized(email string) bool {
 	return false
 }
 
+// generateState generates a random base64-encoded string to be used as a state parameter in OAuth flows.
 func generateState() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {

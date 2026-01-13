@@ -16,25 +16,90 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// NewServerHandler は HTTP ルーティング、認証、各ハンドラーの依存関係をすべて組み立てるのだ。
+// NewServerHandler は HTTP ルーティング、認証、各ハンドラーの依存関係をすべて組み立てます。
 func NewServerHandler(
 	cfg config.Config,
 	appCtx *AppContext,
 	taskAdapter adapters.TaskAdapter,
 	pipelineExecutor worker.MangaPipelineExecutor,
 ) (http.Handler, error) {
-	r := chi.NewRouter()
+	// 1. 基本的なバリデーション（起動時の不備を早期に防ぐ）
+	if cfg.ServiceURL == "" {
+		return nil, fmt.Errorf("config ServiceURL is required for auth redirect")
+	}
 
+	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// --- 1. Auth Handler の初期化 ---
+	// --- 各ハンドラーの初期化 ---
+
+	// Auth Handler
+	authHandler, err := createAuthHandler(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Web Handler (UI)
+	webHandler, err := web.NewHandler(cfg, taskAdapter, appCtx.Reader, appCtx.Signer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize web handler: %w", err)
+	}
+
+	// Worker Handler
+	workerHandler := worker.NewHandler(cfg, pipelineExecutor)
+
+	// --- ルーティング定義 ---
+
+	// 公開ルート
+	r.Route("/auth", func(r chi.Router) {
+		r.Get("/login", authHandler.Login)
+		r.Get("/callback", authHandler.Callback)
+	})
+
+	// 認証が必要なルート (Web UI 用)
+	r.Group(func(r chi.Router) {
+		r.Use(authHandler.Middleware)
+
+		// ページ表示
+		r.Get("/", webHandler.Index)
+		r.Get("/design", webHandler.Design)
+		r.Get("/script", webHandler.Script)
+		r.Get("/panel", webHandler.Panel)
+		r.Get("/page", webHandler.Page)
+
+		// アクション
+		r.Post("/generate", webHandler.HandleSubmit)
+
+		// 成果物配信 (条件付きルート)
+		if prefix := getOutputRoutePrefix(cfg.BaseOutputDir); prefix != "" {
+			r.Route(prefix, func(r chi.Router) {
+				r.Get("/{title}/*", webHandler.ServeOutput)
+			})
+		}
+	})
+
+	// Cloud Tasks 専用ルート (Worker 用)
+	r.Group(func(r chi.Router) {
+		r.Use(authHandler.TaskOIDCVerificationMiddleware)
+		r.Post("/tasks/generate", workerHandler.GenerateTask)
+	})
+
+	return r, nil
+}
+
+// --- ヘルパー関数 ---
+
+// createAuthHandler initializes and returns an authentication handler based on the given configuration.
+// It constructs the redirect URL, sets up OAuth configuration, and configures session and authorization settings.
+// Returns an auth.Handler instance or an error if the setup fails.
+func createAuthHandler(cfg config.Config) (*auth.Handler, error) {
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build auth redirect URL: %w", err)
 	}
 
-	authHandler := auth.NewHandler(auth.AuthConfig{
+	return auth.NewHandler(auth.AuthConfig{
 		RedirectURL:     redirectURL,
 		TaskAudienceURL: cfg.ServiceURL,
 		ClientID:        cfg.GoogleClientID,
@@ -43,49 +108,14 @@ func NewServerHandler(
 		IsSecureCookie:  config.IsSecureURL(cfg.ServiceURL),
 		AllowedEmails:   cfg.AllowedEmails,
 		AllowedDomains:  cfg.AllowedDomains,
-	})
+	}), nil
+}
 
-	// --- 2. Web Handler (UI) の初期化 ---
-	webHandler, err := web.NewHandler(cfg, taskAdapter, appCtx.Reader, appCtx.Signer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize web handler: %w", err)
+// getOutputRoutePrefix generates a URL route prefix by trimming slashes from baseDir and prefixing with a single slash.
+// Returns an empty string if baseDir is empty.
+func getOutputRoutePrefix(baseDir string) string {
+	if baseDir == "" {
+		return ""
 	}
-
-	// --- 3. Worker Handler の初期化 ---
-	workerHandler := worker.NewHandler(cfg, pipelineExecutor)
-
-	// --- 4. 公開ルート ---
-	r.Get("/auth/login", authHandler.Login)
-	r.Get("/auth/callback", authHandler.Callback)
-
-	// --- 5. 認証が必要なルート (Web UI 用) ---
-	r.Group(func(r chi.Router) {
-		r.Use(authHandler.Middleware)
-		r.Get("/", webHandler.Index)        // 一括生成 (main)
-		r.Get("/design", webHandler.Design) // キャラ設計
-		r.Get("/script", webHandler.Script) // 台本抽出
-		r.Get("/panel", webHandler.Panel)   // コマ画像生成
-		r.Get("/page", webHandler.Page)     // ページ構成
-
-		// 成果物配信ルートの構築
-		if cfg.BaseOutputDir != "" {
-			routePrefix := "/" + strings.Trim(cfg.BaseOutputDir, "/")
-
-			r.Route(routePrefix, func(r chi.Router) {
-				// "/output/{title}" および "/output/{title}/path/to/file" の両方に対応
-				r.Get("/{title}/*", webHandler.ServeOutput)
-			})
-		}
-
-		// 全ての POST はここへ集約なのだ
-		r.Post("/generate", webHandler.HandleSubmit)
-	})
-
-	// --- 6. Cloud Tasks 専用ルート (Worker 用) ---
-	r.Group(func(r chi.Router) {
-		r.Use(authHandler.TaskOIDCVerificationMiddleware)
-		r.Post("/tasks/generate", workerHandler.GenerateTask)
-	})
-
-	return r, nil
+	return "/" + strings.Trim(baseDir, "/")
 }

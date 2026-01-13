@@ -16,116 +16,105 @@ import (
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// AppContext は、アプリケーション実行に必要な共通コンテキストを保持する
-// これを各Build関数に渡すことで、依存関係の注入を簡素化します。
+// AppContext はアプリケーションの依存関係を保持します。
+// 各フィールドをインターフェースで定義することで、将来的なモック利用を容易にします。
 type AppContext struct {
-	// Config は環境変数から読み込まれたグローバル設定です。
-	Config config.Config
-	// Reader は外部データソースからの読み込みに使用します。
-	Reader remoteio.InputReader
-	// Writer は生成されたコンテンツの書き込みに使用します。
-	Writer remoteio.OutputWriter
-	// Signer は署名付きURL作成に使用します。
-	Signer remoteio.URLSigner
-	// wkBuilder はマンガ生成ワークフロービルダーを提供します。
-	wkBuilder *workflow.Builder
-	// SlackNotifier はslack通知のアダプターです。
-	SlackNotifier adapters.SlackNotifier
-	// aiClient はGemini APIとの通信に使用するクライアントです。
-	aiClient gemini.GenerativeModel
-	// httpClient は外部HTTPリソースへのアクセスに使用するクライアントです。
-	httpClient httpkit.ClientInterface
+	Config          config.Config
+	Reader          remoteio.InputReader
+	Writer          remoteio.OutputWriter
+	Signer          remoteio.URLSigner
+	WorkflowBuilder *workflow.Builder
+	SlackNotifier   adapters.SlackNotifier
+	AIClient        gemini.GenerativeModel
+	HTTPClient      httpkit.ClientInterface
 }
 
-// NewAppContext は AppContext の新しいインスタンスを生成する
-func NewAppContext(
-	cfg config.Config,
-	httpClient httpkit.ClientInterface,
-	aiClient gemini.GenerativeModel,
-	reader remoteio.InputReader,
-	writer remoteio.OutputWriter,
-	signer remoteio.URLSigner,
-	wkBuilder *workflow.Builder,
-	slackNotifier adapters.SlackNotifier,
-
-) AppContext {
-	return AppContext{
-		Config:        cfg,
-		aiClient:      aiClient,
-		httpClient:    httpClient,
-		Reader:        reader,
-		Writer:        writer,
-		Signer:        signer,
-		wkBuilder:     wkBuilder,
-		SlackNotifier: slackNotifier,
-	}
-}
-
-// BuildAppContext は、アプリケーションの実行に必要な依存関係（HTTPクライアント、AIクライアント、GCS I/Oなど）を
-// 初期化し、AppContextとして返します。
-// この関数は、各コマンドやパイプライン実行の前に呼び出され、一貫したコンテキストを提供します。
+// BuildAppContext は外部サービスとの接続を確立し、依存関係を組み立てます。
 func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error) {
+	// 1. 基盤クライアントの初期化
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
 	aiClient, err := initializeAIClient(ctx, cfg.GeminiAPIKey)
 	if err != nil {
-		return nil, fmt.Errorf("AI clientの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("failed to initialize AI client: %w", err)
 	}
 
+	// 2. I/O インフラ (GCS等) の初期化
 	gcsFactory, err := gcsfactory.NewGCSClientFactory(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("GCS client factoryの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("failed to create GCS factory: %w", err)
 	}
 
 	reader, err := gcsFactory.NewInputReader()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create input reader: %w", err)
 	}
 	writer, err := gcsFactory.NewOutputWriter()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create output writer: %w", err)
 	}
-
 	signer, err := gcsFactory.NewGCSURLSigner()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create URL signer: %w", err)
 	}
 
-	// 2. CharacterConfig を []byte として読み込み
-	characterConfig := cfg.CharacterConfig
-	rc, err := reader.Open(ctx, characterConfig)
+	// 3. キャラクター設定の読み込み
+	charData, err := loadCharacterConfig(ctx, reader, cfg.CharacterConfig)
 	if err != nil {
-		return nil, fmt.Errorf("キャラクター設定ファイルのオープンに失敗しました (path: %s): %w", characterConfig, err)
-	}
-	defer rc.Close()
-
-	charData, err := io.ReadAll(rc)
-	if err != nil {
-		return nil, fmt.Errorf("キャラクター設定ファイルの読み込みに失敗しました (path: %s): %w", characterConfig, err)
+		return nil, err // エラーメッセージは関数内で付与済み
 	}
 
-	// 3. Workflow Builder の初期化
-	// workflow パッケージ内でのマッピング例
-	wfCfg := mngkitCfg.Config{
-		GeminiAPIKey: cfg.GeminiAPIKey,
-		GeminiModel:  cfg.GeminiModel,
-		ImageModel:   cfg.ImageModel,
-		StyleSuffix:  cfg.StyleSuffix,
-		RateInterval: config.DefaultRateLimit,
-	}
+	// 4. ワークフロービルダーの構築
 	wfBuilder, err := workflow.NewBuilder(
-		wfCfg,
+		mngkitCfg.Config{
+			GeminiAPIKey: cfg.GeminiAPIKey,
+			GeminiModel:  cfg.GeminiModel,
+			ImageModel:   cfg.ImageModel,
+			StyleSuffix:  cfg.StyleSuffix,
+			RateInterval: config.DefaultRateLimit,
+		},
 		httpClient,
 		aiClient,
 		reader,
 		writer,
 		charData,
 	)
-
-	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
 	if err != nil {
-		return nil, fmt.Errorf("SlackAdapterの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("failed to create workflow builder: %w", err)
 	}
 
-	appCtx := NewAppContext(cfg, httpClient, aiClient, reader, writer, signer, wfBuilder, slack)
-	return &appCtx, nil
+	// 5. アダプターの初期化
+	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
+	}
+
+	return &AppContext{
+		Config:          cfg,
+		Reader:          reader,
+		Writer:          writer,
+		Signer:          signer,
+		WorkflowBuilder: wfBuilder,
+		SlackNotifier:   slack,
+		AIClient:        aiClient,
+		HTTPClient:      httpClient,
+	}, nil
+}
+
+// loadCharacterConfig は指定されたパスからキャラクター設定を読み込みます。
+func loadCharacterConfig(ctx context.Context, reader remoteio.InputReader, path string) ([]byte, error) {
+	if path == "" {
+		return nil, fmt.Errorf("character config path is empty")
+	}
+
+	rc, err := reader.Open(ctx, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open character config (path: %s): %w", path, err)
+	}
+	defer rc.Close()
+
+	data, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read character config (path: %s): %w", path, err)
+	}
+	return data, nil
 }
