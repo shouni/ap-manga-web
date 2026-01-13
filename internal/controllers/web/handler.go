@@ -159,6 +159,12 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.InfoContext(r.Context(), "Successfully enqueued generation task",
+		"command", payload.Command,
+		"script_url", payload.ScriptURL,
+		"target_panels", payload.TargetPanels,
+	)
+
 	h.render(w, http.StatusAccepted, "accepted.html", "Accepted", payload)
 }
 
