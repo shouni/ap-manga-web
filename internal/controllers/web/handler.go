@@ -175,45 +175,44 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// URLパラメータからタイトルとファイルパスを取得
+	// 1. URLパラメータからタイトルとファイルパスを取得
 	title := chi.URLParam(r, "title")
-	file := chi.URLParam(r, "*")
+	remainingPath := chi.URLParam(r, "*")
 
-	// title にパス区切り文字が含まれていないことを検証します。
-	if strings.ContainsAny(title, "/\\") {
-		slog.WarnContext(ctx, "Security alert: path separator in title", "input_title", title)
+	// タイトルのバリデーション（空チェックとディレクトリトラバーサル対策）
+	if title == "" || strings.ContainsAny(title, "/\\") {
+		slog.WarnContext(ctx, "Security alert: invalid title parameter", "input_title", title)
 		http.Error(w, "Invalid title parameter", http.StatusBadRequest)
 		return
 	}
 
-	// ファイル指定がない、またはスラッシュのみの場合は、デフォルトのHTMLファイル名を使用します。
+	// 2. ファイル指定がない場合はデフォルトのHTML（manga_plot.html）を使用
+	file := remainingPath
 	if file == "" || file == "/" {
 		file = "manga_plot.html"
 	}
 
-	// パストラバーサル対策およびベースディレクトリの定義
-	const (
-		baseDir       = "output"
-		baseDirPrefix = baseDir + "/"
-	)
-	safeSubPath := path.Join(baseDir, title, file)
+	// 3. パスの正規化
+	// title と file を結合。path.Clean により ".." 等を処理します。
+	safeSubPath := path.Clean(path.Join(title, file))
 
-	// 正規化後のパスが、意図したベースディレクトリ配下であることを厳格に検証します。
-	if !strings.HasPrefix(safeSubPath, baseDirPrefix) {
+	// 正しく結合されているか、意図しない遡りがないかを検証
+	if strings.HasPrefix(safeSubPath, "..") {
 		slog.WarnContext(ctx, "Security alert: attempted path traversal", "input_title", title, "input_file", file)
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
 
-	// GCS上の絶対パスを構築
-	gcsPath := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, safeSubPath)
+	// 4. GCS上の絶対パスを構築
+	// GCS上の構造も "gs://bucket/output/タイトル/ファイル" となるよう組み立てます
+	gcsKey := path.Join("output", safeSubPath)
+	gcsPath := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, gcsKey)
 
-	// GCSからオブジェクトのストリームを取得
+	// 5. GCSからオブジェクトのストリームを取得
 	rc, err := h.reader.Open(ctx, gcsPath)
 	if err != nil {
 		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
 
-		// オブジェクトが存在しない場合と、その他のエラー（権限等）を区別します。
 		if errors.Is(err, storage.ErrObjectNotExist) {
 			http.Error(w, "Output not found", http.StatusNotFound)
 		} else {
@@ -223,27 +222,22 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rc.Close()
 
-	// 拡張子に基づいて Content-Type を判定
+	// 6. Content-Type の決定
 	ext := path.Ext(file)
-	var contentType string
+	contentType := mime.TypeByExtension(ext)
 
-	// 特定の拡張子について Content-Type を優先的に処理
 	switch ext {
 	case ".md":
 		contentType = "text/markdown; charset=utf-8"
 	case ".html":
 		contentType = "text/html; charset=utf-8"
-	default:
-		// それ以外は標準ライブラリによる推測に任せる
-		contentType = mime.TypeByExtension(ext)
 	}
 
-	// Content-Type が最終的に決定できなかった場合のフォールバック
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 
-	// ヘッダーを設定し、ブラウザへデータを転送
+	// 7. ヘッダー設定とデータ転送
 	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(http.StatusOK)
 
