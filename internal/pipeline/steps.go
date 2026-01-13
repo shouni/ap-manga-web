@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"path"
 	"strings"
 
@@ -93,8 +94,13 @@ func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, assetPath stri
 		return nil, fmt.Errorf("page runner failed for asset %s: %w", assetPath, err)
 	}
 
-	// path.Dir は "gs://" スキームを正しく扱えるため、直接適用します。
-	dir := path.Dir(assetPath)
+	u, err := url.Parse(assetPath)
+	if err != nil {
+		return nil, fmt.Errorf("invalid asset path format: %w", err)
+	}
+	u.Path = path.Dir(u.Path)
+	dir := u.String()
+
 	var savedPaths []string
 	for i, resp := range resps {
 		pagePath := fmt.Sprintf("%s/final_page_%d.png", dir, i+1)
