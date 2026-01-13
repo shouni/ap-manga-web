@@ -210,7 +210,8 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 
 	// 4. GCS上の絶対パスを構築
 	// GCS上の構造: gs://[BUCKET]/output/[TITLE]/[FILE]
-	gcsKey := path.Join("output", safeSubPath)
+	const gcsOutputDir = "output"
+	gcsKey := path.Join(gcsOutputDir, safeSubPath)
 	gcsPath := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, gcsKey)
 
 	// 5. GCSからオブジェクトのストリームを取得
