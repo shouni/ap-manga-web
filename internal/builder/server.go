@@ -68,15 +68,16 @@ func NewServerHandler(
 		r.Get("/page", webHandler.Page)     // ページ構成
 
 		// 成果物配信ルートの構築
-		// config.BaseOutputDir (例: "output") をベースにパスを作成
-		routePrefix := "/" + strings.Trim(cfg.BaseOutputDir, "/")
+		if cfg.BaseOutputDir != "" {
+			routePrefix := "/" + strings.Trim(cfg.BaseOutputDir, "/")
 
-		r.Route(routePrefix, func(r chi.Router) {
-			// "/output/{title}" にアクセスした場合はデフォルトファイルへ
-			r.Get("/{title}", webHandler.ServeOutput)
-			// "/output/{title}/images/1.png" などのサブパスに対応
-			r.Get("/{title}/*", webHandler.ServeOutput)
-		})
+			r.Route(routePrefix, func(r chi.Router) {
+				// "/output/{title}" にアクセスした場合はデフォルトファイルへ
+				r.Get("/{title}", webHandler.ServeOutput)
+				// "/output/{title}/images/1.png" などのサブパスに対応
+				r.Get("/{title}/*", webHandler.ServeOutput)
+			})
+		}
 
 		// 全ての POST はここへ集約なのだ
 		r.Post("/generate", webHandler.HandleSubmit)
