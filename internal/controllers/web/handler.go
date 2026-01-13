@@ -172,39 +172,44 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 // ServeOutput は GCS に保存された成果物をクライアントに配信します。
+// ルーティング設定 r.Get("/output/{title}/*", h.ServeOutput) を想定しています。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// 1. URLパラメータからタイトルとファイルパスを取得
+	// 1. URLパラメータからタイトルと相対パスを取得
 	title := chi.URLParam(r, "title")
 	remainingPath := chi.URLParam(r, "*")
 
-	// タイトルのバリデーション（空チェックとディレクトリトラバーサル対策）
+	// タイトルのバリデーション（空チェックとディレクトリ区切り文字の拒絶）
 	if title == "" || strings.ContainsAny(title, "/\\") {
 		slog.WarnContext(ctx, "Security alert: invalid title parameter", "input_title", title)
 		http.Error(w, "Invalid title parameter", http.StatusBadRequest)
 		return
 	}
 
-	// 2. ファイル指定がない場合はデフォルトのHTML（manga_plot.html）を使用
+	// 2. ファイル指定がない、またはスラッシュのみの場合は、デフォルトのHTMLを使用
 	file := remainingPath
 	if file == "" || file == "/" {
 		file = "manga_plot.html"
 	}
 
-	// 3. パスの正規化
-	// title と file を結合。path.Clean により ".." 等を処理します。
+	// 3. パスの正規化と厳格な検証
+	// title と file を結合し、path.Clean により ".." 等を解決します。
 	safeSubPath := path.Clean(path.Join(title, file))
 
-	// 正しく結合されているか、意図しない遡りがないかを検証
-	if strings.HasPrefix(safeSubPath, "..") {
-		slog.WarnContext(ctx, "Security alert: attempted path traversal", "input_title", title, "input_file", file)
+	// 正規化後のパスが、意図した title ディレクトリ配下であることを厳格に検証します。
+	// file に "../another_title/file" 等を指定して title 外に脱出する攻撃を防ぎます。
+	if !strings.HasPrefix(safeSubPath, title+"/") && safeSubPath != title {
+		slog.WarnContext(ctx, "Security alert: attempted path traversal",
+			"input_title", title,
+			"input_file", file,
+			"result_path", safeSubPath)
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
 
 	// 4. GCS上の絶対パスを構築
-	// GCS上の構造も "gs://bucket/output/タイトル/ファイル" となるよう組み立てます
+	// GCS上の構造: gs://[BUCKET]/output/[TITLE]/[FILE]
 	gcsKey := path.Join("output", safeSubPath)
 	gcsPath := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, gcsKey)
 
@@ -222,15 +227,19 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rc.Close()
 
-	// 6. Content-Type の決定
+	// 6. Content-Type の決定 [Minor 対策: 安定性の確保]
 	ext := path.Ext(file)
-	contentType := mime.TypeByExtension(ext)
+	var contentType string
 
+	// 特定の拡張子について Content-Type と charset を優先的に指定します。
 	switch ext {
 	case ".md":
 		contentType = "text/markdown; charset=utf-8"
 	case ".html":
 		contentType = "text/html; charset=utf-8"
+	default:
+		// それ以外は環境の mime.types に基づいて推測します。
+		contentType = mime.TypeByExtension(ext)
 	}
 
 	if contentType == "" {
