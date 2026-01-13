@@ -23,7 +23,8 @@ import (
 // バリデーション用正規表現
 var (
 	validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
-	// validTitle はディレクトリ名として安全な文字（英数字、ハイフン、アンダースコア）のみを許可します。
+	// validTitle は、ファイルシステムのパスやURLの一部として安全に使用できる文字セットを定義します。
+	// パス・トラバーサル攻撃を防ぐため、英数字、ハイフン、アンダースコアのみを許可しています。
 	validTitle = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 )
 
@@ -223,7 +224,9 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		slog.ErrorContext(ctx, "Failed to generate signed URL",
 			"gcs_uri", gcsURI,
 			"error", err)
-		http.Error(w, "Output not found", http.StatusNotFound)
+		// 署名付きURLの生成失敗はサーバー側の設定ミス（例: IAM権限不足）の可能性が高い。
+		// そのため、クライアントにはInternal Server Errorを返すのが適切です。
+		http.Error(w, "Could not process request", http.StatusInternalServerError)
 		return
 	}
 
