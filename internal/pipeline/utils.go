@@ -14,7 +14,14 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
-// resolveSafeTitle は実行開始時刻とタイトルから一意で安全なディレクトリ名を生成します。
+const (
+	publicURLConstructionError = "N/A (URL construction failed)"
+	NotAvailable               = "N/A"
+)
+
+// resolveSafeTitle は、衝突を避けるための一意で安全なタイトル文字列を生成します。
+// 生成された文字列は、公開URLのパスパラメータやGCSのディレクトリ名として使用されることを想定しています。
+// フォーマット: YYYYMMDD_HHMMSS_<8桁のハッシュ>
 func (e *mangaExecution) resolveSafeTitle(title string) string {
 	if e.resolvedSafeTitle != "" {
 		return e.resolvedSafeTitle
@@ -62,7 +69,7 @@ func (e *mangaExecution) buildMangaNotification(
 	)
 	if err != nil {
 		slog.Error("Failed to construct public URL", "error", err, "serviceURL", e.pipeline.appCtx.Config.ServiceURL)
-		publicURL = "N/A (URL Error)"
+		publicURL = publicURLConstructionError
 	}
 
 	// GCS上の絶対パスを取得
@@ -84,7 +91,7 @@ func (e *mangaExecution) buildScriptNotification(manga mangadom.MangaResponse, g
 		OutputCategory: "script-json",
 		TargetTitle:    manga.Title,
 		ExecutionMode:  "script-only",
-	}, "N/A", gcsPath
+	}, NotAvailable, gcsPath
 }
 
 // buildDesignNotification はデザインシート生成の結果に基づいてSlack通知用リクエストを構築します。
@@ -94,5 +101,5 @@ func (e *mangaExecution) buildDesignNotification(outputStorageURI string, seed i
 		OutputCategory: "design-sheet",
 		TargetTitle:    fmt.Sprintf("Design: %s (Seed: %d)", e.payload.InputText, seed),
 		ExecutionMode:  "design",
-	}, "N/A", outputStorageURI
+	}, NotAvailable, outputStorageURI
 }
