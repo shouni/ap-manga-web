@@ -93,7 +93,7 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 	fmt.Fprintf(&sb, "```\n%+v\n```\n", errDetail)
 
 	// エラー発生時でも保存先カテゴリが判明している場合は、その情報を通知に含めることで調査を容易にします。
-	if req.OutputCategory != "" && req.OutputCategory != domain.CategoryNotAvailable {
+	if req.OutputCategory != "" && req.OutputCategory != domain.NotAvailable {
 		fmt.Fprintf(&sb, "\n📍 *カテゴリ:* `%s`", req.OutputCategory)
 	}
 
