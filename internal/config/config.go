@@ -103,12 +103,12 @@ func LoadConfig() Config {
 // GetWorkDir は特定のリクエストに対する一意の作業ディレクトリを返します。
 // 例: "output/20260113-ABCD"
 func (c Config) GetWorkDir(requestID string) string {
-	return fmt.Sprintf("%s/%s", c.BaseOutputDir, requestID)
+	return path.Join(c.BaseOutputDir, requestID)
 }
 
 // GetImageDir は画像保存用のサブディレクトリパスを返します。
 func (c Config) GetImageDir(requestID string) string {
-	return fmt.Sprintf("%s/images", c.GetWorkDir(requestID))
+	return path.Join(c.GetWorkDir(requestID), "images")
 }
 
 // GetGCSObjectURL はGCS内のオブジェクトパスを組み立てます。
