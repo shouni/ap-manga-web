@@ -59,7 +59,6 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 
 		// --- Phase 4: Page Generation Phase ---
 		if _, err = e.pipeline.runPageStepWithAsset(ctx, publishResult.MarkdownPath); err != nil {
-			slog.ErrorContext(ctx, "Page generation failed", "error", err)
 			return fmt.Errorf("page generation step failed: %w", err)
 		}
 

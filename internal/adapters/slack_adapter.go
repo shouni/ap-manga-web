@@ -90,7 +90,7 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 
 	// エラー詳細をコードブロックで囲むことで、スタックトレースなどの可読性を向上させます。
 	sb.WriteString(slackErrorContentHeader)
-	fmt.Fprintf(&sb, "```\n%v\n```\n", errDetail)
+	fmt.Fprintf(&sb, "```\n%+v\n```\n", errDetail)
 
 	// エラー発生時でも保存先カテゴリが判明している場合は、その情報を通知に含めることで調査を容易にします。
 	if req.OutputCategory != "" && req.OutputCategory != domain.CategoryNotAvailable {

@@ -46,6 +46,7 @@ func (p *MangaPipeline) parseTargetPanels(ctx context.Context, s string, total i
 	var res []int
 	for _, part := range strings.Split(s, ",") {
 		trimmed := strings.TrimSpace(part)
+		// 数値に変換できない、または範囲外のインデックスは意図的に無視します。
 		if idx, err := strconv.Atoi(trimmed); err == nil && idx >= 0 && idx < total {
 			res = append(res, idx)
 		}
