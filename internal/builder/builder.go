@@ -20,13 +20,19 @@ func BuildScriptRunner(ctx context.Context, appCtx *AppContext) (workflow.Script
 
 // BuildPanelImageRunner は個別パネル画像生成を担当する Runner を構築します。
 func BuildPanelImageRunner(ctx context.Context, appCtx *AppContext) (workflow.PanelImageRunner, error) {
-	runner := appCtx.WorkflowBuilder.BuildPanelImageRunner()
+	runner, err := appCtx.WorkflowBuilder.BuildPanelImageRunner()
+	if err != nil {
+		return nil, fmt.Errorf("PanelImageRunner の構築に失敗しました: %w", err)
+	}
 	return runner, nil
 }
 
 // BuildPageImageRunner は複数ページへの自動分割・統合画像生成に対応した Runner を構築するのだ。
 func BuildPageImageRunner(ctx context.Context, appCtx *AppContext) (workflow.PageImageRunner, error) {
-	runner := appCtx.WorkflowBuilder.BuildPageImageRunner()
+	runner, err := appCtx.WorkflowBuilder.BuildPageImageRunner()
+	if err != nil {
+		return nil, fmt.Errorf("PageImageRunner の構築に失敗しました: %w", err)
+	}
 	return runner, nil
 }
 
@@ -41,7 +47,10 @@ func BuildPublishRunner(ctx context.Context, appCtx *AppContext) (workflow.Publi
 
 // BuildDesignRunner はキャラクターデザインの生成を担う Runner を構築します。
 func BuildDesignRunner(ctx context.Context, appCtx *AppContext) (workflow.DesignRunner, error) {
-	runner := appCtx.WorkflowBuilder.BuildDesignRunner()
+	runner, err := appCtx.WorkflowBuilder.BuildDesignRunner()
+	if err != nil {
+		return nil, fmt.Errorf("DesignRunner の構築に失敗しました: %w", err)
+	}
 	return runner, nil
 }
 

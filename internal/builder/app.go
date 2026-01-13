@@ -23,7 +23,7 @@ type AppContext struct {
 	Reader          remoteio.InputReader
 	Writer          remoteio.OutputWriter
 	Signer          remoteio.URLSigner
-	WorkflowBuilder *workflow.Builder
+	WorkflowBuilder workflow.WorkflowBuilder
 	SlackNotifier   adapters.SlackNotifier
 	AIClient        gemini.GenerativeModel
 	HTTPClient      httpkit.ClientInterface
