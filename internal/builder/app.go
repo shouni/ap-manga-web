@@ -25,6 +25,8 @@ type AppContext struct {
 	Reader remoteio.InputReader
 	// Writer は生成されたコンテンツの書き込みに使用します。
 	Writer remoteio.OutputWriter
+	// Signer は署名付きURL作成に使用します。
+	Signer remoteio.URLSigner
 	// wkBuilder はマンガ生成ワークフロービルダーを提供します。
 	wkBuilder *workflow.Builder
 	// SlackNotifier はslack通知のアダプターです。
@@ -42,6 +44,7 @@ func NewAppContext(
 	aiClient gemini.GenerativeModel,
 	reader remoteio.InputReader,
 	writer remoteio.OutputWriter,
+	signer remoteio.URLSigner,
 	wkBuilder *workflow.Builder,
 	slackNotifier adapters.SlackNotifier,
 
@@ -52,6 +55,7 @@ func NewAppContext(
 		httpClient:    httpClient,
 		Reader:        reader,
 		Writer:        writer,
+		Signer:        signer,
 		wkBuilder:     wkBuilder,
 		SlackNotifier: slackNotifier,
 	}
@@ -77,6 +81,11 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		return nil, err
 	}
 	writer, err := gcsFactory.NewOutputWriter()
+	if err != nil {
+		return nil, err
+	}
+
+	signer, err := gcsFactory.NewGCSURLSigner()
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +126,6 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		return nil, fmt.Errorf("SlackAdapterの初期化に失敗しました: %w", err)
 	}
 
-	appCtx := NewAppContext(cfg, httpClient, aiClient, reader, writer, wfBuilder, slack)
+	appCtx := NewAppContext(cfg, httpClient, aiClient, reader, writer, signer, wfBuilder, slack)
 	return &appCtx, nil
 }

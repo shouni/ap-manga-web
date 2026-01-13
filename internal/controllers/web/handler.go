@@ -1,25 +1,21 @@
 package web
 
 import (
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
 	"bytes"
-	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"log/slog"
-	"mime"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
-
-	"cloud.google.com/go/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
@@ -43,10 +39,11 @@ type Handler struct {
 	templateCache map[string]*template.Template
 	taskAdapter   adapters.TaskAdapter
 	reader        remoteio.InputReader
+	signer        remoteio.URLSigner
 }
 
 // NewHandler はテンプレートをキャッシュし、ハンドラーを初期化します。
-func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader) (*Handler, error) {
+func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader, signer remoteio.URLSigner) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
@@ -77,6 +74,7 @@ func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remo
 		templateCache: cache,
 		taskAdapter:   taskAdapter,
 		reader:        reader,
+		signer:        signer,
 	}, nil
 }
 
@@ -174,71 +172,32 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 // ServeOutput は GCS に保存された成果物をクライアントに配信します。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	// 1. URLパラメータからタイトル（ディレクトリ名）と相対パスを取得
 	title := chi.URLParam(r, "title")
-	remainingPath := chi.URLParam(r, "*")
+	file := chi.URLParam(r, "*")
 
-	if title == "" || strings.ContainsAny(title, "/\\") {
-		slog.WarnContext(ctx, "Security alert: invalid title parameter", "input_title", title)
-		http.Error(w, "Invalid title parameter", http.StatusBadRequest)
+	// 1. パスのバリデーション（安全確認）
+	if title == "" || strings.Contains(title, "..") {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
-
-	// 2. デフォルトのHTMLファイルを決定
-	file := remainingPath
 	if file == "" || file == "/" {
 		file = "manga_plot.html"
 	}
 
-	// 3. Config を使用して GCS 上のオブジェクトパスを構築
-	// title は実質的なリクエストID（または一意の名称）として扱う
+	// 2. GCS上のオブジェクトパスを構築
+	// config.GetWorkDir を通じてベースパス(output/ 等)を強制する
 	objectPath := path.Join(h.cfg.GetWorkDir(title), file)
+	gcsURI := h.cfg.GetGCSObjectURL(objectPath)
 
-	// 安全性の検証: GetWorkDir で生成されたディレクトリ配下であることを確認
-	expectedPrefix := h.cfg.GetWorkDir(title)
-	if !strings.HasPrefix(objectPath, expectedPrefix) {
-		slog.WarnContext(ctx, "Security alert: attempted path traversal", "result_path", objectPath)
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
-
-	// gs:// 形式のフルパスを取得
-	gcsPath := h.cfg.GetGCSObjectURL(objectPath)
-
-	// 4. GCSからオブジェクトのストリームを取得
-	rc, err := h.reader.Open(ctx, gcsPath)
+	// 3. 署名付きURLの生成（15分間有効など）
+	signedURL, err := h.signer.GenerateSignedURL(ctx, gcsURI, "GET", 15*time.Minute)
 	if err != nil {
-		slog.ErrorContext(ctx, "GCS open error for output", "path", gcsPath, "error", err)
-
-		if errors.Is(err, storage.ErrObjectNotExist) {
-			http.Error(w, "Output not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-		}
+		slog.ErrorContext(ctx, "Failed to sign URL", "path", gcsURI, "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	defer rc.Close()
 
-	// 5. Content-Type の決定
-	ext := path.Ext(file)
-	contentType := mime.TypeByExtension(ext)
-	switch ext {
-	case ".md":
-		contentType = "text/markdown; charset=utf-8"
-	case ".html":
-		contentType = "text/html; charset=utf-8"
-	}
-
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-
-	// 6. ヘッダー設定とデータ転送
-	w.Header().Set("Content-Type", contentType)
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := io.Copy(w, rc); err != nil {
-		slog.ErrorContext(ctx, "Failed to stream output to response", "path", gcsPath, "error", err)
-	}
+	// 4. クライアントを署名付きURLへリダイレクト
+	// 302 (Found) または 307 (Temporary Redirect) を使用します
+	http.Redirect(w, r, signedURL, http.StatusFound)
 }
