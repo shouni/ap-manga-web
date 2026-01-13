@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"path"
+	"path/filepath"
 	"time"
 
 	"ap-manga-web/internal/domain"
@@ -56,21 +56,26 @@ func (e *mangaExecution) buildMangaNotification(
 	result publisher.PublishResult,
 ) (*domain.NotificationRequest, string, string) {
 	safeTitle := e.resolveSafeTitle(manga.Title)
-	markdownFile := path.Base(result.MarkdownPath)
+	markdownFile := filepath.Base(result.MarkdownPath)
+	// フォールバック処理
+	if markdownFile == "." || markdownFile == string(filepath.Separator) {
+		markdownFile = domain.DefaultOutputFile
+	}
 
-	// Web上の公開URLを構築
 	publicURL, err := url.JoinPath(
 		e.pipeline.appCtx.Config.ServiceURL,
 		e.pipeline.appCtx.Config.BaseOutputDir,
 		safeTitle,
-		markdownFile,
+		url.PathEscape(markdownFile),
 	)
 	if err != nil {
-		slog.Error("Failed to construct public URL", "error", err, "serviceURL", e.pipeline.appCtx.Config.ServiceURL)
+		slog.Error("Failed to construct public URL",
+			"error", err,
+			"serviceURL", e.pipeline.appCtx.Config.ServiceURL,
+			"file", markdownFile)
 		publicURL = domain.PublicURLConstructionError
 	}
 
-	// GCS上の絶対パスを取得
 	workDir := e.pipeline.appCtx.Config.GetWorkDir(safeTitle)
 	storageURI := e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
 
