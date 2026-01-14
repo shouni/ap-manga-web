@@ -5,15 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
-	"net/url"
-	"path"
 	"strings"
 
 	"ap-manga-web/internal/builder"
 	"ap-manga-web/internal/domain"
 
 	imagedom "github.com/shouni/gemini-image-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/pkg/asset"
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
@@ -85,37 +83,22 @@ func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga manga
 	return publishResult, nil
 }
 
-// runPageStepWithAsset は既存のアセット（Markdownなど）を基に、最終的なページ画像を生成します。
-func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, assetPath string) ([]string, error) {
-	runner, err := builder.BuildPageImageRunner(ctx, p.appCtx)
+// runPageStepWithAsset は既存のMarkdownを基に、最終的なページ画像を生成します。
+func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, plotMarkdownPath string) ([]string, error) {
+	pageRunner, err := builder.BuildPageImageRunner(ctx, p.appCtx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build page image runner: %w", err)
+		return nil, fmt.Errorf("PageImageRunnerの構築に失敗しました: %w", err)
 	}
-
-	resps, err := runner.Run(ctx, assetPath)
+	imageDir, err := asset.ResolveOutputPath(plotMarkdownPath, asset.DefaultImageDir)
 	if err != nil {
-		return nil, fmt.Errorf("page runner failed for asset %s: %w", assetPath, err)
+		return nil, fmt.Errorf("画像出力ディレクトリの解決に失敗しました: %w", err)
 	}
-
-	u, err := url.Parse(assetPath)
+	pagePaths, err := pageRunner.RunAndSave(ctx, plotMarkdownPath, imageDir)
 	if err != nil {
-		return nil, fmt.Errorf("invalid asset path format: %w", err)
-	}
-	u.Path = path.Dir(u.Path)
-	dir := u.String()
-
-	var savedPaths []string
-	for i, resp := range resps {
-		pagePath := fmt.Sprintf("%s/final_page_%d.png", dir, i+1)
-		slog.InfoContext(ctx, "Saving final page image", "index", i+1, "path", pagePath)
-
-		if err := p.appCtx.Writer.Write(ctx, pagePath, bytes.NewReader(resp.Data), resp.MimeType); err != nil {
-			return savedPaths, fmt.Errorf("failed to write page image to %s: %w", pagePath, err)
-		}
-		savedPaths = append(savedPaths, pagePath)
+		return nil, fmt.Errorf("漫画ページの生成と保存に失敗しました: %w", err)
 	}
 
-	return savedPaths, nil
+	return pagePaths, nil
 }
 
 // runPageStep は指定されたURLから直接ページ画像を生成します。
