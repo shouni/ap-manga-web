@@ -13,9 +13,8 @@ import (
 
 	"ap-manga-web/internal/domain"
 
-	"github.com/shouni/go-manga-kit/pkg/asset"
-
 	"github.com/go-chi/chi/v5"
+	"github.com/shouni/go-manga-kit/pkg/asset"
 )
 
 // pageFileRegex はパッケージレベルで一度だけコンパイルする
@@ -69,12 +68,22 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	title := chi.URLParam(r, "title")
 
 	// Plot content retrieval
-	plotPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotName)
+	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotName)
 	if err != nil {
 		slog.WarnContext(ctx, "Path validation failed for plot", "title", title, "error", err)
 		http.Error(w, "Invalid Request", http.StatusBadRequest)
 		return
 	}
+
+	var plotPath string
+	if h.cfg.GCSBucket != "" {
+		// gs://bucket-name/relPath の形に結合
+		plotPath = fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, relPath)
+	} else {
+		plotPath = relPath
+	}
+
+	slog.InfoContext(ctx, "Resolved plot path", "path", plotPath)
 
 	var markdownContent string
 	if rc, err := h.reader.Open(ctx, plotPath); err == nil {
@@ -88,7 +97,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		slog.WarnContext(ctx, "Plot file not found, skipping", "path", plotPath, "error", err)
 	}
 
-	prefix, err := h.validateAndCleanPath(title, "images/")
+	prefix, err := h.validateAndCleanPath(title, asset.DefaultImageDir)
 	if err != nil {
 		http.Error(w, "Invalid Request", http.StatusBadRequest)
 		return
