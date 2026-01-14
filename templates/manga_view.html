@@ -16,7 +16,6 @@
             <div class="manga-page-wrapper text-center">
                 <span class="badge rounded-pill bg-secondary mb-3">Page {{add $index 1}}</span>
                 <div class="shadow-lg rounded overflow-hidden border border-secondary bg-white">
-                    {{/* ✨ 1枚目(index 0)は lazy を付与せず、2枚目以降(ne $index 0)のみ遅延読み込みを有効化するのだ */}}
                     <img src="{{$url}}"
                          class="img-fluid d-block mx-auto"
                          style="max-width: 100%; height: auto;"
@@ -47,12 +46,19 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const viewer = document.getElementById('markdown-viewer');
         if (viewer && viewer.textContent.trim() !== "") {
-            viewer.innerHTML = marked.parse(viewer.textContent);
+            // 1. Markdownのパース結果を取得
+            const rawHtml = marked.parse(viewer.textContent);
+            // 2. DOMPurifyでパース後のHTMLをサニタイズ（悪意のあるタグを除去）
+            const cleanHtml = DOMPurify.sanitize(rawHtml);
+            // 3. 安全になったHTMLをDOMに流し込む
+            viewer.innerHTML = cleanHtml;
         } else {
             viewer.innerHTML = '<p class="text-muted">プロットデータが空です。</p>';
         }
@@ -73,7 +79,6 @@
         transition: transform 0.3s ease;
         min-height: 400px;
         background-color: #f8f9fa;
-        /* ✨ コンテンツのガタつきを抑え、ブラウザのレンダリング負荷を軽減するのだ */
         content-visibility: auto;
     }
 
