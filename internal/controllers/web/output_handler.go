@@ -23,6 +23,12 @@ var pageFileRegex = func() *regexp.Regexp {
 	return regexp.MustCompile(pattern)
 }()
 
+type mangaViewData struct {
+	Title       string
+	ImageURLs   []string
+	MarkdownRaw string
+}
+
 // ServeOutput retrieves manga content (plot and images) and renders the viewer page.
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -69,7 +75,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	if err := h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
 		// GCSからリストしたパスが、期待されるページ画像のファイル名パターンに一致するかを検証します。
 		// この正規表現は、`asset.DefaultPageFileName` に基づいて動的に生成されます。
-		if pageFileRegex.MatchString(gcsPath) {
+		if pageFileRegex.MatchString(filepath.Base(gcsPath)) {
 			filePaths = append(filePaths, gcsPath)
 		}
 		return nil
@@ -91,9 +97,10 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.render(w, http.StatusOK, "manga_view.html", title, map[string]any{
-		"Title":       title,
-		"ImageURLs":   signedURLs,
-		"MarkdownRaw": markdownContent,
-	})
+	data := mangaViewData{
+		Title:       title,
+		ImageURLs:   signedURLs,
+		MarkdownRaw: markdownContent,
+	}
+	h.render(w, http.StatusOK, "manga_view.html", title, data)
 }
