@@ -1,6 +1,7 @@
 package web
 
 import (
+	"ap-manga-web/internal/domain"
 	"bytes"
 	"fmt"
 	"html/template"
@@ -105,7 +106,70 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageName string, tit
 	buf.WriteTo(w)
 }
 
-// ... Index, Design, Script, Panel, Page, HandleSubmit methods remain unchanged ...
+// --- 画面表示メソッド ---
+
+func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "index.html", "Generate", nil)
+}
+func (h *Handler) Design(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "design.html", "Character Design", nil)
+}
+func (h *Handler) Script(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "script.html", "Script Generation", nil)
+}
+func (h *Handler) Panel(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "panel.html", "Panel Generation", nil)
+}
+func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
+	h.render(w, http.StatusOK, "page.html", "Page Layout", nil)
+}
+
+// --- アクションメソッド ---
+
+// HandleSubmit processes form submissions for task generation requests and enqueues tasks via the task adapter.
+// It validates inputs, parses the form, and builds a task payload. On success, renders an acceptance response.
+func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		slog.Warn("Failed to parse form", "error", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	targetPanels := r.FormValue("target_panels")
+	if !validTargetPanels.MatchString(targetPanels) {
+		slog.WarnContext(r.Context(), "Invalid characters in target_panels", "input", targetPanels)
+		http.Error(w, "Bad Request: invalid panel format.", http.StatusBadRequest)
+		return
+	}
+
+	payload := domain.GenerateTaskPayload{
+		Command:      r.FormValue("command"),
+		ScriptURL:    r.FormValue("script_url"),
+		InputText:    r.FormValue("input_text"),
+		Mode:         r.FormValue("mode"),
+		TargetPanels: targetPanels,
+	}
+
+	if payload.Command == "" {
+		slog.WarnContext(r.Context(), "Form submission rejected: command is missing")
+		http.Error(w, "Command is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.taskAdapter.EnqueueGenerateTask(r.Context(), payload); err != nil {
+		slog.Error("Failed to enqueue task", "error", err, "command", payload.Command)
+		http.Error(w, "Failed to schedule task", http.StatusInternalServerError)
+		return
+	}
+
+	slog.InfoContext(r.Context(), "Successfully enqueued generation task",
+		"command", payload.Command,
+		"script_url", payload.ScriptURL,
+		"target_panels", payload.TargetPanels,
+	)
+
+	h.render(w, http.StatusAccepted, "accepted.html", "Accepted", payload)
+}
 
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
