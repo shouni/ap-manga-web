@@ -12,16 +12,15 @@
         </div>
 
         <div class="manga-gallery d-flex flex-column align-items-center gap-5 mb-5">
-            {{/* ✨ .Data.ImageURLs をループするように修正。$index は add 関数の引数として使用 */}}
             {{range $index, $url := .Data.ImageURLs}}
             <div class="manga-page-wrapper text-center">
                 <span class="badge rounded-pill bg-secondary mb-3">Page {{add $index 1}}</span>
                 <div class="shadow-lg rounded overflow-hidden border border-secondary bg-white">
-                    {{/* ✨ src には署名付きURLがセットされるのだ */}}
+                    {{/* ✨ 1枚目(index 0)は lazy を付与せず、2枚目以降(ne $index 0)のみ遅延読み込みを有効化するのだ */}}
                     <img src="{{$url}}"
                          class="img-fluid d-block mx-auto"
                          style="max-width: 100%; height: auto;"
-                         loading="lazy"
+                         {{if ne $index 0}}loading="lazy"{{end}}
                          alt="Manga Page {{add $index 1}}">
                 </div>
             </div>
@@ -40,7 +39,6 @@
                         <h5 class="mb-0">ストーリープロット (manga_plot.md)</h5>
                     </div>
                     <div class="card-body bg-light">
-                        {{/* ✨ .Data.MarkdownRaw を参照するように修正 */}}
                         <div id="markdown-viewer" class="manga-content">{{.Data.MarkdownRaw}}</div>
                     </div>
                 </div>
@@ -73,9 +71,10 @@
 
     .manga-page-wrapper img {
         transition: transform 0.3s ease;
-        /* 画像読み込み中のレイアウト崩れを防ぐ */
         min-height: 400px;
         background-color: #f8f9fa;
+        /* ✨ コンテンツのガタつきを抑え、ブラウザのレンダリング負荷を軽減するのだ */
+        content-visibility: auto;
     }
 
     .manga-page-wrapper img:hover {
