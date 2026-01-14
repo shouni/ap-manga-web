@@ -12,10 +12,19 @@ import (
 	"time"
 
 	"ap-manga-web/internal/domain"
+
 	"github.com/shouni/go-manga-kit/pkg/asset"
 
 	"github.com/go-chi/chi/v5"
 )
+
+// pageFileRegex はパッケージレベルで一度だけコンパイルする
+var pageFileRegex = func() *regexp.Regexp {
+	pageFile := asset.DefaultPageFileName
+	baseName := strings.TrimSuffix(pageFile, filepath.Ext(pageFile))
+	pattern := fmt.Sprintf(`%s_page_\d+\.png$`, regexp.QuoteMeta(baseName))
+	return regexp.MustCompile(pattern)
+}()
 
 // HandleSubmit processes form submissions for task generation requests.
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
@@ -66,13 +75,6 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid Request", http.StatusBadRequest)
 		return
 	}
-
-	// Image listing with Dynamic Regex filter
-	pageFile := asset.DefaultPageFileName
-	baseName := strings.TrimSuffix(pageFile, filepath.Ext(pageFile))
-	// 期待するパターン: "manga_page_1.png" など
-	pattern := fmt.Sprintf(`%s_page_\d+\.png$`, regexp.QuoteMeta(baseName))
-	pageFileRegex := regexp.MustCompile(pattern)
 
 	var markdownContent string
 	if rc, err := h.reader.Open(ctx, plotPath); err == nil {
