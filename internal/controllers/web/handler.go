@@ -1,8 +1,6 @@
 package web
 
 import (
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/config"
 	"bytes"
 	"fmt"
 	"html/template"
@@ -11,6 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/config"
 
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )

@@ -1,7 +1,6 @@
 package web
 
 import (
-	"ap-manga-web/internal/domain"
 	"fmt"
 	"io"
 	"log/slog"
@@ -9,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"ap-manga-web/internal/domain"
 
 	"github.com/go-chi/chi/v5"
 )
