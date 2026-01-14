@@ -1,7 +1,6 @@
 package domain
 
 const (
-	DefaultOutputFile          = "manga_plot.md"
 	PublicURLConstructionError = "N/A (URL construction failed)"
 	NotAvailable               = "N/A"
 )
