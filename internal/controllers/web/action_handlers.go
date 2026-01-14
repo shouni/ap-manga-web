@@ -5,11 +5,14 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	"ap-manga-web/internal/domain"
+	"github.com/shouni/go-manga-kit/pkg/asset"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -56,33 +59,35 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	title := chi.URLParam(r, "title")
 
-	// 1. Plot content retrieval with improved resource management
-	plotPath, err := h.validateAndCleanPath(title, "manga_plot.md")
+	// Plot content retrieval
+	plotPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotName)
 	if err != nil {
 		slog.WarnContext(ctx, "Path validation failed for plot", "title", title, "error", err)
 		http.Error(w, "Invalid Request", http.StatusBadRequest)
 		return
 	}
 
+	// Image listing with Dynamic Regex filter
+	pageFile := asset.DefaultPageFileName
+	baseName := strings.TrimSuffix(pageFile, filepath.Ext(pageFile))
+	// 期待するパターン: "manga_page_1.png" など
+	pattern := fmt.Sprintf(`%s_page_\d+\.png$`, regexp.QuoteMeta(baseName))
+	pageFileRegex := regexp.MustCompile(pattern)
+
 	var markdownContent string
-	rc, err := h.reader.Open(ctx, plotPath)
-	if err != nil {
-		// File missing is handled as a warning, not a fatal error for the page.
-		slog.WarnContext(ctx, "Plot file not found, skipping", "path", plotPath, "error", err)
-	} else {
+	if rc, err := h.reader.Open(ctx, plotPath); err == nil {
 		defer rc.Close()
-		data, readErr := io.ReadAll(rc)
-		if readErr != nil {
-			slog.ErrorContext(ctx, "Failed to read plot content", "path", plotPath, "error", readErr)
-		} else {
+		if data, readErr := io.ReadAll(rc); readErr == nil {
 			markdownContent = string(data)
+		} else {
+			slog.ErrorContext(ctx, "Failed to read plot content", "path", plotPath, "error", readErr)
 		}
+	} else {
+		slog.WarnContext(ctx, "Plot file not found, skipping", "path", plotPath, "error", err)
 	}
 
-	// 2. Image listing with error handling
 	prefix, err := h.validateAndCleanPath(title, "images/")
 	if err != nil {
-		slog.ErrorContext(ctx, "Path validation failed for images prefix", "error", err)
 		http.Error(w, "Invalid Request", http.StatusBadRequest)
 		return
 	}
@@ -90,7 +95,8 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	gcsPrefix := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, prefix)
 	var filePaths []string
 	if err := h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
-		if strings.HasSuffix(gcsPath, ".png") {
+		// 動的に生成した正規表現でチェックするのだ！
+		if pageFileRegex.MatchString(gcsPath) {
 			filePaths = append(filePaths, gcsPath)
 		}
 		return nil
@@ -100,19 +106,16 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Sort and Generate Signed URLs
 	sort.Strings(filePaths)
 
-	// 3. Generate Signed URLs with error logging
 	var signedURLs []string
-	expiration := 1 * time.Hour
-
 	for _, gcsPath := range filePaths {
-		url, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, expiration)
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed to generate signed URL for image", "path", gcsPath, "error", err)
-			continue
+		if url, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, time.Hour); err == nil {
+			signedURLs = append(signedURLs, url)
+		} else {
+			slog.ErrorContext(ctx, "Failed to generate signed URL", "path", gcsPath, "error", err)
 		}
-		signedURLs = append(signedURLs, url)
 	}
 
 	h.render(w, http.StatusOK, "manga_view.html", title, map[string]any{
