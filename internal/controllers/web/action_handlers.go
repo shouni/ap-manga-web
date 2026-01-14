@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// HandleSubmit processes form submissions for task generation requests.
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		slog.Warn("Failed to parse form", "error", err)
@@ -50,40 +51,67 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusAccepted, "accepted.html", "Accepted", payload)
 }
 
+// ServeOutput retrieves manga content (plot and images) and renders the viewer page.
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	title := chi.URLParam(r, "title")
 
+	// 1. Plot content retrieval with robust error handling
 	plotPath, err := h.validateAndCleanPath(title, "manga_plot.md")
 	if err != nil {
+		slog.WarnContext(ctx, "Path validation failed for plot", "title", title, "error", err)
 		http.Error(w, "Invalid Request", http.StatusBadRequest)
 		return
 	}
 
 	var markdownContent string
-	if rc, err := h.reader.Open(ctx, plotPath); err == nil {
-		data, _ := io.ReadAll(rc)
-		rc.Close()
-		markdownContent = string(data)
+	if rc, err := h.reader.Open(ctx, plotPath); err != nil {
+		// If the file is missing, it's expected in some cases, so we log as Warn.
+		slog.WarnContext(ctx, "Plot file not found, skipping", "path", plotPath, "error", err)
+	} else {
+		defer rc.Close()
+		data, err := io.ReadAll(rc)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to read plot content", "path", plotPath, "error", err)
+		} else {
+			markdownContent = string(data)
+		}
 	}
 
-	prefix, _ := h.validateAndCleanPath(title, "images/")
+	// 2. Image listing with error handling
+	prefix, err := h.validateAndCleanPath(title, "images/")
+	if err != nil {
+		slog.ErrorContext(ctx, "Path validation failed for images prefix", "error", err)
+		http.Error(w, "Invalid Request", http.StatusBadRequest)
+		return
+	}
+
 	gcsPrefix := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, prefix)
 	var filePaths []string
-	_ = h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
+	if err := h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
 		if strings.HasSuffix(gcsPath, ".png") {
 			filePaths = append(filePaths, gcsPath)
 		}
 		return nil
-	})
+	}); err != nil {
+		slog.ErrorContext(ctx, "Failed to list images from GCS", "prefix", gcsPrefix, "error", err)
+		http.Error(w, "Failed to retrieve image list", http.StatusInternalServerError)
+		return
+	}
 
 	sort.Strings(filePaths)
 
+	// 3. Generate Signed URLs with error logging
 	var signedURLs []string
+	expiration := 1 * time.Hour
+
 	for _, gcsPath := range filePaths {
-		if url, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, time.Hour); err == nil {
-			signedURLs = append(signedURLs, url)
+		url, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, expiration)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to generate signed URL for image", "path", gcsPath, "error", err)
+			continue // Skip failed ones but continue with others
 		}
+		signedURLs = append(signedURLs, url)
 	}
 
 	h.render(w, http.StatusOK, "manga_view.html", title, map[string]any{
