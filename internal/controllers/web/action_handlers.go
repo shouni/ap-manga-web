@@ -56,7 +56,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	title := chi.URLParam(r, "title")
 
-	// 1. Plot content retrieval with robust error handling
+	// 1. Plot content retrieval with improved resource management
 	plotPath, err := h.validateAndCleanPath(title, "manga_plot.md")
 	if err != nil {
 		slog.WarnContext(ctx, "Path validation failed for plot", "title", title, "error", err)
@@ -65,14 +65,15 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var markdownContent string
-	if rc, err := h.reader.Open(ctx, plotPath); err != nil {
-		// If the file is missing, it's expected in some cases, so we log as Warn.
+	rc, err := h.reader.Open(ctx, plotPath)
+	if err != nil {
+		// File missing is handled as a warning, not a fatal error for the page.
 		slog.WarnContext(ctx, "Plot file not found, skipping", "path", plotPath, "error", err)
 	} else {
 		defer rc.Close()
-		data, err := io.ReadAll(rc)
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed to read plot content", "path", plotPath, "error", err)
+		data, readErr := io.ReadAll(rc)
+		if readErr != nil {
+			slog.ErrorContext(ctx, "Failed to read plot content", "path", plotPath, "error", readErr)
 		} else {
 			markdownContent = string(data)
 		}
@@ -109,7 +110,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		url, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, expiration)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to generate signed URL for image", "path", gcsPath, "error", err)
-			continue // Skip failed ones but continue with others
+			continue
 		}
 		signedURLs = append(signedURLs, url)
 	}
