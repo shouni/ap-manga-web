@@ -71,10 +71,16 @@ func NewServerHandler(
 		// アクション
 		r.Post("/generate", webHandler.HandleSubmit)
 
-		// 成果物配信 (条件付きルート)
+		// 1. パスの正規化ミドルウェア
+		r.Use(middleware.CleanPath)
+		// 2. 成果物配信ルーティングの修正
 		if prefix := getOutputRoutePrefix(cfg.BaseOutputDir); prefix != "" {
 			r.Route(prefix, func(r chi.Router) {
-				r.Get("/{title}/*", webHandler.ServeOutput)
+				// 正確に "{title}" パラメータのみを ServeOutput へ渡します。
+				r.Get("/{title}", webHandler.ServeOutput)
+				r.Get("/{title}/", func(w http.ResponseWriter, r *http.Request) {
+					http.Redirect(w, r, strings.TrimSuffix(r.URL.Path, "/"), http.StatusMovedPermanently)
+				})
 			})
 		}
 	})
