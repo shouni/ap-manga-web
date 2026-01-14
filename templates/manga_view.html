@@ -1,0 +1,108 @@
+{{define "content"}}
+<div class="container-fluid bg-dark min-vh-100 py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-5 border-bottom border-secondary pb-3">
+            <div>
+                <h1 class="text-light mb-1">🎨 {{.Title}}</h1>
+                <p class="text-secondary mb-0">Generated Manga Output</p>
+            </div>
+            <a href="/" class="btn btn-outline-light">
+                <i class="bi bi-house-door"></i> ホームへ戻る
+            </a>
+        </div>
+
+        <div class="manga-gallery d-flex flex-column align-items-center gap-5 mb-5">
+            {{range $index, $base64 := .Base64Images}}
+            <div class="manga-page-wrapper text-center">
+                <span class="badge rounded-pill bg-secondary mb-3">Page {{add $index 1}}</span>
+                <div class="shadow-lg rounded overflow-hidden border border-secondary bg-white">
+                    <img src="{{$base64}}"
+                         class="img-fluid d-block mx-auto"
+                         style="max-width: 100%; height: auto;"
+                         alt="Manga Page {{add $index 1}}">
+                </div>
+            </div>
+            {{else}}
+            <div class="alert alert-warning w-100 text-center">
+                画像データが見つからなかったのだ。生成中か、パスが間違っている可能性があるのだ。
+            </div>
+            {{end}}
+        </div>
+
+        <div class="row justify-content-center mt-5">
+            <div class="col-lg-10">
+                <div class="card shadow border-0">
+                    <div class="card-header bg-primary text-white d-flex align-items-center">
+                        <i class="bi bi-file-text-fill me-2"></i>
+                        <h5 class="mb-0">ストーリープロット (manga_plot.md)</h5>
+                    </div>
+                    <div class="card-body bg-light">
+                        <div id="markdown-viewer" class="manga-content">{{.MarkdownRaw}}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const viewer = document.getElementById('markdown-viewer');
+        if (viewer && viewer.textContent.trim() !== "") {
+            // MarkdownをHTMLに変換なのだ！
+            viewer.innerHTML = marked.parse(viewer.textContent);
+        } else {
+            viewer.innerHTML = '<p class="text-muted">プロットデータが空なのだ。</p>';
+        }
+    });
+</script>
+
+<style>
+    /* 漫画閲覧に最適化したスタイル */
+    body {
+        background-color: #212529 !important; /* 全体をダークモードに固定 */
+    }
+
+    .manga-page-wrapper {
+        width: 100%;
+        max-width: 850px;
+    }
+
+    .manga-page-wrapper img {
+        transition: transform 0.3s ease;
+    }
+
+    /* ホバーで少しだけ浮き上がる演出 */
+    .manga-page-wrapper img:hover {
+        transform: scale(1.01);
+    }
+
+    /* Markdown表示のカスタマイズ */
+    .manga-content {
+        font-size: 1.05rem;
+        line-height: 1.8;
+        color: #333;
+    }
+
+    .manga-content h1, .manga-content h2 {
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 0.5rem;
+        margin-top: 1.5rem;
+        color: #0d6efd;
+    }
+
+    .manga-content blockquote {
+        border-left: 5px solid #0d6efd;
+        padding-left: 1rem;
+        color: #666;
+        font-style: italic;
+    }
+
+    /* 印刷時などは背景を白くするように配慮 */
+    @media print {
+        .bg-dark { background-color: white !important; }
+        .text-light { color: black !important; }
+    }
+</style>
+{{end}}

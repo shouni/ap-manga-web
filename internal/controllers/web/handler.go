@@ -2,14 +2,17 @@ package web
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"html/template"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"ap-manga-web/internal/adapters"
@@ -37,7 +40,6 @@ type Handler struct {
 }
 
 // NewHandler initializes a new Handler struct by loading templates, setting up configuration, and preparing dependencies.
-// It returns a pointer to the Handler instance or an error if initialization fails.
 func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader, signer remoteio.URLSigner) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
@@ -51,13 +53,18 @@ func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remo
 		return nil, fmt.Errorf("failed to glob for page templates: %w", err)
 	}
 
+	funcMap := template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+	}
+
 	for _, pagePath := range pagePaths {
 		pageName := filepath.Base(pagePath)
 		if pageName == "layout.html" {
 			continue
 		}
 
-		tmpl, err := template.ParseFiles(layoutPath, pagePath)
+		tmpl := template.New(pageName).Funcs(funcMap)
+		tmpl, err = tmpl.ParseFiles(layoutPath, pagePath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse template %s: %w", pageName, err)
 		}
@@ -92,6 +99,8 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageName string, tit
 	}
 
 	var buf bytes.Buffer
+	// ExecuteTemplate の第2引数は layout.html 内の {{ define "layout" }} 等に合わせる必要があります
+	// もし layout.html が define を使っていないなら、Execute を使うのが一般的です。
 	if err := tmpl.ExecuteTemplate(&buf, "layout.html", renderData); err != nil {
 		slog.Error("Failed to render template", "page", pageName, "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -123,8 +132,6 @@ func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
 
 // --- アクションメソッド ---
 
-// HandleSubmit processes form submissions for task generation requests and enqueues tasks via the task adapter.
-// It validates inputs, parses the form, and builds a task payload. On success, renders an acceptance response.
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		slog.Warn("Failed to parse form", "error", err)
@@ -168,35 +175,48 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusAccepted, "accepted.html", "Accepted", payload)
 }
 
-// ServeOutput handles incoming requests to retrieve generated content by redirecting to a signed GCS URL.
-// It validates the request parameters, ensures path safety, and generates a temporary signed URL for secure access.
-// If validation or URL generation fails, the method sends an appropriate HTTP error response.
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	title := chi.URLParam(r, "title")
-	file := chi.URLParam(r, "*")
 
-	if file == "" {
-		file = domain.DefaultOutputFile
-	}
+	plotPath, _ := h.validateAndCleanPath(title, "manga_plot.md")
+	plotContent, _ := h.reader.Open(ctx, plotPath)
 
-	// パスの安全性を検証
-	safePath, err := h.validateAndCleanPath(title, file)
+	var filePaths []string
+	prefix, _ := h.validateAndCleanPath(title, "images/")
+	gcsPrefix := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, prefix)
+
+	err := h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
+		if strings.HasSuffix(gcsPath, ".png") {
+			filePaths = append(filePaths, gcsPath)
+		}
+		return nil
+	})
+
 	if err != nil {
-		slog.WarnContext(ctx, "Security alert: path validation failed", "error", err, "remote_addr", r.RemoteAddr)
-		http.Error(w, "Invalid path parameters", http.StatusForbidden)
-		return
+		slog.ErrorContext(ctx, "Failed to list images", "prefix", gcsPrefix, "error", err)
 	}
 
-	gcsURI := h.cfg.GetGCSObjectURL(safePath)
-	signedURL, err := h.signer.GenerateSignedURL(ctx, gcsURI, http.MethodGet, h.cfg.SignedURLExpiration)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to generate signed URL", "uri", gcsURI, "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	sort.Strings(filePaths)
+
+	var base64Images []string
+	for _, gcsPath := range filePaths {
+		rc, err := h.reader.Open(ctx, gcsPath)
+		if err != nil {
+			continue
+		}
+		data, _ := io.ReadAll(rc)
+		rc.Close()
+
+		encoded := base64.StdEncoding.EncodeToString(data)
+		base64Images = append(base64Images, fmt.Sprintf("data:image/png;base64,%s", encoded))
 	}
 
-	http.Redirect(w, r, signedURL, http.StatusTemporaryRedirect)
+	h.render(w, http.StatusOK, "manga_view.html", title, map[string]any{
+		"Title":        title,
+		"Base64Images": base64Images,
+		"MarkdownRaw":  plotContent,
+	})
 }
 
 // validateAndCleanPath はパスの安全性を検証し、クリーニングされたパスを返します。

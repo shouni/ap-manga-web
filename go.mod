@@ -11,7 +11,7 @@ require (
 	github.com/shouni/go-http-kit v1.1.2
 	github.com/shouni/go-manga-kit v1.2.2
 	github.com/shouni/go-notifier v1.1.4
-	github.com/shouni/go-remote-io v1.1.1
+	github.com/shouni/go-remote-io v1.1.2
 	github.com/shouni/go-utils v1.0.16
 	golang.org/x/oauth2 v0.34.0
 	google.golang.org/api v0.259.0
