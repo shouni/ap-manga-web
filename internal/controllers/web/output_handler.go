@@ -19,7 +19,8 @@ import (
 var pageFileRegex = func() *regexp.Regexp {
 	pageFile := asset.DefaultPageFileName
 	baseName := strings.TrimSuffix(pageFile, filepath.Ext(pageFile))
-	pattern := fmt.Sprintf(`%s_page_\d+\.png$`, regexp.QuoteMeta(baseName))
+	// {baseName}_{数字}.png にする
+	pattern := fmt.Sprintf(`^%s_\d+\.png$`, regexp.QuoteMeta(baseName))
 	return regexp.MustCompile(pattern)
 }()
 
