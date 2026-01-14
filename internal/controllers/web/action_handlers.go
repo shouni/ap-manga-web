@@ -77,7 +77,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 
 	var plotPath string
 	if h.cfg.GCSBucket != "" {
-		// gs://bucket-name/relPath の形に結合
+		// TODO::gs://bucket-name/relPath の形に結合
 		plotPath = fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, relPath)
 	} else {
 		plotPath = relPath
