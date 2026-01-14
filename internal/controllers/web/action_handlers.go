@@ -97,7 +97,8 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	gcsPrefix := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, prefix)
 	var filePaths []string
 	if err := h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
-		// 動的に生成した正規表現でチェックするのだ！
+		// GCSからリストしたパスが、期待されるページ画像のファイル名パターンに一致するかを検証します。
+		// この正規表現は、`asset.DefaultPageFileName` に基づいて動的に生成されます。
 		if pageFileRegex.MatchString(gcsPath) {
 			filePaths = append(filePaths, gcsPath)
 		}
