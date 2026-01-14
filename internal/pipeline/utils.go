@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"path/filepath"
 	"time"
 
 	"ap-manga-web/internal/domain"
@@ -56,23 +55,16 @@ func (e *mangaExecution) buildMangaNotification(
 	result publisher.PublishResult,
 ) (*domain.NotificationRequest, string, string) {
 	safeTitle := e.resolveSafeTitle(manga.Title)
-	markdownFile := filepath.Base(result.MarkdownPath)
-	// フォールバック処理
-	if markdownFile == "." || markdownFile == string(filepath.Separator) {
-		markdownFile = domain.DefaultOutputFile
-	}
-
 	publicURL, err := url.JoinPath(
 		e.pipeline.appCtx.Config.ServiceURL,
 		e.pipeline.appCtx.Config.BaseOutputDir,
 		safeTitle,
-		url.PathEscape(markdownFile),
 	)
 	if err != nil {
 		slog.Error("Failed to construct public URL",
 			"error", err,
 			"serviceURL", e.pipeline.appCtx.Config.ServiceURL,
-			"file", markdownFile)
+		)
 		publicURL = domain.PublicURLConstructionError
 	}
 

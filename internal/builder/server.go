@@ -31,6 +31,7 @@ func NewServerHandler(
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.CleanPath)
 
 	// --- 各ハンドラーの初期化 ---
 
@@ -71,10 +72,17 @@ func NewServerHandler(
 		// アクション
 		r.Post("/generate", webHandler.HandleSubmit)
 
-		// 成果物配信 (条件付きルート)
+		// Output Delivery Routes (Manga Viewer)
 		if prefix := getOutputRoutePrefix(cfg.BaseOutputDir); prefix != "" {
 			r.Route(prefix, func(r chi.Router) {
-				r.Get("/{title}/*", webHandler.ServeOutput)
+				// Maps directly to /{title} and passes it to ServeOutput.
+				// This ensures that the viewer has a clean, title-based URL.
+				r.Get("/{title}", webHandler.ServeOutput)
+
+				// Normalize trailing slash: redirect /output/title/ to /output/title
+				r.Get("/{title}/", func(w http.ResponseWriter, r *http.Request) {
+					http.Redirect(w, r, strings.TrimSuffix(r.URL.Path, "/"), http.StatusMovedPermanently)
+				})
 			})
 		}
 	})
@@ -91,8 +99,6 @@ func NewServerHandler(
 // --- ヘルパー関数 ---
 
 // createAuthHandler initializes and returns an authentication handler based on the given configuration.
-// It constructs the redirect URL, sets up OAuth configuration, and configures session and authorization settings.
-// Returns an auth.Handler instance or an error if the setup fails.
 func createAuthHandler(cfg config.Config) (*auth.Handler, error) {
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {
@@ -112,7 +118,6 @@ func createAuthHandler(cfg config.Config) (*auth.Handler, error) {
 }
 
 // getOutputRoutePrefix generates a URL route prefix by trimming slashes from baseDir and prefixing with a single slash.
-// Returns an empty string if baseDir is empty.
 func getOutputRoutePrefix(baseDir string) string {
 	if baseDir == "" {
 		return ""

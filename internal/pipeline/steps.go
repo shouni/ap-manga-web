@@ -89,7 +89,8 @@ func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, plotMarkdownPa
 	if err != nil {
 		return nil, fmt.Errorf("PageImageRunnerの構築に失敗しました: %w", err)
 	}
-	imageDir, err := asset.ResolveOutputPath(plotMarkdownPath, asset.DefaultImageDir)
+	base := asset.ResolveBaseURL(plotMarkdownPath)
+	imageDir, err := asset.ResolveOutputPath(base, asset.DefaultImageDir)
 	if err != nil {
 		return nil, fmt.Errorf("画像出力ディレクトリの解決に失敗しました: %w", err)
 	}
