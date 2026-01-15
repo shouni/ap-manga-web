@@ -4,7 +4,10 @@ import (
 	"ap-manga-web/internal/domain"
 	"log/slog"
 	"net/http"
+	"regexp"
 )
+
+var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
 
 // HandleSubmit processes form submissions for task generation requests.
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
