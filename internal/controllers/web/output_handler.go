@@ -15,11 +15,9 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/asset"
 )
 
-// pageFileRegex はパッケージレベルで一度だけコンパイルする
+// pageFileRegex は初期化時に一度だけコンパイル
 var pageFileRegex = func() *regexp.Regexp {
-	pageFile := asset.DefaultPageFileName
-	baseName := strings.TrimSuffix(pageFile, filepath.Ext(pageFile))
-	// {baseName}_{数字}.png にする
+	baseName := strings.TrimSuffix(asset.DefaultPageFileName, filepath.Ext(asset.DefaultPageFileName))
 	pattern := fmt.Sprintf(`^%s_\d+\.png$`, regexp.QuoteMeta(baseName))
 	return regexp.MustCompile(pattern)
 }()
@@ -30,71 +28,86 @@ type mangaViewData struct {
 	MarkdownRaw string
 }
 
-// ServeOutput retrieves manga content (plot and images) and renders the viewer page.
+// ServeOutput は漫画ビューアーのメインハンドラ
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	title := chi.URLParam(r, "title")
 
-	// Plot content retrieval
+	// 1. プロット（Markdown）の取得
+	markdownContent := h.loadPlotContent(r, title)
+
+	// 2. 画像リストの取得と署名付きURLの生成
+	signedURLs, err := h.loadSignedImageURLs(r, title)
+	if err != nil {
+		// loadSignedImageURLs 内でログ出力済みを想定
+		http.Error(w, "Failed to retrieve contents", http.StatusInternalServerError)
+		return
+	}
+
+	// 3. レンダリング
+	h.render(w, http.StatusOK, "manga_view.html", title, mangaViewData{
+		Title:       title,
+		ImageURLs:   signedURLs,
+		MarkdownRaw: markdownContent,
+	})
+}
+
+// --- ヘルパーメソッド ---
+
+// loadPlotContent はプロットファイルを読み込むのだ
+func (h *Handler) loadPlotContent(r *http.Request, title string) string {
 	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotName)
 	if err != nil {
-		slog.WarnContext(ctx, "Path validation failed for plot", "title", title, "error", err)
-		http.Error(w, "Invalid Request", http.StatusBadRequest)
-		return
+		return ""
 	}
 
 	plotPath := h.cfg.GetGCSObjectURL(relPath)
-	slog.InfoContext(ctx, "Resolved plot path", "path", plotPath)
-
-	var markdownContent string
-	if rc, err := h.reader.Open(ctx, plotPath); err == nil {
-		defer rc.Close()
-		if data, readErr := io.ReadAll(rc); readErr == nil {
-			markdownContent = string(data)
-		} else {
-			slog.ErrorContext(ctx, "Failed to read plot content", "path", plotPath, "error", readErr)
-		}
-	} else {
-		slog.WarnContext(ctx, "Plot file not found, skipping", "path", plotPath, "error", err)
+	rc, err := h.reader.Open(r.Context(), plotPath)
+	if err != nil {
+		slog.WarnContext(r.Context(), "Plot file not found", "path", plotPath)
+		return ""
 	}
+	defer rc.Close()
 
+	data, err := io.ReadAll(rc)
+	if err != nil {
+		slog.ErrorContext(r.Context(), "Read error", "path", plotPath, "error", err)
+		return ""
+	}
+	return string(data)
+}
+
+// loadSignedImageURLs はGCSから画像をリストして署名付きURLのリストを返すのだ
+func (h *Handler) loadSignedImageURLs(r *http.Request, title string) ([]string, error) {
+	ctx := r.Context()
 	prefix, err := h.validateAndCleanPath(title, asset.DefaultImageDir)
 	if err != nil {
-		http.Error(w, "Invalid Request", http.StatusBadRequest)
-		return
+		return nil, err
 	}
 
 	gcsPrefix := h.cfg.GetGCSObjectURL(prefix)
 	var filePaths []string
-	if err := h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
-		// GCSからリストしたパスが、期待されるページ画像のファイル名パターンに一致するかを検証します。
-		// この正規表現は、`asset.DefaultPageFileName` に基づいて動的に生成されます。
+
+	err = h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
 		if pageFileRegex.MatchString(filepath.Base(gcsPath)) {
 			filePaths = append(filePaths, gcsPath)
 		}
 		return nil
-	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to list images from GCS", "prefix", gcsPrefix, "error", err)
-		http.Error(w, "Failed to retrieve image list", http.StatusInternalServerError)
-		return
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "List error", "prefix", gcsPrefix, "error", err)
+		return nil, err
 	}
 
-	// Sort and Generate Signed URLs
 	sort.Strings(filePaths)
 
-	var signedURLs []string
-	for _, gcsPath := range filePaths {
-		if url, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, time.Hour); err == nil {
-			signedURLs = append(signedURLs, url)
-		} else {
-			slog.ErrorContext(ctx, "Failed to generate signed URL", "path", gcsPath, "error", err)
+	var urls []string
+	for _, p := range filePaths {
+		u, err := h.signer.GenerateSignedURL(ctx, p, http.MethodGet, time.Hour)
+		if err != nil {
+			slog.ErrorContext(ctx, "Sign error", "path", p, "error", err)
+			continue
 		}
+		urls = append(urls, u)
 	}
-
-	data := mangaViewData{
-		Title:       title,
-		ImageURLs:   signedURLs,
-		MarkdownRaw: markdownContent,
-	}
-	h.render(w, http.StatusOK, "manga_view.html", title, data)
+	return urls, nil
 }
