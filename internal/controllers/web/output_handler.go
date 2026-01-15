@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,11 +16,11 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/asset"
 )
 
-// pageFileRegex はパッケージレベルで一度だけコンパイルする
+// pageFileRegex はパッケージの初期化時に一度だけコンパイルされます。
 var pageFileRegex = func() *regexp.Regexp {
 	pageFile := asset.DefaultPageFileName
 	baseName := strings.TrimSuffix(pageFile, filepath.Ext(pageFile))
-	// {baseName}_{数字}.png にする
+	// {baseName}_{数字}.png の形式に一致する正規表現パターン
 	pattern := fmt.Sprintf(`^%s_\d+\.png$`, regexp.QuoteMeta(baseName))
 	return regexp.MustCompile(pattern)
 }()
@@ -30,71 +31,108 @@ type mangaViewData struct {
 	MarkdownRaw string
 }
 
-// ServeOutput retrieves manga content (plot and images) and renders the viewer page.
+// ServeOutput は指定されたタイトルの漫画成果物（プロットおよび画像）を取得し、ビューアー画面を表示します。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	title := chi.URLParam(r, "title")
 
-	// Plot content retrieval
+	// 1. プロット（Markdown）の取得
+	// パス検証エラー (ErrInvalidPath) は 400、それ以外の読み込みエラーは 500 を返却します。
+	markdownContent, err := h.loadPlotContent(r, title)
+	if err != nil {
+		if errors.Is(err, ErrInvalidPath) {
+			slog.WarnContext(ctx, "Invalid path request for plot", "title", title, "error", err)
+			http.Error(w, "Invalid Title Path", http.StatusBadRequest)
+		} else {
+			slog.ErrorContext(ctx, "Failed to load plot content", "title", title, "error", err)
+			http.Error(w, "Failed to load plot content", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// 2. 署名付き画像URLリストの取得
+	signedURLs, err := h.loadSignedImageURLs(r, title)
+	if err != nil {
+		if errors.Is(err, ErrInvalidPath) {
+			slog.WarnContext(ctx, "Invalid path request for images", "title", title, "error", err)
+			http.Error(w, "Invalid Title Path", http.StatusBadRequest)
+		} else {
+			slog.ErrorContext(ctx, "Failed to prepare image URLs", "title", title, "error", err)
+			http.Error(w, "Failed to retrieve manga images", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// 3. テンプレートのレンダリング
+	h.render(w, http.StatusOK, "manga_view.html", title, mangaViewData{
+		Title:       title,
+		ImageURLs:   signedURLs,
+		MarkdownRaw: markdownContent,
+	})
+}
+
+// loadPlotContent は指定されたタイトルのプロットファイルを読み込み、その内容を文字列として返します。
+// ファイルが存在しない場合は空文字列を返しますが、検証エラーや致命的な読み込みエラーは error として返します。
+func (h *Handler) loadPlotContent(r *http.Request, title string) (string, error) {
 	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotName)
 	if err != nil {
-		slog.WarnContext(ctx, "Path validation failed for plot", "title", title, "error", err)
-		http.Error(w, "Invalid Request", http.StatusBadRequest)
-		return
+		return "", err // ErrInvalidPath がラップされて返却される
 	}
 
 	plotPath := h.cfg.GetGCSObjectURL(relPath)
-	slog.InfoContext(ctx, "Resolved plot path", "path", plotPath)
-
-	var markdownContent string
-	if rc, err := h.reader.Open(ctx, plotPath); err == nil {
-		defer rc.Close()
-		if data, readErr := io.ReadAll(rc); readErr == nil {
-			markdownContent = string(data)
-		} else {
-			slog.ErrorContext(ctx, "Failed to read plot content", "path", plotPath, "error", readErr)
-		}
-	} else {
-		slog.WarnContext(ctx, "Plot file not found, skipping", "path", plotPath, "error", err)
+	rc, err := h.reader.Open(r.Context(), plotPath)
+	if err != nil {
+		// ファイルが見つからない場合は仕様として許容し、正常系（空文字）として扱います。
+		slog.WarnContext(r.Context(), "Plot file not found, skipping rendering", "path", plotPath)
+		return "", nil
 	}
+	defer rc.Close()
 
+	data, err := io.ReadAll(rc)
+	if err != nil {
+		return "", fmt.Errorf("failed to read plot file: %w", err)
+	}
+	return string(data), nil
+}
+
+// loadSignedImageURLs は指定されたタイトルの画像をリストし、一時的な閲覧権限を持つ署名付きURLのスライスを生成します。
+func (h *Handler) loadSignedImageURLs(r *http.Request, title string) ([]string, error) {
+	ctx := r.Context()
 	prefix, err := h.validateAndCleanPath(title, asset.DefaultImageDir)
 	if err != nil {
-		http.Error(w, "Invalid Request", http.StatusBadRequest)
-		return
+		return nil, err
 	}
 
 	gcsPrefix := h.cfg.GetGCSObjectURL(prefix)
 	var filePaths []string
-	if err := h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
-		// GCSからリストしたパスが、期待されるページ画像のファイル名パターンに一致するかを検証します。
-		// この正規表現は、`asset.DefaultPageFileName` に基づいて動的に生成されます。
+
+	err = h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
 		if pageFileRegex.MatchString(filepath.Base(gcsPath)) {
 			filePaths = append(filePaths, gcsPath)
 		}
 		return nil
-	}); err != nil {
-		slog.ErrorContext(ctx, "Failed to list images from GCS", "prefix", gcsPrefix, "error", err)
-		http.Error(w, "Failed to retrieve image list", http.StatusInternalServerError)
-		return
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list images from store: %w", err)
 	}
 
-	// Sort and Generate Signed URLs
 	sort.Strings(filePaths)
 
 	var signedURLs []string
 	for _, gcsPath := range filePaths {
-		if url, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, time.Hour); err == nil {
-			signedURLs = append(signedURLs, url)
-		} else {
+		u, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, time.Hour)
+		if err != nil {
 			slog.ErrorContext(ctx, "Failed to generate signed URL", "path", gcsPath, "error", err)
+			continue
 		}
+		signedURLs = append(signedURLs, u)
 	}
 
-	data := mangaViewData{
-		Title:       title,
-		ImageURLs:   signedURLs,
-		MarkdownRaw: markdownContent,
+	// 画像が存在するにもかかわらず、署名付きURLが1つも生成できなかった場合は
+	// 権限設定ミスやサービス中断の可能性があるため、エラーとして扱います。
+	if len(filePaths) > 0 && len(signedURLs) == 0 {
+		return nil, errors.New("could not generate any signed URLs for the available image assets")
 	}
-	h.render(w, http.StatusOK, "manga_view.html", title, data)
+
+	return signedURLs, nil
 }

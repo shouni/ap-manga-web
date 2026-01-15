@@ -1,6 +1,8 @@
 package web
 
 import (
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/config"
 	"bytes"
 	"fmt"
 	"html/template"
@@ -8,17 +10,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
-
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/config"
 
 	"github.com/shouni/go-remote-io/pkg/remoteio"
-)
-
-var (
-	validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
-	validTitle        = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 )
 
 const titleSuffix = " - AP Manga Web"

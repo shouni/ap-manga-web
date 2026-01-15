@@ -3,8 +3,11 @@ package web
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"strings"
 )
+
+var validTitle = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 func (h *Handler) validateAndCleanPath(title, file string) (string, error) {
 	if title == "" || !validTitle.MatchString(title) {
