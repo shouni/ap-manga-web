@@ -18,7 +18,9 @@ import (
 
 // pageFileRegex はパッケージの初期化時に一度だけコンパイルされます。
 var pageFileRegex = func() *regexp.Regexp {
-	baseName := strings.TrimSuffix(asset.DefaultPageFileName, filepath.Ext(asset.DefaultPageFileName))
+	pageFile := asset.DefaultPageFileName
+	baseName := strings.TrimSuffix(pageFile, filepath.Ext(pageFile))
+	// {baseName}_{数字}.png の形式に一致する正規表現パターン
 	pattern := fmt.Sprintf(`^%s_\d+\.png$`, regexp.QuoteMeta(baseName))
 	return regexp.MustCompile(pattern)
 }()
@@ -35,12 +37,14 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	title := chi.URLParam(r, "title")
 
 	// 1. プロット（Markdown）の取得
-	// パス検証エラーは 400 Bad Request、読み込みエラーは 500 Internal Server Error を返します。
+	// パス検証エラー (ErrInvalidPath) は 400、それ以外の読み込みエラーは 500 を返却します。
 	markdownContent, err := h.loadPlotContent(r, title)
 	if err != nil {
-		if strings.Contains(err.Error(), "invalid") {
+		if errors.Is(err, ErrInvalidPath) {
+			slog.WarnContext(ctx, "Invalid path request for plot", "title", title, "error", err)
 			http.Error(w, "Invalid Title Path", http.StatusBadRequest)
 		} else {
+			slog.ErrorContext(ctx, "Failed to load plot content", "title", title, "error", err)
 			http.Error(w, "Failed to load plot content", http.StatusInternalServerError)
 		}
 		return
@@ -49,8 +53,13 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	// 2. 署名付き画像URLリストの取得
 	signedURLs, err := h.loadSignedImageURLs(r, title)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to prepare image URLs", "title", title, "error", err)
-		http.Error(w, "Failed to retrieve manga images", http.StatusInternalServerError)
+		if errors.Is(err, ErrInvalidPath) {
+			slog.WarnContext(ctx, "Invalid path request for images", "title", title, "error", err)
+			http.Error(w, "Invalid Title Path", http.StatusBadRequest)
+		} else {
+			slog.ErrorContext(ctx, "Failed to prepare image URLs", "title", title, "error", err)
+			http.Error(w, "Failed to retrieve manga images", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -63,25 +72,24 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 }
 
 // loadPlotContent は指定されたタイトルのプロットファイルを読み込み、その内容を文字列として返します。
-// ファイルが存在しない場合は空文字列と nil エラーを返しますが、パス検証や読み込みに失敗した場合はエラーを返します。
+// ファイルが存在しない場合は空文字列を返しますが、検証エラーや致命的な読み込みエラーは error として返します。
 func (h *Handler) loadPlotContent(r *http.Request, title string) (string, error) {
 	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotName)
 	if err != nil {
-		return "", fmt.Errorf("path validation failed: %w", err)
+		return "", err // ErrInvalidPath がラップされて返却される
 	}
 
 	plotPath := h.cfg.GetGCSObjectURL(relPath)
 	rc, err := h.reader.Open(r.Context(), plotPath)
 	if err != nil {
-		// ファイルが見つからない場合は仕様として許容し、警告ログを出力して正常系として扱います。
-		slog.WarnContext(r.Context(), "Plot file not found, skipping", "path", plotPath)
+		// ファイルが見つからない場合は仕様として許容し、正常系（空文字）として扱います。
+		slog.WarnContext(r.Context(), "Plot file not found, skipping rendering", "path", plotPath)
 		return "", nil
 	}
 	defer rc.Close()
 
 	data, err := io.ReadAll(rc)
 	if err != nil {
-		slog.ErrorContext(r.Context(), "Read error", "path", plotPath, "error", err)
 		return "", fmt.Errorf("failed to read plot file: %w", err)
 	}
 	return string(data), nil
@@ -92,7 +100,7 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string) ([]string, 
 	ctx := r.Context()
 	prefix, err := h.validateAndCleanPath(title, asset.DefaultImageDir)
 	if err != nil {
-		return nil, fmt.Errorf("path validation failed: %w", err)
+		return nil, err
 	}
 
 	gcsPrefix := h.cfg.GetGCSObjectURL(prefix)
@@ -105,7 +113,7 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string) ([]string, 
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list images: %w", err)
+		return nil, fmt.Errorf("failed to list images from store: %w", err)
 	}
 
 	sort.Strings(filePaths)
@@ -120,10 +128,10 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string) ([]string, 
 		signedURLs = append(signedURLs, u)
 	}
 
-	// 画像ファイルが存在するにもかかわらず、署名付きURLが1つも生成できなかった場合は
-	// 権限設定エラー等の重大な問題の可能性があるため、エラーとして扱います。
+	// 画像が存在するにもかかわらず、署名付きURLが1つも生成できなかった場合は
+	// 権限設定ミスやサービス中断の可能性があるため、エラーとして扱います。
 	if len(filePaths) > 0 && len(signedURLs) == 0 {
-		return nil, errors.New("could not generate any signed URLs for the available images")
+		return nil, errors.New("could not generate any signed URLs for the available image assets")
 	}
 
 	return signedURLs, nil

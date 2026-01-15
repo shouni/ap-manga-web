@@ -1,6 +1,11 @@
 package web
 
-import "net/http"
+import (
+	"errors"
+	"net/http"
+)
+
+var ErrInvalidPath = errors.New("invalid path provided")
 
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, "index.html", "Generate", nil)
