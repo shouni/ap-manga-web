@@ -7,23 +7,12 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
-	"regexp"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-manga-kit/pkg/asset"
 )
-
-// pageFileRegex はパッケージの初期化時に一度だけコンパイルされます。
-var pageFileRegex = func() *regexp.Regexp {
-	pageFile := asset.DefaultPageFileName
-	baseName := strings.TrimSuffix(pageFile, filepath.Ext(pageFile))
-	// {baseName}_{数字}.png の形式に一致する正規表現パターン
-	pattern := fmt.Sprintf(`^%s_\d+\.png$`, regexp.QuoteMeta(baseName))
-	return regexp.MustCompile(pattern)
-}()
 
 type mangaViewData struct {
 	Title       string
@@ -107,7 +96,7 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string) ([]string, 
 	var filePaths []string
 
 	err = h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
-		if pageFileRegex.MatchString(filepath.Base(gcsPath)) {
+		if asset.PageFileRegex.MatchString(filepath.Base(gcsPath)) {
 			filePaths = append(filePaths, gcsPath)
 		}
 		return nil
