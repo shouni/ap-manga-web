@@ -115,7 +115,11 @@ func (c Config) GetImageDir(requestID string) string {
 
 // GetGCSObjectURL はGCS内のオブジェクトパスを組み立てます。
 func (c Config) GetGCSObjectURL(path string) string {
-	return fmt.Sprintf("gs://%s/%s", c.GCSBucket, path)
+	if c.GCSBucket != "" {
+		return fmt.Sprintf("gs://%s/%s", c.GCSBucket, path)
+	}
+
+	return path
 }
 
 // --- バリデーション ---
