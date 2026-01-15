@@ -43,14 +43,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var plotPath string
-	if h.cfg.GCSBucket != "" {
-		// TODO::gs://bucket-name/relPath の形に結合
-		plotPath = fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, relPath)
-	} else {
-		plotPath = relPath
-	}
-
+	plotPath := h.cfg.GetGCSObjectURL(relPath)
 	slog.InfoContext(ctx, "Resolved plot path", "path", plotPath)
 
 	var markdownContent string
@@ -71,7 +64,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gcsPrefix := fmt.Sprintf("gs://%s/%s", h.cfg.GCSBucket, prefix)
+	gcsPrefix := h.cfg.GetGCSObjectURL(prefix)
 	var filePaths []string
 	if err := h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
 		// GCSからリストしたパスが、期待されるページ画像のファイル名パターンに一致するかを検証します。
