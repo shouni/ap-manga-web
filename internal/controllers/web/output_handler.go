@@ -1,6 +1,7 @@
 package web
 
 import (
+	"ap-manga-web/internal/config"
 	"errors"
 	"fmt"
 	"io"
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"sort"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-manga-kit/pkg/asset"
@@ -51,6 +51,9 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	cacheAgeSec := int(config.SignedURLExpiration.Seconds())
+	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", cacheAgeSec))
 
 	// 3. テンプレートのレンダリング
 	h.render(w, http.StatusOK, "manga_view.html", title, mangaViewData{
@@ -109,7 +112,7 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string) ([]string, 
 
 	var signedURLs []string
 	for _, gcsPath := range filePaths {
-		u, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, time.Hour)
+		u, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, config.SignedURLExpiration)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to generate signed URL", "path", gcsPath, "error", err)
 			continue
