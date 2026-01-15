@@ -52,7 +52,10 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cacheAgeSec := int(config.SignedURLExpiration.Seconds())
+	cacheAgeSec := int64(config.SignedURLExpiration.Seconds())
+	if cacheAgeSec < 0 {
+		cacheAgeSec = 0
+	}
 	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", cacheAgeSec))
 
 	// 3. テンプレートのレンダリング
