@@ -1,55 +1,61 @@
 {{define "content"}}
-<div class="row justify-content-center">
+<div class="row justify-content-center py-4">
     <div class="col-md-10">
-        <div class="card shadow-sm border-warning">
-            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">📖 Page - プロットからページ構成なのだ</h4>
-                <span class="badge bg-dark">Markdown DNA Mode</span>
+        <div class="card shadow-sm border-0 shadow" style="border-top: 5px solid #ffc107 !important;">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="mb-0 fw-bold" style="color: #856404;">
+                    <i class="bi bi-file-earmark-code-fill me-2"></i>Page - 構造化台本からページ構成
+                </h4>
+                <span class="badge bg-warning text-dark">MangaResponse JSON Mode</span>
             </div>
-            <div class="card-body">
+            <div class="card-body bg-white p-4">
                 <form action="/generate" method="POST">
                     <input type="hidden" name="command" value="page">
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">プロット・構成案 (Markdown Format)</label>
-                        <textarea name="input_text" class="form-control font-monospace" rows="20"
-                                  placeholder="## Panel: images/panel_1.png
-- layout: standard
-- speaker: speaker-91fa840984
-- text: これがGo Manga Kitなのだ！
-- tail: top
-- bottom: 10%
-- left: 10%" required></textarea>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">MangaResponse JSON (台本データ)</label>
+                        <textarea name="input_text" class="form-control json-editor-area" rows="20"
+                                  spellcheck="false"
+                                  placeholder='{
+  "title": "作品タイトル",
+  "description": "作品の概要や説明",
+  "panels": [
+    {
+      "page": 1,
+      "visual_anchor": "90s retro anime style, description of scene...",
+      "dialogue": "セリフ内容",
+      "speaker_id": "character_id",
+      "reference_url": "gs://bucket/assets/design_sheet.png"
+    }
+  ]
+}' required></textarea>
 
-                        <div class="alert alert-info mt-3 py-3 shadow-sm">
-                            <div class="fw-bold mb-2">
-                                <i class="bi bi-lightbulb"></i> 💡 魂のDNA注入フォーマット（書き方ヒント）:
+                        <div class="alert alert-light border-start border-4 border-warning mt-3 py-3 shadow-sm">
+                            <div class="fw-bold mb-2 text-dark">
+                                <i class="bi bi-diagram-3"></i> 構造体定義の解説:
                             </div>
-                            <ul class="mb-0 small" style="line-height: 1.6;">
-                                <li><code>## Panel: images/panel_n.png</code> — コマの区切りと画像パスを定義するのだ。</li>
-                                <li><code>- speaker: [ID]</code> — キャラクターID（DNA）を指定して外見を固定するのだ。</li>
-                                <li><code>- text: [内容]</code> — 吹き出しの中に入れるセリフなのだ。</li>
-                                <li><code>- tail: [top/bottom/left/right]</code> — 吹き出しの尻尾が出る方向なのだ。</li>
-                                <li><code>- [top/bottom/left/right]: [n%]</code> — 配置の座標。ミリ単位の調整が可能なのだ！</li>
+                            <ul class="mb-0 small text-muted" style="line-height: 1.6;">
+                                <li><code>panels[]</code> — 各コマ（パネル）の情報を格納する配列です。</li>
+                                <li><code>visual_anchor</code> — 画像生成の核となる項目です。画風や構図の詳細を指定してください。</li>
+                                <li><code>speaker_id</code> — キャラクターIDを指定します。事前定義されたキャラクター設定を呼び出します。</li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">生成モード (Mode)</label>
-                            <select name="mode" class="form-select">
+                            <label class="form-label fw-bold">生成モード (Execution Mode)</label>
+                            <select name="mode" class="form-select border-secondary">
                                 <option value="standard" selected>標準 (Standard)</option>
                                 <option value="precise">詳細レイアウト (Precise)</option>
-                                <option value="draft">下書きモード (Draft)</option>
+                                <option value="re-generate">画像再生成 (Re-generate)</option>
                             </select>
-                            <div class="form-text">詳細レイアウトを選ぶと座標指定がより厳密に反映されるのだ。</div>
                         </div>
                     </div>
 
                     <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-warning btn-lg text-dark fw-bold border-2">
-                            魂のDNA注入（ページ構成開始）なのだ！
+                        <button type="submit" class="btn btn-warning btn-lg text-dark fw-bold border-0 shadow-sm py-3">
+                            <i class="bi bi-cpu-fill me-2"></i>台本データを送信してページを生成する
                         </button>
                     </div>
                 </form>
@@ -59,19 +65,38 @@
 </div>
 
 <style>
-    /* テキストエリアを入力しやすく調整なのだ */
-    .font-monospace {
-        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-        background-color: #f8f9fa;
-        line-height: 1.5;
+    /* エディタ専用スタイル */
+    .json-editor-area {
+        font-family: 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace !important;
+        background-color: #1e1e1e !important;
+        color: #e0e0e0 !important;
+        line-height: 1.6;
+        padding: 1.5rem;
+        border: 1px solid #333 !important;
+        tab-size: 4;
+        resize: vertical;
     }
-    .card-header {
-        border-bottom: 2px solid rgba(0,0,0,0.1);
+
+    .json-editor-area::placeholder {
+        color: #7db766 !important;
+        opacity: 0.8;
     }
-    .btn-warning:hover {
-        background-color: #ffca2c;
-        transform: translateY(-1px);
-        transition: all 0.2s;
+
+    .json-editor-area:focus {
+        background-color: #1e1e1e !important;
+        color: #ffffff !important;
+        border-color: #ffc107 !important;
+        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25) !important;
+        outline: none;
+    }
+
+    /* オートコンプリート対策 */
+    .json-editor-area:-webkit-autofill,
+    .json-editor-area:-webkit-autofill:hover,
+    .json-editor-area:-webkit-autofill:focus {
+        -webkit-text-fill-color: #e0e0e0 !important;
+        -webkit-box-shadow: 0 0 0px 1000px #1e1e1e inset !important;
+        transition: background-color 5000s ease-in-out 0s;
     }
 </style>
 {{end}}

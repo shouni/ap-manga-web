@@ -61,7 +61,7 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `CLOUD_TASKS_QUEUE_ID` | 使用する Cloud Tasks のキュー名 | `manga-queue` |
 | `SERVICE_ACCOUNT_EMAIL` | タスク発行に使用するサービスアカウント | - |
 | `TASK_AUDIENCE_URL` | OIDCトークンの検証用URL | `SERVICE_URL` と同じ |
-| `GCS_MANGA_BUCKET` | 漫画画像とHTMLを保存するバケット名 | - |
+| `GCS_MANGA_BUCKET` | 画像とHTMLを保存するバケット名 | - |
 | `GEMINI_API_KEY` | Google Gemini APIキー | - |
 | `GEMINI_MODEL` | 台本構成に使用するモデル名 | `gemini-3-flash-preview` |
 | `IMAGE_MODEL` | 画像生成に使用するモデル名 | `gemini-3-pro-image-preview` |
@@ -200,7 +200,7 @@ sequenceDiagram
 
 ## 🤝 依存関係 (Dependencies)
 
-* [shouni/go-manga-kit](https://github.com/shouni/go-manga-kit) - 自動ページ分割に対応した漫画制作ワークフロー
+* [shouni/go-manga-kit](https://github.com/shouni/go-manga-kit) - 自動ページ分割に対応した作画制作ワークフロー
 * [shouni/gemini-image-kit](https://github.com/shouni/gemini-image-kit) - Geminiによる画像生成を抽象化するライブラリ
 * [shouni/go-remote-io](https://github.com/shouni/go-remote-io) - GCSとローカルファイルシステムのI/O操作を統一化するライブラリ
 

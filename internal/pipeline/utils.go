@@ -6,16 +6,38 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"path"
 	"time"
 
 	"ap-manga-web/internal/domain"
 
+	"github.com/shouni/go-manga-kit/pkg/asset"
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
+// resolveWorkDir は、漫画のワークディレクトリパスを解決します。
+// 共通化により保守性を向上させ、パス解決のルールを一元化するのだ。
+func (e *mangaExecution) resolveWorkDir(manga *mangadom.MangaResponse) string {
+	safeTitle := e.resolveSafeTitle(manga.Title)
+	return e.pipeline.appCtx.Config.GetWorkDir(safeTitle)
+}
+
+// resolvePlotFileURL は、指定されたプロットファイルのフルパス（GCS URLなど）を解決します。
+func (e *mangaExecution) resolvePlotFileURL(manga *mangadom.MangaResponse) string {
+	workDir := e.resolveWorkDir(manga)
+	filePath := path.Join(workDir, asset.DefaultMangaPlotJson)
+	// パスを GCS オブジェクト URL (例: gs://bucket/path) に変換して返します。
+	return e.pipeline.appCtx.Config.GetGCSObjectURL(filePath)
+}
+
+// resolveOutputURL は、出力先ディレクトリのURLを取得します。
+func (e *mangaExecution) resolveOutputURL(manga *mangadom.MangaResponse) string {
+	workDir := e.resolveWorkDir(manga)
+	return e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
+}
+
 // resolveSafeTitle は、衝突を避けるための一意で安全なタイトル文字列を生成します。
-// 生成された文字列は、公開URLのパスパラメータやGCSのディレクトリ名として使用されることを想定しています。
 // フォーマット: YYYYMMDD_HHMMSS_<8桁のハッシュ>
 func (e *mangaExecution) resolveSafeTitle(title string) string {
 	if e.resolvedSafeTitle != "" {
@@ -27,7 +49,7 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 		t = time.Now()
 	}
 
-	// Asia/Tokyo ロケーションでの時刻変換
+	// Asia/Tokyo ロケーションでの時刻変換（環境に依存せず一定のフォーマットを保つ）
 	jst, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		slog.Warn("Failed to load Asia/Tokyo location, using FixedZone", "error", err)
@@ -35,7 +57,7 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 	}
 	tJST := t.In(jst)
 
-	// ハッシュ生成（タイトル + ナノ秒）
+	// ハッシュ生成（タイトル + ナノ秒で一意性を担保）
 	h := md5.New()
 	h.Write([]byte(title))
 	nanoBytes := make([]byte, 8)
@@ -43,7 +65,6 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 	h.Write(nanoBytes)
 
 	hash := fmt.Sprintf("%x", h.Sum(nil))[:8]
-	// この戻り値が ServeOutput の {title} パラメータ、および GCS のディレクトリ名になります。
 	e.resolvedSafeTitle = fmt.Sprintf("%s_%s", tJST.Format("20060102_150405"), hash)
 
 	return e.resolvedSafeTitle
@@ -61,14 +82,11 @@ func (e *mangaExecution) buildMangaNotification(
 		safeTitle,
 	)
 	if err != nil {
-		slog.Error("Failed to construct public URL",
-			"error", err,
-			"serviceURL", e.pipeline.appCtx.Config.ServiceURL,
-		)
+		slog.Error("Failed to construct public URL", "error", err)
 		publicURL = domain.PublicURLConstructionError
 	}
 
-	workDir := e.pipeline.appCtx.Config.GetWorkDir(safeTitle)
+	workDir := e.resolveWorkDir(manga)
 	storageURI := e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
 
 	return &domain.NotificationRequest{

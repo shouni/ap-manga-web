@@ -1,39 +1,55 @@
 {{define "content"}}
-<div class="row justify-content-center">
+<div class="row justify-content-center py-4">
     <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h4 class="mb-0">🚀 Generate - 一括漫画生成なのだ</h4>
+        <div class="card shadow-sm border-0 shadow" style="border-top: 5px solid var(--zunda-green) !important;">
+            <div class="card-header bg-white py-3">
+                <h4 class="mb-0 fw-bold" style="color: var(--zunda-dark);">
+                    <i class="bi bi-rocket-takeoff-fill me-2"></i>Generate - 一括漫画生成
+                </h4>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4 bg-white">
                 <form action="/generate" method="POST">
                     <input type="hidden" name="command" value="generate">
 
-                    <div class="mb-3">
-                        <label class="form-label">ソースURL (Script URL)</label>
-                        <input type="url" name="script_url" class="form-control"
-                               placeholder="https://example.com/tech-blog" required>
-                        <div class="form-text">解析したい技術記事のURLを入力するのだ。</div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">モード</label>
-                            <select name="mode" class="form-select">
-                                <option value="dialogue" selected>Dialogue (解説)</option>
-                                <option value="duet">Duet (二人芝居)</option>
-                            </select>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">ソースURL (Script URL)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-link-45deg"></i></span>
+                            <input type="url" name="script_url" class="form-control form-control-lg font-monospace-input"
+                                   placeholder="https://example.com/tech-blog" required
+                                   spellcheck="false">
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">対象パネル (Target Panels)</label>
-                            <input type="text" name="target_panels" class="form-control" placeholder="例: 0,1,3">
-                            <div class="form-text">空欄なら全件。カンマ区切りで指定なのだ。</div>
+                        <div class="form-text mt-2 text-muted">
+                            解析したい記事のURLを入力してください。Gemini 3 Flashが内容を解析し、台本を抽出します。
                         </div>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg text-white">
-                            漫画を錬成するのだ！
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">生成モード (Execution Mode)</label>
+                        <select name="mode" class="form-select form-select-lg border-secondary-subtle">
+                            <option value="dialogue" selected>Dialogue (解説・対話形式)</option>
+                            <option value="duet">Duet (二人芝居・掛け合い形式)</option>
+                            <option value="solo">Solo (単独解説形式)</option>
+                        </select>
+                        <div class="form-text mt-2">
+                            出力されるキャラクター構成とプロンプトのトーンを選択します。
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light border-start border-4 border-info mt-4 py-3 shadow-sm">
+                        <div class="fw-bold mb-1 text-info d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill me-2"></i> 一括生成プロセスの流れ:
+                        </div>
+                        <p class="mb-0 small text-muted">
+                            URLからの情報抽出、全パネルの画像生成、最終的なHTML出力までをバックグラウンドで自動実行します。
+                        </p>
+                    </div>
+
+                    <hr class="my-4 text-secondary opacity-25">
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0 action-btn">
+                            <i class="bi bi-magic me-2"></i>漫画の生成を開始する
                         </button>
                     </div>
                 </form>
@@ -41,4 +57,40 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* 入力欄のスタイル */
+    .font-monospace-input {
+        font-family: 'Fira Code', 'Cascadia Code', monospace !important;
+        font-size: 0.95rem;
+        background-color: #f8f9fa;
+    }
+
+    .font-monospace-input:focus {
+        background-color: #ffffff;
+        border-color: var(--zunda-green);
+        box-shadow: 0 0 0 0.25rem rgba(118, 188, 33, 0.15);
+    }
+
+    .card-header {
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    /* ボタンのスタイル */
+    .action-btn {
+        background-color: var(--zunda-green) !important;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    }
+
+    .action-btn:hover {
+        background-color: var(--zunda-dark) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(118, 188, 33, 0.2) !important;
+    }
+
+    /* オートコンフィル対策 */
+    input:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0px 1000px #f8f9fa inset !important;
+    }
+</style>
 {{end}}

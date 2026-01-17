@@ -1,25 +1,63 @@
 {{define "content"}}
-<div class="row justify-content-center">
+<div class="row justify-content-center py-5">
     <div class="col-md-8 text-center">
-        <div class="card shadow-sm border-success">
-            <div class="card-body py-5">
+        <div class="card shadow border-0 overflow-hidden" style="border-radius: 20px;">
+            <div class="progress rounded-0" style="height: 6px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                     role="progressbar" style="width: 100%; background-color: var(--zunda-green);"></div>
+            </div>
+
+            <div class="card-body py-5 px-4">
                 <div class="mb-4">
-                    <span style="font-size: 4rem;">✅</span>
+                    <div class="display-1 text-success mb-3">
+                        <i class="bi bi-check2-circle" style="color: var(--zunda-green);"></i>
+                    </div>
                 </div>
-                <h2 class="card-title h4 mb-3">漫画の錬成依頼を受け付けたのだ！</h2>
-                <p class="text-muted mb-4">
-                    サーバーが裏側で一生懸命描いているから、完了まで数分待つのだ。<br>
-                    完成したら GCS に保存されるのだよ。
+
+                <h2 class="fw-bold mb-3" style="color: var(--zunda-dark);">漫画の生成リクエストを受け付けました</h2>
+
+                <p class="fs-5 text-muted mb-4">
+                    現在、AIが台本の解析と画像の生成処理を行っています。<br>
+                    完了まで数分かかる場合がありますので、このまましばらくお待ちください。
                 </p>
-                <div class="bg-light p-3 rounded mb-4 text-start">
-                    <small class="d-block text-secondary">対象URL:</small>
-                    <code class="text-break">{{.Data.ScriptURL}}</code>
+
+                <div class="bg-light p-4 rounded-4 mb-5 text-start border">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-link-45deg me-2 text-primary fs-4"></i>
+                        <span class="fw-bold text-secondary small">対象リソース:</span>
+                    </div>
+                    <code class="text-break p-2 d-block bg-white rounded border font-monospace" style="color: #495057;">
+                        {{.Data.ScriptURL}}
+                    </code>
                 </div>
-                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                    <a href="/" class="btn btn-outline-primary">トップへ戻る</a>
+
+                <hr class="my-4 opacity-25">
+
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                    <a href="/" class="btn btn-outline-secondary btn-lg px-4 rounded-pill fw-bold">
+                        <i class="bi bi-house-door me-2"></i>ホームへ戻る
+                    </a>
+                    <a href="/output" class="btn btn-primary btn-lg px-5 rounded-pill fw-bold shadow">
+                        <i class="bi bi-collection-play me-2"></i>生成結果を確認する
+                    </a>
                 </div>
             </div>
         </div>
+
+        <p class="mt-4 text-secondary small">
+            <i class="bi bi-cpu me-1"></i> System Status: Processing via Gemini 3 Flash and Cloud Tasks.
+        </p>
     </div>
 </div>
+
+<style>
+    /* ボタンの色はずんだスタイルを継承しつつ、落ち着いたトーンにするのだ */
+    .btn-primary {
+        background-color: var(--zunda-green) !important;
+        border: none !important;
+    }
+    .btn-primary:hover {
+        background-color: var(--zunda-dark) !important;
+    }
+</style>
 {{end}}
