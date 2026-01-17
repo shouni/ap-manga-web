@@ -51,7 +51,7 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 
 // buildMangaNotification は漫画生成の結果に基づいてSlack通知用リクエストを構築します。
 func (e *mangaExecution) buildMangaNotification(
-	manga mangadom.MangaResponse,
+	manga *mangadom.MangaResponse,
 	result publisher.PublishResult,
 ) (*domain.NotificationRequest, string, string) {
 	safeTitle := e.resolveSafeTitle(manga.Title)
@@ -80,7 +80,7 @@ func (e *mangaExecution) buildMangaNotification(
 }
 
 // buildScriptNotification はスクリプト生成の結果に基づいてSlack通知用リクエストを構築します。
-func (e *mangaExecution) buildScriptNotification(manga mangadom.MangaResponse, gcsPath string) (*domain.NotificationRequest, string, string) {
+func (e *mangaExecution) buildScriptNotification(manga *mangadom.MangaResponse, gcsPath string) (*domain.NotificationRequest, string, string) {
 	return &domain.NotificationRequest{
 		SourceURL:      e.payload.ScriptURL,
 		OutputCategory: "script-json",

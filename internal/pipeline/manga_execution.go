@@ -23,13 +23,16 @@ type mangaExecution struct {
 
 // run は各生成フェーズを順番に実行し、結果を通知します。
 func (e *mangaExecution) run(ctx context.Context) (err error) {
-	var manga mangadom.MangaResponse
+	var manga *mangadom.MangaResponse
+	var scriptPath string
 
 	// 失敗時の通知を defer 文で一括管理します。
 	defer func() {
 		if err != nil {
-			titleHint := manga.Title
-			// タイトルが不明な場合でも、ソースURLなどからコンテキストを提供する
+			titleHint := ""
+			if manga != nil {
+				titleHint = manga.Title
+			}
 			if titleHint == "" && e.payload.ScriptURL != "" {
 				titleHint = fmt.Sprintf("Source: %s", e.payload.ScriptURL)
 			}
@@ -41,24 +44,26 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 
 	var notificationReq *domain.NotificationRequest
 	var publicURL, storageURI string
-	var publishResult publisher.PublishResult // switch 前に宣言を共通化し、冗長性を排除します。
+	var publishResult publisher.PublishResult
 
 	switch e.payload.Command {
 	case "generate":
 		// --- Phase 1: Script Phase ---
-		// 実行コンテキスト (e) を介して、一貫したディレクトリ名でスクリップトを保存します。
-		if manga, _, err = e.pipeline.runScriptStep(ctx, e); err != nil {
+		// 実行コンテキスト (e) を介して、スクリプトを保存し、そのパスを受け取る
+		if manga, scriptPath, err = e.pipeline.runScriptStep(ctx, e); err != nil {
 			return fmt.Errorf("script step failed: %w", err)
 		}
 
-		// --- Phase 2 & 3: Panel & Publish ---
-		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
+		// --- Phase 2 & 3: Panel Generation & Publish ---
+		// パネル生成と成果物のパブリッシュを連続して実行します。
+		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, scriptPath, e)
 		if err != nil {
 			return err
 		}
 
 		// --- Phase 4: Page Generation Phase ---
-		if _, err = e.pipeline.runPageStepWithAsset(ctx, publishResult.MarkdownPath); err != nil {
+		// 最終的なページ画像を構成する
+		if _, err = e.pipeline.runPageStepWithAsset(ctx, manga, e); err != nil {
 			return fmt.Errorf("page generation step failed: %w", err)
 		}
 
@@ -74,7 +79,6 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 		notificationReq, publicURL, storageURI = e.buildDesignNotification(outputURL, finalSeed)
 
 	case "script":
-		var scriptPath string
 		manga, scriptPath, err = e.pipeline.runScriptStep(ctx, e)
 		if err != nil {
 			return fmt.Errorf("script step failed: %w", err)
@@ -87,7 +91,8 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 			return fmt.Errorf("panel mode input JSON unmarshal failed: %w", err)
 		}
 
-		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
+		// JSON直接入力の場合、scriptPathは空だが、e (execution) を渡すことでワークディレクトリを特定可能にする
+		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, "", e)
 		if err != nil {
 			return err
 		}
@@ -95,7 +100,16 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga, publishResult)
 
 	case "page":
-		if err = e.pipeline.runPageStep(ctx, e.payload); err != nil {
+		if e.payload.InputText != "" {
+			if err = json.Unmarshal([]byte(e.payload.InputText), &manga); err != nil {
+				return fmt.Errorf("page mode input JSON unmarshal failed: %w", err)
+			}
+		}
+		// mangaがnilの場合、処理を続行できないためエラーを返す
+		if manga == nil {
+			return fmt.Errorf("page mode requires manga data in InputText")
+		}
+		if _, err = e.pipeline.runPageStepWithAsset(ctx, manga, e); err != nil {
 			return fmt.Errorf("page step failed: %w", err)
 		}
 
