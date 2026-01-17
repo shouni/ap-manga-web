@@ -8,35 +8,48 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM"
           crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     <style>
-        :root { --zunda-green: #76bc21; }
+        :root {
+            --zunda-green: #76bc21;
+            --zunda-dark: #64a01c;
+        }
+        body { background-color: #fcfdfb; }
         .navbar { background-color: var(--zunda-green); }
-        .nav-link { color: white !important; }
-        .nav-link:hover { opacity: 0.8; text-decoration: underline; }
+        .nav-link { color: white !important; transition: all 0.2s; }
+        .nav-link:hover { opacity: 0.8; transform: translateY(-1px); }
+
+        /* ボタン等のブランドカラー統一 */
         .btn-primary { background-color: var(--zunda-green); border-color: var(--zunda-green); }
-        .btn-primary:hover { background-color: #64a01c; border-color: #64a01c; }
-        /* アクティブなリンクを少し強調するのだ */
+        .btn-primary:hover { background-color: var(--zunda-dark); border-color: var(--zunda-dark); }
+
+        /* アクティブなリンクの強調なのだ */
         .nav-link.active { font-weight: bold; border-bottom: 2px solid white; }
+
+        /* フッターの装飾 */
+        footer hr { border-top: 1px solid #dee2e6; width: 50%; margin: 2rem auto; }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg mb-4 shadow-sm">
     <div class="container">
-        <a class="navbar-brand text-white fw-bold" href="/">🎨 AP Manga Web</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon text-white"></span>
+        <a class="navbar-brand text-white fw-bold" href="/">
+            <i class="bi bi-palette-fill me-2"></i>AP Manga Web
+        </a>
+        <button class="navbar-toggler border-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="/design">Design</a></li>
                 <li class="nav-item"><a class="nav-link" href="/script">Script</a></li>
-                <li class="nav-item"><a class="nav-link" href="/panel">Panel</a></li>
+                <li class="nav-item"><a class="nav-link" href="/generate">Generate</a></li>
                 <li class="nav-item"><a class="nav-link" href="/page">Page</a></li>
             </ul>
             <span class="navbar-text text-white-50 small">
-                2026 Edition
+                2026 Edition | <i class="bi bi-lightning-charge-fill"></i> Gemini 3 Flash
             </span>
         </div>
     </div>
@@ -48,7 +61,8 @@
 
 <footer class="container text-center mt-5 mb-4 text-muted small">
     <hr>
-    &copy; 2026 AP Manga Project - Powered by Gemini 3 Flash
+    <div>&copy; 2026 AP Manga Project - Powered by Go Manga Kit & Gemini</div>
+    <div class="mt-1">"Making Manga Creation as Simple as Writing Code."</div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"

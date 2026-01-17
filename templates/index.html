@@ -1,43 +1,54 @@
 {{define "content"}}
 <div class="row justify-content-center py-4">
     <div class="col-md-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-primary text-white py-3">
-                <h4 class="mb-0">🚀 Generate - 一括漫画生成</h4>
+        <div class="card shadow-sm border-0 shadow" style="border-top: 5px solid var(--zunda-green) !important;">
+            <div class="card-header bg-white py-3">
+                <h4 class="mb-0 fw-bold" style="color: var(--zunda-dark);">
+                    <i class="bi bi-rocket-takeoff-fill me-2"></i>Generate - 一括漫画生成
+                </h4>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body p-4 bg-white">
                 <form action="/generate" method="POST">
                     <input type="hidden" name="command" value="generate">
 
                     <div class="mb-4">
                         <label class="form-label fw-bold">ソースURL (Script URL)</label>
                         <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
-                            <input type="url" name="script_url" class="form-control form-control-lg"
+                            <span class="input-group-text bg-light"><i class="bi bi-link-45deg"></i></span>
+                            <input type="url" name="script_url" class="form-control form-control-lg font-monospace-input"
                                    placeholder="https://example.com/tech-blog" required>
                         </div>
                         <div class="form-text mt-2 text-muted">
-                            解析したい技術記事やWebページのURLを入力してください。Geminiが台本を抽出します。
+                            解析したい技術記事やWebページのURLを入力。Geminiが台本を抽出するのだ。
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold">生成モード</label>
+                        <label class="form-label fw-bold">生成モード (Execution Mode)</label>
                         <select name="mode" class="form-select form-select-lg">
                             <option value="dialogue" selected>Dialogue (解説・対話形式)</option>
                             <option value="duet">Duet (二人芝居・掛け合い形式)</option>
                             <option value="solo">Solo (単独解説形式)</option>
                         </select>
                         <div class="form-text mt-2">
-                            キャラクターの構成とプロンプトのトーンを選択します。
+                            キャラクターの構成とプロンプトのトーンを選択するのだ。
                         </div>
                     </div>
 
-                    <hr class="my-4 text-secondary">
+                    <div class="alert alert-light border-start border-4 border-info mt-4 py-3 shadow-sm">
+                        <div class="fw-bold mb-1 text-info">
+                            <i class="bi bi-info-circle-fill"></i> 一括錬成プロセスの流れ:
+                        </div>
+                        <p class="mb-0 small text-muted">
+                            抽出された内容に基づき、全パネルの画像生成から最終的なHTML/Markdown構築までを自動で実行するのだ。
+                        </p>
+                    </div>
+
+                    <hr class="my-4 text-secondary opacity-25">
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow">
-                            <i class="bi bi-magic"></i> 漫画を錬成するのだ！
+                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0">
+                            <i class="bi bi-magic me-2"></i>漫画を錬成するのだ！
                         </button>
                     </div>
                 </form>
@@ -45,4 +56,24 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* レイアウトと同期する追加の微調整なのだ */
+    .font-monospace-input {
+        font-family: 'Fira Code', 'Cascadia Code', monospace;
+        font-size: 0.95rem;
+    }
+    .card-header {
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .btn-primary {
+        /* layout.html で定義された変数が効くが、念のため適用なのだ */
+        background-color: var(--zunda-green) !important;
+        border: none !important;
+    }
+    .btn-primary:hover {
+        background-color: var(--zunda-dark) !important;
+        transform: translateY(-1px);
+    }
+</style>
 {{end}}
