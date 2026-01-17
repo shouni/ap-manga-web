@@ -1,7 +1,6 @@
 package web
 
 import (
-	"ap-manga-web/internal/config"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +9,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+
+	"ap-manga-web/internal/config"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-manga-kit/pkg/asset"
