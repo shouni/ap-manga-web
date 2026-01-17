@@ -37,7 +37,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution)
 	}
 
 	if err := p.appCtx.Writer.Write(ctx, outputFullURL, bytes.NewReader(data), "application/json"); err != nil {
-		return manga, outputFullURL, err
+		return manga, "", err
 	}
 	return manga, outputFullURL, nil
 }
@@ -84,6 +84,9 @@ func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *mang
 
 // runPageStepWithAsset はMangaResponseからページ画像を生成するのだ。
 func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) ([]string, error) {
+	if manga == nil {
+		return nil, fmt.Errorf("manga data is nil")
+	}
 	// 1. ビルダーを介して Runner を構築
 	pageRunner, err := builder.BuildPageImageRunner(ctx, p.appCtx)
 	if err != nil {

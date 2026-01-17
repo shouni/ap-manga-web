@@ -55,7 +55,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 		}
 
 		// --- Phase 2 & 3: Panel Generation & Publish ---
-		// 1枚ずつのパネル生成と、成果物のパブリッシュを連続実行するのだ
+		// パネル生成と成果物のパブリッシュを連続して実行します。
 		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, scriptPath, e)
 		if err != nil {
 			return err
@@ -104,6 +104,10 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 			if err = json.Unmarshal([]byte(e.payload.InputText), &manga); err != nil {
 				return fmt.Errorf("page mode input JSON unmarshal failed: %w", err)
 			}
+		}
+		// mangaがnilの場合、処理を続行できないためエラーを返す
+		if manga == nil {
+			return fmt.Errorf("page mode requires manga data in InputText")
 		}
 		if _, err = e.pipeline.runPageStepWithAsset(ctx, manga, e); err != nil {
 			return fmt.Errorf("page step failed: %w", err)
