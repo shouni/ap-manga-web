@@ -9,7 +9,7 @@ import (
 
 var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
 
-// HandleSubmit processes form submissions for task generation requests.
+// HandleSubmit タスク生成リクエストのフォーム送信を処理します。
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		slog.Warn("Failed to parse form", "error", err)

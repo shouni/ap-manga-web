@@ -1,8 +1,6 @@
 package web
 
 import (
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/config"
 	"bytes"
 	"fmt"
 	"html/template"
@@ -10,6 +8,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/config"
 
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
@@ -24,6 +25,8 @@ type Handler struct {
 	signer        remoteio.URLSigner
 }
 
+// NewHandler 指定された構成、アダプター、入力リーダー、および URL 署名を使用して新しいハンドラーを初期化し、返します。
+// 指定されたディレクトリからテンプレートをコンパイルし、その中にレイアウト ファイルが存在することを確認します。
 func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader, signer remoteio.URLSigner) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
@@ -64,6 +67,7 @@ func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remo
 	}, nil
 }
 
+// render HTML テンプレートをレンダリングし、指定されたステータスとページの詳細とともにレスポンス ライターに書き込みます
 func (h *Handler) render(w http.ResponseWriter, status int, pageName string, title string, data any) {
 	tmpl, ok := h.templateCache[pageName]
 	if !ok {

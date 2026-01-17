@@ -75,8 +75,8 @@ func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *mang
 	return publishResult, nil
 }
 
-// runPageStepWithAsset はMangaResponseからページ画像を生成するのだ。
-func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) ([]string, error) {
+// runPageStep はMangaResponseからページ画像を生成するのだ。
+func (p *MangaPipeline) runPageStep(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) ([]string, error) {
 	if manga == nil {
 		return nil, fmt.Errorf("manga data is nil")
 	}
