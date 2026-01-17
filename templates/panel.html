@@ -1,34 +1,63 @@
 {{define "content"}}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm border-success">
-            <div class="card-header bg-success text-white">
-                <h4 class="mb-0">🖼 Panel - 台本からコマ画像生成なのだ</h4>
+<div class="row justify-content-center py-4">
+    <div class="col-md-10">
+        <div class="card shadow-sm border-0 shadow" style="border-top: 5px solid var(--zunda-green) !important;">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="mb-0 fw-bold" style="color: var(--zunda-dark);">
+                    <i class="bi bi-card-image me-2"></i>Panel - 台本からコマ画像生成
+                </h4>
+                <span class="badge bg-success text-white">JSON Input Mode</span>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4 bg-white">
                 <form action="/generate" method="POST">
                     <input type="hidden" name="command" value="panel">
 
-                    <div class="mb-3">
-                        <label class="form-label">台本 JSON (JSON Input)</label>
-                        <textarea name="input_text" class="form-control" rows="15"
-                                  placeholder='{"title": "タイトル", "pages": [...]}' required></textarea>
-                        <div class="form-text">生成済みの台本JSONをここに貼り付けるのだ。</div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">台本 JSON (MangaResponse JSON)</label>
+                        <textarea name="input_text" class="form-control json-editor-area" rows="15"
+                                  placeholder='{
+  "title": "鋼鉄のオーケストレーター",
+  "panels": [
+    {
+      "page": 1,
+      "visual_anchor": "high quality, cinematic lighting...",
+      "speaker_id": "zundamon"
+    }
+  ]
+}' required></textarea>
+                        <div class="form-text mt-2 text-muted">
+                            生成済みの台本JSONを貼り付けるのだ。<code>panels</code> 配列が含まれている必要があるぞ。
+                        </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">対象パネル (Target Panels)</label>
-                            <input type="text" name="target_panels" class="form-control" placeholder="例: 0,2,4">
-                            <div class="form-text">
-                                指定したインデックスのコマだけを生成するのだ。空欄なら全件生成なのだ！
+                        <div class="col-md-12 mb-4">
+                            <label class="form-label fw-bold">対象パネル (Target Panel Indices)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-list-check"></i></span>
+                                <input type="text" name="target_panels" class="form-control font-monospace-input"
+                                       placeholder="例: 0, 2, 4">
+                            </div>
+                            <div class="form-text mt-2">
+                                <strong>指定したインデックスのコマだけ</strong>を生成。空欄なら全件一斉に錬成するのだ！
                             </div>
                         </div>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-success btn-lg text-white">
-                            パネル生成を開始するのだ！
+                    <div class="alert alert-light border-start border-4 border-success mt-2 py-3 shadow-sm">
+                        <div class="fw-bold mb-1 text-success small">
+                            <i class="bi bi-info-circle-fill"></i> Image Generation Tip:
+                        </div>
+                        <p class="mb-0 small text-muted">
+                            特定のコマだけ修正したい場合は、対象のインデックス（0から開始）を指定して実行するのが効率的なのだ。
+                        </p>
+                    </div>
+
+                    <hr class="my-4 text-secondary opacity-25">
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0">
+                            <i class="bi bi-play-circle-fill me-2"></i>パネル生成を開始するのだ！
                         </button>
                     </div>
                 </form>
@@ -36,4 +65,29 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* 他の画面（Page等）と共通のエディタスタイルを再定義なのだ */
+    .json-editor-area {
+        font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace !important;
+        background-color: #1e1e1e !important;
+        color: #d4d4d4 !important;
+        line-height: 1.5;
+        padding: 1.5rem;
+        border: 1px solid #333 !important;
+    }
+    .json-editor-area::placeholder {
+        color: #6a9955 !important;
+        opacity: 0.7;
+    }
+    .json-editor-area:focus {
+        background-color: #1e1e1e !important;
+        color: #ffffff !important;
+        border-color: var(--zunda-green) !important;
+        box-shadow: 0 0 0 0.25rem rgba(118, 188, 33, 0.25);
+    }
+    .font-monospace-input {
+        font-family: 'Fira Code', monospace;
+    }
+</style>
 {{end}}

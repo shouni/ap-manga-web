@@ -1,18 +1,20 @@
 {{define "content"}}
 <div class="row justify-content-center">
     <div class="col-md-10">
-        <div class="card shadow-sm border-warning">
-            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">📖 Page - 構造化台本からページ構成</h4>
-                <span class="badge bg-dark">MangaResponse JSON Mode</span>
+        <div class="card shadow-sm border-0 shadow" style="border-top: 5px solid #ffc107 !important;">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="mb-0 fw-bold" style="color: #856404;">
+                    <i class="bi bi-file-earmark-code-fill me-2"></i>Page - 構造化台本からページ構成
+                </h4>
+                <span class="badge bg-warning text-dark">MangaResponse JSON Mode</span>
             </div>
-            <div class="card-body">
+            <div class="card-body bg-white">
                 <form action="/generate" method="POST">
                     <input type="hidden" name="command" value="page">
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">MangaResponse JSON (台本データ)</label>
-                        <textarea name="input_text" class="form-control font-monospace" rows="20"
+                        <textarea name="input_text" class="form-control json-editor-area" rows="20"
                                   placeholder='{
   "title": "鋼鉄のオーケストレーター",
   "description": "技術解説漫画の第一話なのだ",
@@ -27,17 +29,14 @@
   ]
 }' required></textarea>
 
-                        <div class="alert alert-info mt-3 py-3 shadow-sm">
-                            <div class="fw-bold mb-2">
-                                <i class="bi bi-diagram-3"></i> 💡 構造体定義（MangaResponse / Panel）の解説:
+                        <div class="alert alert-light border-start border-4 border-warning mt-3 py-3 shadow-sm">
+                            <div class="fw-bold mb-2 text-dark">
+                                <i class="bi bi-diagram-3"></i> 💡 構造体定義の解説:
                             </div>
-                            <ul class="mb-0 small" style="line-height: 1.6;">
-                                <li><code>title / description</code> — 漫画の全体情報を定義するのだ。</li>
+                            <ul class="mb-0 small text-muted" style="line-height: 1.6;">
                                 <li><code>panels[]</code> — 1つ1つのコマ（パネル）の配列なのだ。</li>
-                                <li><code>page</code> — そのパネルが何ページ目に属するかを指定するのだ。</li>
                                 <li><code>visual_anchor</code> — 画像生成時の核となるプロンプト指示なのだ。</li>
-                                <li><code>speaker_id</code> — 話者を特定し、キャラクターの一貫性を保つDNAIDなのだ。</li>
-                                <li><code>reference_url</code> — Image-to-Image等の参照元画像パスを指定できるのだ。</li>
+                                <li><code>speaker_id</code> — キャラクターを特定するDNAIDなのだ。</li>
                             </ul>
                         </div>
                     </div>
@@ -50,13 +49,12 @@
                                 <option value="precise">詳細レイアウト (Precise)</option>
                                 <option value="re-generate">画像再生成 (Re-generate)</option>
                             </select>
-                            <div class="form-text">JSONを書き換えて特定のパネルだけ再生成することも可能なのだ。</div>
                         </div>
                     </div>
 
                     <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-warning btn-lg text-dark fw-bold border-2 shadow-sm">
-                            <i class="bi bi-file-earmark-code"></i> 台本データを注入して錬成開始なのだ！
+                        <button type="submit" class="btn btn-warning btn-lg text-dark fw-bold border-0 shadow-sm py-3">
+                            <i class="bi bi-cpu-fill me-2"></i>台本データを注入して錬成開始なのだ！
                         </button>
                     </div>
                 </form>
@@ -66,12 +64,28 @@
 </div>
 
 <style>
-    .font-monospace {
-        font-family: 'Fira Code', 'Cascadia Code', monospace;
-        background-color: #1e1e1e;
-        color: #d4d4d4;
+    /* エディタ専用のスタイル。Bootstrapのデフォルトを !important で上書きするのだ！ */
+    .json-editor-area {
+        font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace !important;
+        background-color: #1e1e1e !important;
+        color: #d4d4d4 !important; /* 入力文字：明るいグレー */
         line-height: 1.5;
         padding: 1.5rem;
+        border: 1px solid #333 !important;
+    }
+
+    /* プレースホルダー（初期表示）の色を調整なのだ */
+    .json-editor-area::placeholder {
+        color: #6a9955 !important; /* VSCode風の緑色コメント風にするのだ */
+        opacity: 0.7;
+    }
+
+    /* フォーカス時も色が変わらないように固定するのだ */
+    .json-editor-area:focus {
+        background-color: #1e1e1e !important;
+        color: #ffffff !important;
+        border-color: #ffc107 !important;
+        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
     }
 </style>
 {{end}}
