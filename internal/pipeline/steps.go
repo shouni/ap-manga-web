@@ -5,58 +5,55 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path"
 	"strings"
 
 	"ap-manga-web/internal/builder"
-	"ap-manga-web/internal/domain"
 
-	imagedom "github.com/shouni/gemini-image-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/asset"
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
-// runScriptStep はスクリプト生成フェーズを実行し、生成された台本をJSONとしてGCSに保存します。
-func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution) (mangadom.MangaResponse, string, error) {
+// runScriptStep はスクリプト生成フェーズを実行し、生成された台本をJSONとしてGCSに保存するのだ。
+func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution) (*mangadom.MangaResponse, string, error) {
 	runner, err := builder.BuildScriptRunner(ctx, p.appCtx)
 	if err != nil {
-		return mangadom.MangaResponse{}, "", err
+		return nil, "", err
 	}
 
 	manga, err := runner.Run(ctx, exec.payload.ScriptURL, exec.payload.Mode)
 	if err != nil {
-		return mangadom.MangaResponse{}, "", err
+		return nil, "", err
 	}
 
-	// config のヘルパーを使用してパスを決定
 	safeTitle := exec.resolveSafeTitle(manga.Title)
 	workDir := p.appCtx.Config.GetWorkDir(safeTitle)
-	outputObjectPath := fmt.Sprintf("%s/script.json", workDir)
-	outputFullURL := p.appCtx.Config.GetGCSObjectURL(outputObjectPath)
+	outputFullURL := p.appCtx.Config.GetGCSObjectURL(path.Join(workDir, asset.DefaultMangaPlotJson))
 
 	data, err := json.MarshalIndent(manga, "", "  ")
 	if err != nil {
-		return mangadom.MangaResponse{}, "", fmt.Errorf("failed to marshal manga script to JSON: %w", err)
+		return nil, "", fmt.Errorf("failed to marshal manga script to JSON: %w", err)
 	}
 
 	if err := p.appCtx.Writer.Write(ctx, outputFullURL, bytes.NewReader(data), "application/json"); err != nil {
-		return manga, "", err
+		return manga, outputFullURL, err
 	}
 	return manga, outputFullURL, nil
 }
 
-// runPanelStep は台本に基づき、指定されたインデックスのパネル画像を生成します。
-func (p *MangaPipeline) runPanelStep(ctx context.Context, manga mangadom.MangaResponse, exec *mangaExecution) ([]*imagedom.ImageResponse, error) {
-	indices := p.parseTargetPanels(ctx, exec.payload.TargetPanels, len(manga.Pages))
+// runPanelStep は台本に基づき画像を生成・保存し、更新された台本を返すのだ。
+func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *mangadom.MangaResponse, scriptPath string) (*mangadom.MangaResponse, error) {
 	runner, err := builder.BuildPanelImageRunner(ctx, p.appCtx)
 	if err != nil {
 		return nil, err
 	}
-	return runner.Run(ctx, manga, indices)
+
+	return runner.RunAndSave(ctx, manga, scriptPath)
 }
 
-// runPublishStep は生成された画像と台本を統合し、指定のディレクトリに出力します。
-func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mangadom.MangaResponse, images []*imagedom.ImageResponse, exec *mangaExecution) (publisher.PublishResult, error) {
+// runPublishStep は漫画データを統合し、HTML等を出力するのだ。
+func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) (publisher.PublishResult, error) {
 	runner, err := builder.BuildPublishRunner(ctx, p.appCtx)
 	if err != nil {
 		return publisher.PublishResult{}, err
@@ -66,67 +63,58 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga mangadom.Manga
 	workDir := p.appCtx.Config.GetWorkDir(safeTitle)
 	outputFullURL := p.appCtx.Config.GetGCSObjectURL(workDir)
 
-	return runner.Run(ctx, manga, images, outputFullURL)
+	return runner.Run(ctx, manga, outputFullURL)
 }
 
-// runPanelAndPublishSteps はパネル画像生成とパブリッシュ処理を連続して実行する共通ロジックです。
-func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga mangadom.MangaResponse, exec *mangaExecution) (publisher.PublishResult, error) {
-	images, err := p.runPanelStep(ctx, manga, exec)
+// runPanelAndPublishSteps は一連の流れを管理するのだ。
+func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *mangadom.MangaResponse, scriptPath string, exec *mangaExecution) (publisher.PublishResult, error) {
+	// 1. パネル生成＆保存（画像パスが書き込まれた新しい台本を受け取る）
+	updatedManga, err := p.runPanelStep(ctx, manga, scriptPath)
 	if err != nil {
 		return publisher.PublishResult{}, fmt.Errorf("panel generation step failed: %w", err)
 	}
 
-	publishResult, err := p.runPublishStep(ctx, manga, images, exec)
+	// 2. パブリッシュ（更新された台本をそのまま渡すのだ）
+	publishResult, err := p.runPublishStep(ctx, updatedManga, exec)
 	if err != nil {
 		return publisher.PublishResult{}, fmt.Errorf("publish step failed: %w", err)
 	}
 	return publishResult, nil
 }
 
-// runPageStepWithAsset は既存のMarkdownを基に、最終的なページ画像を生成します。
-func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, plotMarkdownPath string) ([]string, error) {
+// runPageStepWithAsset はMangaResponseからページ画像を生成するのだ。
+func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) ([]string, error) {
+	// 1. ビルダーを介して Runner を構築
 	pageRunner, err := builder.BuildPageImageRunner(ctx, p.appCtx)
 	if err != nil {
 		return nil, fmt.Errorf("PageImageRunnerの構築に失敗しました: %w", err)
 	}
-	base := asset.ResolveBaseURL(plotMarkdownPath)
-	imageDir, err := asset.ResolveOutputPath(base, asset.DefaultImageDir)
+
+	safeTitle := exec.resolveSafeTitle(manga.Title)
+	workDir := exec.pipeline.appCtx.Config.GetWorkDir(safeTitle)
+	plotFile := exec.pipeline.appCtx.Config.GetGCSObjectURL(path.Join(workDir, asset.DefaultMangaPlotJson))
+	pagePaths, err := pageRunner.RunAndSave(ctx, manga, plotFile)
 	if err != nil {
-		return nil, fmt.Errorf("画像出力ディレクトリの解決に失敗しました: %w", err)
-	}
-	pagePaths, err := pageRunner.RunAndSave(ctx, plotMarkdownPath, imageDir)
-	if err != nil {
-		return nil, fmt.Errorf("漫画ページの生成と保存に失敗しました: %w", err)
+		return nil, fmt.Errorf("PageImageRunner による生成と保存に失敗しました: %w", err)
 	}
 
 	return pagePaths, nil
 }
 
-// runPageStep は指定されたURLから直接ページ画像を生成します。
-func (p *MangaPipeline) runPageStep(ctx context.Context, payload domain.GenerateTaskPayload) error {
-	runner, err := builder.BuildPageImageRunner(ctx, p.appCtx)
-	if err != nil {
-		return err
-	}
-	_, err = runner.Run(ctx, payload.ScriptURL)
-	return err
-}
-
-// runDesignStep はキャラクターのデザインシートを生成し、一意のディレクトリに保存します。
+// runDesignStep はデザインシート生成なのだ。
 func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution) (string, int64, error) {
 	runner, err := builder.BuildDesignRunner(ctx, p.appCtx)
 	if err != nil {
 		return "", 0, err
 	}
+
 	charIDs := p.parseCSV(exec.payload.InputText)
 	if len(charIDs) == 0 {
 		return "", 0, fmt.Errorf("character ID required")
 	}
 
-	// 複数のIDを結合し、安全なディレクトリ名を構築します。
 	dirName := "design_" + strings.Join(charIDs, "_")
 	dir := exec.resolveSafeTitle(dirName)
-
 	workDir := p.appCtx.Config.GetWorkDir(dir)
 	outputFullURL := p.appCtx.Config.GetGCSObjectURL(workDir)
 
