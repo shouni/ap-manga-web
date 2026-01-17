@@ -14,6 +14,15 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
+// resolveOutputURL は、出力先URLを取得
+func (e *mangaExecution) resolveOutputURL(manga *mangadom.MangaResponse) string {
+	safeTitle := e.resolveSafeTitle(manga.Title)
+	workDir := e.pipeline.appCtx.Config.GetWorkDir(safeTitle)
+	outputFullURL := e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
+
+	return outputFullURL
+}
+
 // resolveSafeTitle は、衝突を避けるための一意で安全なタイトル文字列を生成します。
 // 生成された文字列は、公開URLのパスパラメータやGCSのディレクトリ名として使用されることを想定しています。
 // フォーマット: YYYYMMDD_HHMMSS_<8桁のハッシュ>

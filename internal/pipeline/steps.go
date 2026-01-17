@@ -59,11 +59,7 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *mangadom.Mang
 		return publisher.PublishResult{}, err
 	}
 
-	safeTitle := exec.resolveSafeTitle(manga.Title)
-	workDir := p.appCtx.Config.GetWorkDir(safeTitle)
-	outputFullURL := p.appCtx.Config.GetGCSObjectURL(workDir)
-
-	return runner.Run(ctx, manga, outputFullURL)
+	return runner.Run(ctx, manga, exec.resolveOutputURL(manga))
 }
 
 // runPanelAndPublishSteps は一連の流れを管理するのだ。
