@@ -9,7 +9,7 @@ require (
 	github.com/shouni/gemini-image-kit v1.1.0
 	github.com/shouni/go-ai-client/v2 v2.2.0
 	github.com/shouni/go-http-kit v1.1.2
-	github.com/shouni/go-manga-kit v1.2.4
+	github.com/shouni/go-manga-kit v1.3.11
 	github.com/shouni/go-notifier v1.1.4
 	github.com/shouni/go-remote-io v1.1.2
 	github.com/shouni/go-utils v1.0.16
