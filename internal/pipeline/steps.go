@@ -10,7 +10,6 @@ import (
 
 	"ap-manga-web/internal/builder"
 
-	"github.com/shouni/go-manga-kit/pkg/asset"
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
@@ -27,19 +26,16 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution)
 		return nil, "", err
 	}
 
-	safeTitle := exec.resolveSafeTitle(manga.Title)
-	workDir := p.appCtx.Config.GetWorkDir(safeTitle)
-	outputFullURL := p.appCtx.Config.GetGCSObjectURL(path.Join(workDir, asset.DefaultMangaPlotJson))
-
+	plotFile := exec.resolvePlotFileURL(manga)
 	data, err := json.MarshalIndent(manga, "", "  ")
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to marshal manga script to JSON: %w", err)
 	}
 
-	if err := p.appCtx.Writer.Write(ctx, outputFullURL, bytes.NewReader(data), "application/json"); err != nil {
+	if err := p.appCtx.Writer.Write(ctx, plotFile, bytes.NewReader(data), "application/json"); err != nil {
 		return manga, "", err
 	}
-	return manga, outputFullURL, nil
+	return manga, plotFile, nil
 }
 
 // runPanelStep は台本に基づき画像を生成・保存し、更新された台本を返すのだ。
@@ -48,8 +44,9 @@ func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *mangadom.MangaR
 	if err != nil {
 		return nil, err
 	}
+	plotFile := exec.resolvePlotFileURL(manga)
 
-	return runner.RunAndSave(ctx, manga, exec.resolveOutputURL(manga))
+	return runner.RunAndSave(ctx, manga, plotFile)
 }
 
 // runPublishStep は漫画データを統合し、HTML等を出力するのだ。
@@ -89,7 +86,8 @@ func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, manga *mangado
 		return nil, fmt.Errorf("PageImageRunnerの構築に失敗しました: %w", err)
 	}
 
-	pagePaths, err := pageRunner.RunAndSave(ctx, manga, exec.resolveOutputURL(manga))
+	plotFile := exec.resolvePlotFileURL(manga)
+	pagePaths, err := pageRunner.RunAndSave(ctx, manga, plotFile)
 	if err != nil {
 		return nil, fmt.Errorf("PageImageRunner による生成と保存に失敗しました: %w", err)
 	}
@@ -109,10 +107,13 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution)
 		return "", 0, fmt.Errorf("character ID required")
 	}
 
-	dirName := "design_" + strings.Join(charIDs, "_")
-	dir := exec.resolveSafeTitle(dirName)
-	workDir := p.appCtx.Config.GetWorkDir(dir)
-	outputFullURL := p.appCtx.Config.GetGCSObjectURL(workDir)
+	baseFileName := "design_" + strings.Join(charIDs, "_") + ".png"
+	destDir := path.Join(
+		p.appCtx.Config.BaseOutputDir,
+		"character",
+	)
+	fullPath := path.Join(destDir, baseFileName)
+	outputFullURL := p.appCtx.Config.GetGCSObjectURL(fullPath)
 
 	return runner.Run(ctx, charIDs, exec.payload.Seed, outputFullURL)
 }

@@ -6,13 +6,27 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"path"
 	"time"
 
 	"ap-manga-web/internal/domain"
 
+	"github.com/shouni/go-manga-kit/pkg/asset"
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
+
+// resolveOutputFileURL は、指定されたプロットファイルのフルパス（GCS URLなど）を解決する。
+func (e *mangaExecution) resolvePlotFileURL(manga *mangadom.MangaResponse) string {
+	// タイトルから安全なディレクトリ名を特定
+	safeTitle := e.resolveSafeTitle(manga.Title)
+	// 設定からワークディレクトリ（例: assets/manga/title_base）を取得
+	workDir := e.pipeline.appCtx.Config.GetWorkDir(safeTitle)
+	// ファイル名を結合してパスを作成
+	filePath := path.Join(workDir, asset.DefaultMangaPlotJson)
+	// パスを GCS オブジェクト URL (gs://bucket/path) に変換して返すのだ！
+	return e.pipeline.appCtx.Config.GetGCSObjectURL(filePath)
+}
 
 // resolveOutputURL は、出力先URLを取得
 func (e *mangaExecution) resolveOutputURL(manga *mangadom.MangaResponse) string {
