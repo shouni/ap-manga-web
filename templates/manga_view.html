@@ -3,31 +3,59 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-5 border-bottom border-secondary pb-3">
             <div>
-                <h1 class="text-light mb-1">🎨 {{.Title}}</h1>
-                <p class="text-secondary mb-0">Generated Manga Output</p>
+                <h1 class="text-light mb-1">🎨 {{.Data.Title}}</h1>
+                <p class="text-secondary mb-0">AP Manga Web - Generated Output</p>
             </div>
             <a href="/" class="btn btn-outline-light">
                 <i class="bi bi-house-door"></i> ホームへ戻る
             </a>
         </div>
 
-        <div class="manga-gallery d-flex flex-column align-items-center gap-5 mb-5">
-            {{range $index, $url := .Data.ImageURLs}}
-            <div class="manga-page-wrapper text-center">
-                <span class="badge rounded-pill bg-secondary mb-3">Page {{add $index 1}}</span>
-                <div class="shadow-lg rounded overflow-hidden border border-secondary bg-white">
-                    <img src="{{$url}}"
-                         class="img-fluid d-block mx-auto"
-                         style="max-width: 100%; height: auto;"
-                         {{if ne $index 0}}loading="lazy"{{end}}
-                         alt="Manga Page {{add $index 1}}">
+        <ul class="nav nav-pills justify-content-center mb-4" id="mangaTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pages-tab" data-bs-toggle="pill" data-bs-target="#pages" type="button" role="tab">
+                    <i class="bi bi-book"></i> 漫画ページ
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="panels-tab" data-bs-toggle="pill" data-bs-target="#panels" type="button" role="tab">
+                    <i class="bi bi-grid-3x3"></i> 生成パネル素材
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mangaTabContent">
+            <div class="tab-pane fade show active" id="pages" role="tabpanel">
+                <div class="manga-gallery d-flex flex-column align-items-center gap-5">
+                    {{range $index, $url := .Data.PageURLs}}
+                    <div class="manga-page-wrapper text-center">
+                        <span class="badge rounded-pill bg-primary mb-3">PAGE {{add $index 1}}</span>
+                        <div class="shadow-lg rounded overflow-hidden border border-secondary bg-white">
+                            <img src="{{$url}}" class="img-fluid d-block mx-auto" {{if ne $index 0}}loading="lazy"{{end}} alt="Page {{add $index 1}}">
+                        </div>
+                    </div>
+                    {{else}}
+                    <div class="alert alert-info w-100 text-center">ページ画像がまだ生成されていないようです。</div>
+                    {{end}}
                 </div>
             </div>
-            {{else}}
-            <div class="alert alert-warning w-100 text-center">
-                画像データが見つかりませんでした。生成中か、パスが間違っている可能性があります。
+
+            <div class="tab-pane fade" id="panels" role="tabpanel">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    {{range $index, $url := .Data.PanelURLs}}
+                    <div class="col">
+                        <div class="card h-100 bg-secondary border-0 shadow-sm">
+                            <img src="{{$url}}" class="card-img-top" alt="Panel {{$index}}" loading="lazy">
+                            <div class="card-body py-2">
+                                <small class="text-light">Panel 素材 {{$index}}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {{else}}
+                    <div class="alert alert-info w-100 text-center">パネル画像が見つかりませんでした。</div>
+                    {{end}}
+                </div>
             </div>
-            {{end}}
         </div>
 
         <div class="row justify-content-center mt-5">
@@ -35,10 +63,10 @@
                 <div class="card shadow border-0">
                     <div class="card-header bg-primary text-white d-flex align-items-center">
                         <i class="bi bi-file-text-fill me-2"></i>
-                        <h5 class="mb-0">ストーリープロット (manga_plot.md)</h5>
+                        <h5 class="mb-0">ストーリープロット ({{.Data.Title}})</h5>
                     </div>
                     <div class="card-body bg-light">
-                        <div id="markdown-viewer" class="manga-content">{{.Data.MarkdownRaw}}</div>
+                        <div id="markdown-viewer" class="manga-content">{{.Data.PlotContent}}</div>
                     </div>
                 </div>
             </div>
@@ -53,62 +81,24 @@
     document.addEventListener('DOMContentLoaded', () => {
         const viewer = document.getElementById('markdown-viewer');
         if (viewer && viewer.textContent.trim() !== "") {
-            // 1. Markdownのパース結果を取得
             const rawHtml = marked.parse(viewer.textContent);
-            // 2. DOMPurifyでパース後のHTMLをサニタイズ（悪意のあるタグを除去）
             const cleanHtml = DOMPurify.sanitize(rawHtml);
-            // 3. 安全になったHTMLをDOMに流し込む
             viewer.innerHTML = cleanHtml;
         } else {
-            viewer.innerHTML = '<p class="text-muted">プロットデータが空です。</p>';
+            viewer.innerHTML = '<p class="text-muted text-center">プロットデータが読み込めませんでした。</p>';
         }
     });
 </script>
 
 <style>
-    body {
-        background-color: #212529 !important;
-    }
-
-    .manga-page-wrapper {
-        width: 100%;
-        max-width: 850px;
-    }
-
-    .manga-page-wrapper img {
-        transition: transform 0.3s ease;
-        min-height: 400px;
-        background-color: #f8f9fa;
-        content-visibility: auto;
-    }
-
-    .manga-page-wrapper img:hover {
-        transform: scale(1.01);
-    }
-
-    .manga-content {
-        font-size: 1.05rem;
-        line-height: 1.8;
-        color: #333;
-    }
-
-    .manga-content h1, .manga-content h2 {
-        border-bottom: 2px solid #dee2e6;
-        padding-bottom: 0.5rem;
-        margin-top: 1.5rem;
-        color: #0d6efd;
-    }
-
-    .manga-content blockquote {
-        border-left: 5px solid #0d6efd;
-        padding-left: 1rem;
-        color: #666;
-        font-style: italic;
-    }
-
-    @media print {
-        .bg-dark { background-color: white !important; }
-        .text-light { color: black !important; }
-    }
+    body { background-color: #212529 !important; }
+    .manga-page-wrapper { width: 100%; max-width: 900px; }
+    .manga-page-wrapper img { transition: transform 0.2s ease; background-color: #fff; }
+    .manga-page-wrapper img:hover { transform: translateY(-5px); }
+    .manga-content { font-size: 1rem; line-height: 1.6; color: #2c3e50; }
+    .manga-content h1, .manga-content h2 { color: #0d6efd; border-bottom: 2px solid #e9ecef; margin-top: 1.5rem; }
+    /* タブのデザイン調整 */
+    .nav-pills .nav-link { color: #adb5bd; }
+    .nav-pills .nav-link.active { background-color: #0d6efd; }
 </style>
 {{end}}

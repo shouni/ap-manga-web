@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"sort"
 
 	"github.com/go-chi/chi/v5"
@@ -16,8 +17,9 @@ import (
 
 type mangaViewData struct {
 	Title       string
-	ImageURLs   []string
-	MarkdownRaw string
+	PlotContent string
+	PageURLs    []string
+	PanelURLs   []string
 }
 
 // ServeOutput は指定されたタイトルの漫画成果物（プロットおよび画像）を取得し、ビューアー画面を表示します。
@@ -27,7 +29,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 
 	// 1. プロット（Markdown）の取得
 	// パス検証エラー (ErrInvalidPath) は 400、それ以外の読み込みエラーは 500 を返却します。
-	markdownContent, err := h.loadPlotContent(r, title)
+	plotContent, err := h.loadPlotContent(r, title)
 	if err != nil {
 		if errors.Is(err, ErrInvalidPath) {
 			slog.WarnContext(ctx, "Invalid path request for plot", "title", title, "error", err)
@@ -40,7 +42,19 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. 署名付き画像URLリストの取得
-	signedURLs, err := h.loadSignedImageURLs(r, title)
+	signedPageURLs, err := h.loadSignedImageURLs(r, title, asset.PageFileRegex)
+	if err != nil {
+		if errors.Is(err, ErrInvalidPath) {
+			slog.WarnContext(ctx, "Invalid path request for images", "title", title, "error", err)
+			http.Error(w, "Invalid Title Path", http.StatusBadRequest)
+		} else {
+			slog.ErrorContext(ctx, "Failed to prepare image URLs", "title", title, "error", err)
+			http.Error(w, "Failed to retrieve manga images", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	signedPanelURLs, err := h.loadSignedImageURLs(r, title, asset.PanelFileRegex)
 	if err != nil {
 		if errors.Is(err, ErrInvalidPath) {
 			slog.WarnContext(ctx, "Invalid path request for images", "title", title, "error", err)
@@ -58,8 +72,9 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	// 3. テンプレートのレンダリング
 	h.render(w, http.StatusOK, "manga_view.html", title, mangaViewData{
 		Title:       title,
-		ImageURLs:   signedURLs,
-		MarkdownRaw: markdownContent,
+		PlotContent: plotContent,
+		PageURLs:    signedPageURLs,
+		PanelURLs:   signedPanelURLs,
 	})
 }
 
@@ -88,7 +103,7 @@ func (h *Handler) loadPlotContent(r *http.Request, title string) (string, error)
 }
 
 // loadSignedImageURLs は指定されたタイトルの画像をリストし、一時的な閲覧権限を持つ署名付きURLのスライスを生成します。
-func (h *Handler) loadSignedImageURLs(r *http.Request, title string) ([]string, error) {
+func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *regexp.Regexp) ([]string, error) {
 	ctx := r.Context()
 	prefix, err := h.validateAndCleanPath(title, asset.DefaultImageDir)
 	if err != nil {
@@ -99,7 +114,7 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string) ([]string, 
 	var filePaths []string
 
 	err = h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
-		if asset.PageFileRegex.MatchString(filepath.Base(gcsPath)) {
+		if regex.MatchString(filepath.Base(gcsPath)) {
 			filePaths = append(filePaths, gcsPath)
 		}
 		return nil

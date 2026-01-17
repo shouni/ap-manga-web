@@ -11,7 +11,7 @@ import (
 
 const (
 	// SignedURLExpiration 生成された漫画を確認する時間を考慮した有効期限
-	SignedURLExpiration = 1 * time.Hour
+	SignedURLExpiration = 5 * time.Minute
 	DefaultModel        = "gemini-3-flash-preview"
 	DefaultImageModel   = "gemini-3-pro-image-preview"
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
