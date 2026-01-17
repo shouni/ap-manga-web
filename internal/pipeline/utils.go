@@ -23,18 +23,18 @@ func (e *mangaExecution) resolveWorkDir(manga *mangadom.MangaResponse) string {
 	return e.pipeline.appCtx.Config.GetWorkDir(safeTitle)
 }
 
+// resolveOutputURL は、出力先ディレクトリのURLを取得します。
+func (e *mangaExecution) resolveOutputURL(manga *mangadom.MangaResponse) string {
+	workDir := e.resolveWorkDir(manga)
+	return e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
+}
+
 // resolvePlotFileURL は、指定されたプロットファイルのフルパス（GCS URLなど）を解決します。
 func (e *mangaExecution) resolvePlotFileURL(manga *mangadom.MangaResponse) string {
 	workDir := e.resolveWorkDir(manga)
 	filePath := path.Join(workDir, asset.DefaultMangaPlotJson)
 	// パスを GCS オブジェクト URL (例: gs://bucket/path) に変換して返します。
 	return e.pipeline.appCtx.Config.GetGCSObjectURL(filePath)
-}
-
-// resolveOutputURL は、出力先ディレクトリのURLを取得します。
-func (e *mangaExecution) resolveOutputURL(manga *mangadom.MangaResponse) string {
-	workDir := e.resolveWorkDir(manga)
-	return e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
 }
 
 // resolveSafeTitle は、衝突を避けるための一意で安全なタイトル文字列を生成します。

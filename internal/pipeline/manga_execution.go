@@ -49,7 +49,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 	switch e.payload.Command {
 	case "generate":
 		// --- Phase 1: Script Phase ---
-		// 実行コンテキスト (e) を介して、スクリプトを保存し、そのパスを受け取る
+		// スクリプトを保存し、そのパスを受け取る。
 		if manga, scriptPath, err = e.pipeline.runScriptStep(ctx, e); err != nil {
 			return fmt.Errorf("script step failed: %w", err)
 		}
@@ -62,8 +62,8 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 		}
 
 		// --- Phase 4: Page Generation Phase ---
-		// 最終的なページ画像を構成する
-		if _, err = e.pipeline.runPageStepWithAsset(ctx, manga, e); err != nil {
+		// 最終的なページ画像を構成する。
+		if _, err = e.pipeline.runPageStep(ctx, manga, e); err != nil {
 			return fmt.Errorf("page generation step failed: %w", err)
 		}
 
@@ -103,11 +103,11 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 				return fmt.Errorf("page mode input JSON unmarshal failed: %w", err)
 			}
 		}
-		// mangaがnilの場合、処理を続行できないためエラーを返す
+		// mangaがnilの場合、処理を続行できないためエラーを返す。
 		if manga == nil {
 			return fmt.Errorf("page mode requires manga data in InputText")
 		}
-		if _, err = e.pipeline.runPageStepWithAsset(ctx, manga, e); err != nil {
+		if _, err = e.pipeline.runPageStep(ctx, manga, e); err != nil {
 			return fmt.Errorf("page step failed: %w", err)
 		}
 
