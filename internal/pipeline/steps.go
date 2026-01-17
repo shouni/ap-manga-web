@@ -107,13 +107,12 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution)
 		return "", 0, fmt.Errorf("character ID required")
 	}
 
-	baseFileName := "design_" + strings.Join(charIDs, "_") + ".png"
 	destDir := path.Join(
 		p.appCtx.Config.BaseOutputDir,
 		"character",
 	)
-	fullPath := path.Join(destDir, baseFileName)
-	outputFullURL := p.appCtx.Config.GetGCSObjectURL(fullPath)
+	baseFileName := "design_" + strings.Join(charIDs, "_") + ".png"
+	outputFullURL := p.appCtx.Config.GetGCSObjectURL(path.Join(destDir, baseFileName))
 
 	return runner.Run(ctx, charIDs, exec.payload.Seed, outputFullURL)
 }
