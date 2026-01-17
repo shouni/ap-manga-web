@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,20 +15,25 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-manga-kit/pkg/asset"
+	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
 )
 
 // mangaViewData はテンプレート「manga_view.html」に渡すためのデータ構造体
 type mangaViewData struct {
-	Title       string
-	PlotContent string
-	PageURLs    []string
-	PanelURLs   []string
+	Title         string
+	OriginalTitle string // ユーザー向けの本来のタイトル
+	PlotContent   string
+	PageURLs      []string
+	PanelURLs     []string
 }
 
 // ServeOutput は指定されたタイトルの漫画成果物（プロットおよび画像）を取得し、ビューアー画面を表示する。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	title := chi.URLParam(r, "title")
+	// JSONプロットから本来のタイトルを読み取るヘルパーを呼び出す
+	originalTitle := h.loadOriginalTitle(r, title)
+
 	handleImageLoadError := func(err error, imageType string) bool {
 		if err == nil {
 			return false
@@ -72,10 +78,11 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 
 	// 3. テンプレートのレンダリング
 	h.render(w, http.StatusOK, "manga_view.html", title, mangaViewData{
-		Title:       title,
-		PlotContent: plotContent,
-		PageURLs:    signedPageURLs,
-		PanelURLs:   signedPanelURLs,
+		Title:         title,
+		OriginalTitle: originalTitle,
+		PlotContent:   plotContent,
+		PageURLs:      signedPageURLs,
+		PanelURLs:     signedPanelURLs,
 	})
 }
 
@@ -142,4 +149,30 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *rege
 	}
 
 	return signedURLs, nil
+}
+
+// loadOriginalTitle は JSON プロットを読み込み、本来のタイトルを抽出します。
+// 失敗した場合は、フォールバックとして safeTitle を返します。
+func (h *Handler) loadOriginalTitle(r *http.Request, safeTitle string) string {
+	relPath, err := h.validateAndCleanPath(safeTitle, asset.DefaultMangaPlotJson)
+	if err != nil {
+		return safeTitle
+	}
+
+	plotPath := h.cfg.GetGCSObjectURL(relPath)
+	rc, err := h.reader.Open(r.Context(), plotPath)
+	if err != nil {
+		return safeTitle
+	}
+	defer rc.Close()
+
+	var manga mangadom.MangaResponse
+	if err := json.NewDecoder(rc).Decode(&manga); err != nil {
+		return safeTitle
+	}
+
+	if manga.Title == "" {
+		return safeTitle
+	}
+	return manga.Title
 }
