@@ -56,7 +56,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 
 		// --- Phase 2 & 3: Panel Generation & Publish ---
 		// パネル生成と成果物のパブリッシュを連続して実行します。
-		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, scriptPath, e)
+		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
 		if err != nil {
 			return err
 		}
@@ -90,9 +90,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 			slog.ErrorContext(ctx, "Failed to parse input JSON for panel mode", "error", err)
 			return fmt.Errorf("panel mode input JSON unmarshal failed: %w", err)
 		}
-
-		// JSON直接入力の場合、scriptPathは空だが、e (execution) を渡すことでワークディレクトリを特定可能にする
-		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, "", e)
+		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
 		if err != nil {
 			return err
 		}

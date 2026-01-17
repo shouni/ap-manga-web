@@ -43,13 +43,13 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution)
 }
 
 // runPanelStep は台本に基づき画像を生成・保存し、更新された台本を返すのだ。
-func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *mangadom.MangaResponse, scriptPath string) (*mangadom.MangaResponse, error) {
+func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) (*mangadom.MangaResponse, error) {
 	runner, err := builder.BuildPanelImageRunner(ctx, p.appCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	return runner.RunAndSave(ctx, manga, scriptPath)
+	return runner.RunAndSave(ctx, manga, exec.resolveOutputURL(manga))
 }
 
 // runPublishStep は漫画データを統合し、HTML等を出力するのだ。
@@ -63,9 +63,9 @@ func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *mangadom.Mang
 }
 
 // runPanelAndPublishSteps は一連の流れを管理するのだ。
-func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *mangadom.MangaResponse, scriptPath string, exec *mangaExecution) (publisher.PublishResult, error) {
+func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) (publisher.PublishResult, error) {
 	// 1. パネル生成＆保存（画像パスが書き込まれた新しい台本を受け取る）
-	updatedManga, err := p.runPanelStep(ctx, manga, scriptPath)
+	updatedManga, err := p.runPanelStep(ctx, manga, exec)
 	if err != nil {
 		return publisher.PublishResult{}, fmt.Errorf("panel generation step failed: %w", err)
 	}
@@ -89,10 +89,7 @@ func (p *MangaPipeline) runPageStepWithAsset(ctx context.Context, manga *mangado
 		return nil, fmt.Errorf("PageImageRunnerの構築に失敗しました: %w", err)
 	}
 
-	safeTitle := exec.resolveSafeTitle(manga.Title)
-	workDir := exec.pipeline.appCtx.Config.GetWorkDir(safeTitle)
-	plotFile := exec.pipeline.appCtx.Config.GetGCSObjectURL(path.Join(workDir, asset.DefaultMangaPlotJson))
-	pagePaths, err := pageRunner.RunAndSave(ctx, manga, plotFile)
+	pagePaths, err := pageRunner.RunAndSave(ctx, manga, exec.resolveOutputURL(manga))
 	if err != nil {
 		return nil, fmt.Errorf("PageImageRunner による生成と保存に失敗しました: %w", err)
 	}
