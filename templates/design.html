@@ -1,30 +1,55 @@
 {{define "content"}}
-<div class="row justify-content-center">
+<div class="row justify-content-center py-4">
     <div class="col-md-8">
-        <div class="card shadow-sm border-info">
-            <div class="card-header bg-info text-white">
-                <h4 class="mb-0">🎨 Character Design - キャラ設定なのだ</h4>
+        <div class="card shadow-sm border-0 shadow" style="border-top: 5px solid #0dcaf0 !important;">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="mb-0 fw-bold" style="color: #087990;">
+                    <i class="bi bi-person-bounding-box me-2"></i>Character Design - キャラ設定
+                </h4>
+                <span class="badge bg-info text-dark">DNA Master Mode</span>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4 bg-white">
                 <form action="/generate" method="POST">
                     <input type="hidden" name="command" value="design">
 
-                    <div class="mb-3">
-                        <label class="form-label">キャラクターID (カンマ区切り)</label>
-                        <input type="text" name="input_text" class="form-control"
-                               placeholder="zundamon, metan" required>
-                        <div class="form-text">デザインシートを作りたいキャラのIDを入れるのだ。</div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">キャラクターID (IDs, comma separated)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-fingerprint"></i></span>
+                            <input type="text" name="input_text" class="form-control form-control-lg font-monospace-input"
+                                   placeholder="zundamon, metan" required>
+                        </div>
+                        <div class="form-text mt-2 text-muted">
+                            デザインシートを作成したいキャラのIDを入力するのだ。複数指定も可能なのだ！
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">シード値 (Seed)</label>
-                        <input type="number" name="seed" class="form-control" value="10000">
-                        <div class="form-text">特定の数値を入れれば固定されるのだ！</div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">固定シード値 (Seed Number)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-hash"></i></span>
+                            <input type="number" name="seed" class="form-control form-control-lg font-monospace-input"
+                                   value="10000">
+                        </div>
+                        <div class="form-text mt-2">
+                            特定の数値を入れれば、容姿の再現性が高まるのだ。運に任せるならそのままでも良いぞ！
+                        </div>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-info btn-lg text-white">
-                            デザインシートを生成するのだ！
+                    <div class="alert alert-light border-start border-4 border-info mt-4 py-3 shadow-sm">
+                        <div class="fw-bold mb-1 text-info small">
+                            <i class="bi bi-lightbulb-fill"></i> Design Strategy:
+                        </div>
+                        <p class="mb-0 small text-muted">
+                            ここで生成されたデザインシートのURLは、後の「Panel」生成時の <code>reference_url</code> として活用することで、作画崩壊を防ぐ強力な楔となるのだ！
+                        </p>
+                    </div>
+
+                    <hr class="my-4 text-secondary opacity-25">
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0">
+                            <i class="bi bi-palette2 me-2"></i>デザインシートを生成するのだ！
                         </button>
                     </div>
                 </form>
@@ -32,4 +57,16 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* 他の画面と共通のエンジニアリング・スタイルなのだ */
+    .font-monospace-input {
+        font-family: 'Fira Code', 'Cascadia Code', monospace;
+        font-size: 1rem;
+        letter-spacing: 0.05em;
+    }
+    .card-header {
+        border-bottom: 1px solid #f0f0f0;
+    }
+</style>
 {{end}}

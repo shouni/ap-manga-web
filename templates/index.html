@@ -14,18 +14,19 @@
                     <div class="mb-4">
                         <label class="form-label fw-bold">ソースURL (Script URL)</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light"><i class="bi bi-link-45deg"></i></span>
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-link-45deg"></i></span>
                             <input type="url" name="script_url" class="form-control form-control-lg font-monospace-input"
-                                   placeholder="https://example.com/tech-blog" required>
+                                   placeholder="https://example.com/tech-blog" required
+                                   spellcheck="false">
                         </div>
                         <div class="form-text mt-2 text-muted">
-                            解析したい技術記事やWebページのURLを入力。Geminiが台本を抽出するのだ。
+                            解析したい記事のURLを入力。Gemini 3 Flashが最速で台本を抽出するのだ！
                         </div>
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label fw-bold">生成モード (Execution Mode)</label>
-                        <select name="mode" class="form-select form-select-lg">
+                        <select name="mode" class="form-select form-select-lg border-secondary-subtle">
                             <option value="dialogue" selected>Dialogue (解説・対話形式)</option>
                             <option value="duet">Duet (二人芝居・掛け合い形式)</option>
                             <option value="solo">Solo (単独解説形式)</option>
@@ -36,18 +37,18 @@
                     </div>
 
                     <div class="alert alert-light border-start border-4 border-info mt-4 py-3 shadow-sm">
-                        <div class="fw-bold mb-1 text-info">
-                            <i class="bi bi-info-circle-fill"></i> 一括錬成プロセスの流れ:
+                        <div class="fw-bold mb-1 text-info d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill me-2"></i> 一括錬成プロセスの流れ:
                         </div>
                         <p class="mb-0 small text-muted">
-                            抽出された内容に基づき、全パネルの画像生成から最終的なHTML/Markdown構築までを自動で実行するのだ。
+                            URLから情報を抽出し、全パネルの画像生成、そして最終的なHTML出力までを全自動で完結させるのだ。
                         </p>
                     </div>
 
                     <hr class="my-4 text-secondary opacity-25">
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0">
+                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0 action-btn">
                             <i class="bi bi-magic me-2"></i>漫画を錬成するのだ！
                         </button>
                     </div>
@@ -58,22 +59,38 @@
 </div>
 
 <style>
-    /* レイアウトと同期する追加の微調整なのだ */
+    /* 他の入力欄との整合性をとる追加スタイルなのだ */
     .font-monospace-input {
-        font-family: 'Fira Code', 'Cascadia Code', monospace;
+        font-family: 'Fira Code', 'Cascadia Code', monospace !important;
         font-size: 0.95rem;
+        background-color: #f8f9fa; /* 入力しやすいよう、URL欄は薄いグレーに */
     }
+
+    .font-monospace-input:focus {
+        background-color: #ffffff;
+        border-color: var(--zunda-green);
+        box-shadow: 0 0 0 0.25rem rgba(118, 188, 33, 0.15);
+    }
+
     .card-header {
         border-bottom: 1px solid #f0f0f0;
     }
-    .btn-primary {
-        /* layout.html で定義された変数が効くが、念のため適用なのだ */
+
+    /* ボタンの挙動をさらに「ずんだ」らしく！ */
+    .action-btn {
         background-color: var(--zunda-green) !important;
-        border: none !important;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
     }
-    .btn-primary:hover {
+
+    .action-btn:hover {
         background-color: var(--zunda-dark) !important;
-        transform: translateY(-1px);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(118, 188, 33, 0.2) !important;
+    }
+
+    /* オートコンフィル対策も忘れないのだ */
+    input:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0px 1000px #f8f9fa inset !important;
     }
 </style>
 {{end}}

@@ -1,30 +1,71 @@
 {{define "content"}}
-<div class="row justify-content-center">
+<div class="row justify-content-center py-4">
     <div class="col-md-8">
-        <div class="card shadow-sm border-secondary">
-            <div class="card-header bg-secondary text-white">
-                <h4 class="mb-0">📝 Script - 台本抽出なのだ</h4>
+        <div class="card shadow-sm border-0 shadow" style="border-top: 5px solid #6c757d !important;">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="mb-0 fw-bold" style="color: #495057;">
+                    <i class="bi bi-file-earmark-text-fill me-2"></i>Script - 記事から台本抽出
+                </h4>
+                <span class="badge bg-secondary text-white">Gemini Analysis Mode</span>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4 bg-white">
                 <form action="/generate" method="POST">
                     <input type="hidden" name="command" value="script">
-                    <div class="mb-3">
-                        <label class="form-label">ソースURL</label>
-                        <input type="url" name="script_url" class="form-control" placeholder="https://..." required>
-                        <div class="form-text">指定したURLから情報を抽出し、JSON形式の台本を作成するのだ。</div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">ソースURL (Target Web Page)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                            <input type="url" name="script_url" class="form-control form-control-lg font-monospace-input"
+                                   placeholder="https://example.com/tech-blog" required>
+                        </div>
+                        <div class="form-text mt-2 text-muted">
+                            解説の元となる記事URLを入力。Geminiが内容を理解し、構造化された台本を錬成するのだ。
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">台本構成モード</label>
-                        <select name="mode" class="form-select">
-                            <option value="dialogue" selected>Dialogue (基本解説)</option>
-                            <option value="duet">Duet (掛け合い)</option>
-                            <option value="solo">Solo (独白)</option>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">台本構成モード (Scripting Mode)</label>
+                        <select name="mode" class="form-select form-select-lg border-secondary">
+                            <option value="dialogue" selected>Dialogue (基本解説・対話形式)</option>
+                            <option value="duet">Duet (二人芝居・掛け合い形式)</option>
+                            <option value="solo">Solo (単独解説・独白形式)</option>
                         </select>
+                        <div class="form-text mt-2">
+                            生成される台本のトーンと話者の構成を選択するのだ。
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-secondary w-100">台本を生成するのだ！</button>
+
+                    <div class="alert alert-light border-start border-4 border-secondary mt-4 py-3 shadow-sm">
+                        <div class="fw-bold mb-1 text-muted small">
+                            <i class="bi bi-cpu-fill"></i> Processing Info:
+                        </div>
+                        <p class="mb-0 small text-muted">
+                            抽出された台本は <code>MangaResponse</code> JSON形式で出力され、そのまま「Panel」や「Page」の工程へ渡せるようになるのだ。
+                        </p>
+                    </div>
+
+                    <hr class="my-4 text-secondary opacity-25">
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0">
+                            <i class="bi bi-magic me-2"></i>台本を錬成するのだ！
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* 他の画面と共通の洗練されたスタイルなのだ */
+    .font-monospace-input {
+        font-family: 'Fira Code', 'Cascadia Code', monospace;
+        font-size: 0.95rem;
+    }
+    .card-header {
+        border-bottom: 1px solid #f0f0f0;
+    }
+</style>
 {{end}}

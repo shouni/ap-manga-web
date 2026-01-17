@@ -15,6 +15,7 @@
                     <div class="mb-4">
                         <label class="form-label fw-bold">台本 JSON (MangaResponse JSON)</label>
                         <textarea name="input_text" class="form-control json-editor-area" rows="15"
+                                  spellcheck="false"
                                   placeholder='{
   "title": "鋼鉄のオーケストレーター",
   "panels": [
@@ -34,8 +35,8 @@
                         <div class="col-md-12 mb-4">
                             <label class="form-label fw-bold">対象パネル (Target Panel Indices)</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-list-check"></i></span>
-                                <input type="text" name="target_panels" class="form-control font-monospace-input"
+                                <span class="input-group-text bg-light border-secondary"><i class="bi bi-list-check"></i></span>
+                                <input type="text" name="target_panels" class="form-control font-monospace-input border-secondary"
                                        placeholder="例: 0, 2, 4">
                             </div>
                             <div class="form-text mt-2">
@@ -67,25 +68,37 @@
 </div>
 
 <style>
-    /* 他の画面（Page等）と共通のエディタスタイルを再定義なのだ */
+    /* エディタの視認性を Page 画面と完全に統一したのだ */
     .json-editor-area {
         font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace !important;
         background-color: #1e1e1e !important;
-        color: #d4d4d4 !important;
-        line-height: 1.5;
+        color: #e0e0e0 !important; /* Page画面と同じ明るいグレーに更新なのだ */
+        line-height: 1.6;
         padding: 1.5rem;
         border: 1px solid #333 !important;
     }
+
     .json-editor-area::placeholder {
-        color: #6a9955 !important;
-        opacity: 0.7;
+        color: #7db766 !important; /* プレースホルダーも見やすく調整 */
+        opacity: 0.8;
     }
+
     .json-editor-area:focus {
         background-color: #1e1e1e !important;
         color: #ffffff !important;
         border-color: var(--zunda-green) !important;
-        box-shadow: 0 0 0 0.25rem rgba(118, 188, 33, 0.25);
+        box-shadow: 0 0 0 0.25rem rgba(118, 188, 33, 0.25) !important;
     }
+
+    /* 自動補完時の背景色汚染をブロックするのだ */
+    .json-editor-area:-webkit-autofill,
+    .json-editor-area:-webkit-autofill:hover,
+    .json-editor-area:-webkit-autofill:focus {
+        -webkit-text-fill-color: #e0e0e0 !important;
+        -webkit-box-shadow: 0 0 0px 1000px #1e1e1e inset !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+
     .font-monospace-input {
         font-family: 'Fira Code', monospace;
     }
