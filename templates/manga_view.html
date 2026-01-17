@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="manga-viewer-container py-2">
 
-    <div class="d-flex justify-content-between align-items-end mb-4 border-bottom border-2 pb-3" style="border-color: var(--zunda-green) !important;">
+    <div class="d-flex justify-content-between align-items-end mb-4 border-bottom border-3 pb-3" style="border-color: var(--zunda-green) !important;">
         <div>
             <h1 class="fw-bold mb-1" style="color: var(--zunda-dark);">
                 <i class="bi bi-collection-play-fill me-2"></i>{{.Data.Title}}
@@ -20,21 +20,35 @@
         </div>
     </div>
 
-    <ul class="nav nav-pills justify-content-center mb-5 p-2 bg-light rounded-pill shadow-sm" id="mangaTab" role="tablist">
+    <ul class="nav nav-pills justify-content-center mb-5 p-2 bg-white rounded-pill shadow border" id="mangaTab" role="tablist" style="max-width: fit-content; margin: 0 auto;">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active rounded-pill px-4 fw-bold" id="pages-tab" data-bs-toggle="pill" data-bs-target="#pages" type="button" role="tab">
+            <button class="nav-link active rounded-pill px-5 fw-bold"
+                    id="pages-tab"
+                    data-bs-toggle="pill"
+                    data-bs-target="#pages"
+                    type="button"
+                    role="tab"
+                    aria-controls="pages"
+                    aria-selected="true">
                 <i class="bi bi-book-half me-2"></i>漫画ページ
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-4 fw-bold" id="panels-tab" data-bs-toggle="pill" data-bs-target="#panels" type="button" role="tab">
+            <button class="nav-link rounded-pill px-5 fw-bold"
+                    id="panels-tab"
+                    data-bs-toggle="pill"
+                    data-bs-target="#panels"
+                    type="button"
+                    role="tab"
+                    aria-controls="panels"
+                    aria-selected="false">
                 <i class="bi bi-grid-3x3-gap me-2"></i>生成パネル素材
             </button>
         </li>
     </ul>
 
-    <div class="tab-content mt-4" id="mangaTabContent">
-        <div class="tab-pane fade show active" id="pages" role="tabpanel">
+    <div class="tab-content" id="mangaTabContent">
+        <div class="tab-pane fade show active" id="pages" role="tabpanel" aria-labelledby="pages-tab">
             <div class="manga-gallery d-flex flex-column align-items-center gap-5">
                 {{range $index, $url := .Data.PageURLs}}
                 <div class="manga-page-wrapper text-center">
@@ -42,108 +56,58 @@
                         PAGE {{add $index 1}}
                     </span>
                     <div class="shadow-lg rounded overflow-hidden border border-3 border-white bg-white">
-                        <img src="{{$url}}" class="img-fluid d-block mx-auto" {{if ne $index 0}}loading="lazy"{{end}} alt="Page {{add $index 1}}">
+                        <img src="{{$url}}" class="img-fluid d-block mx-auto" {{if ne $index 0}}loading="lazy"{{end}}>
                     </div>
                 </div>
                 {{else}}
-                <div class="alert alert-light border-start border-4 border-warning text-center shadow-sm">
+                <div class="alert alert-light border-start border-4 border-warning text-center shadow-sm w-100">
                     ページ画像がまだ錬成されていないようなのだ。
                 </div>
                 {{end}}
             </div>
         </div>
 
-        <div class="tab-pane fade" id="panels" role="tabpanel">
+        <div class="tab-pane fade" id="panels" role="tabpanel" aria-labelledby="panels-tab">
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 {{range $index, $url := .Data.PanelURLs}}
                 <div class="col">
                     <div class="card h-100 border-0 shadow-sm panel-card">
-                        <div class="position-relative overflow-hidden">
-                            <img src="{{$url}}" class="card-img-top" alt="Panel {{$index}}" loading="lazy">
-                            <div class="panel-overlay">
-                                <span class="badge bg-dark">#{{$index}}</span>
-                            </div>
-                        </div>
+                        <img src="{{$url}}" class="card-img-top" loading="lazy">
                         <div class="card-body py-2 bg-light text-center">
                             <small class="text-muted fw-bold">Panel 素材 {{$index}}</small>
                         </div>
                     </div>
-                </div>
-                {{else}}
-                <div class="alert alert-light border-start border-4 border-info text-center shadow-sm w-100">
-                    パネル画像が見つかりませんでした。
                 </div>
                 {{end}}
             </div>
         </div>
     </div>
 
-    <div class="row justify-content-center mt-5 pt-5">
-        <div class="col-lg-10">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-dark text-white d-flex align-items-center py-3">
-                    <i class="bi bi-file-text-fill me-2 text-warning"></i>
-                    <h5 class="mb-0">ストーリープロット ({{.Data.OriginalTitle}})</h5>
-                </div>
-                <div class="card-body p-4 p-md-5" style="background-color: #fafafa;">
-                    <div id="markdown-viewer" class="manga-content prose">{{.Data.PlotContent}}</div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const viewer = document.getElementById('markdown-viewer');
-        if (viewer && viewer.textContent.trim() !== "") {
-            const rawHtml = marked.parse(viewer.textContent);
-            const cleanHtml = DOMPurify.sanitize(rawHtml);
-            viewer.innerHTML = cleanHtml;
-        }
-    });
-</script>
-
 <style>
-    /* ビューアー専用の微調整なのだ */
-    .manga-page-wrapper { width: 100%; max-width: 850px; }
-    .manga-page-wrapper img {
-        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* タブの視認性を劇的に改善するのだ！ */
+    #mangaTab .nav-link {
+        color: #495057 !important;
+        background: transparent;
+        border: none;
+        transition: all 0.3s ease;
     }
-    .manga-page-wrapper img:hover { transform: scale(1.02); }
 
-    .nav-pills .nav-link { color: #6c757d; }
-    .nav-pills .nav-link.active {
+    /* アクティブ時の色を強制的に上書きなのだ */
+    #mangaTab .nav-link.active {
         background-color: var(--zunda-green) !important;
         color: white !important;
-        box-shadow: 0 4px 10px rgba(118, 188, 33, 0.3);
+        box-shadow: 0 4px 12px rgba(118, 188, 33, 0.4) !important;
     }
 
-    /* Markdownの質感調整 */
-    .manga-content { font-family: 'Sawarabi Gothic', sans-serif; color: #333; }
-    .manga-content h1, .manga-content h2 {
-        color: var(--zunda-dark);
-        border-bottom: 2px solid #eee;
-        margin-top: 2rem;
-        padding-bottom: 0.5rem;
-    }
-    .manga-content blockquote {
-        border-left: 5px solid var(--zunda-green);
-        padding-left: 1rem;
-        color: #666;
-        font-style: italic;
+    #mangaTab .nav-link:hover:not(.active) {
+        background-color: #f8f9fa;
+        color: var(--zunda-green) !important;
     }
 
-    .panel-card img { transition: filter 0.3s; }
-    .panel-card:hover img { filter: brightness(1.1); }
-    .panel-overlay {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        opacity: 0.8;
-    }
+    .manga-page-wrapper { width: 100%; max-width: 850px; }
+    .manga-page-wrapper img { transition: transform 0.3s ease; }
+    .manga-page-wrapper img:hover { transform: scale(1.01); }
 </style>
 {{end}}
