@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="row justify-content-center">
+<div class="row justify-content-center py-4">
     <div class="col-md-10">
         <div class="card shadow-sm border-0 shadow" style="border-top: 5px solid #ffc107 !important;">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
@@ -17,27 +17,27 @@
                         <textarea name="input_text" class="form-control json-editor-area" rows="20"
                                   spellcheck="false"
                                   placeholder='{
-  "title": "鋼鉄のオーケストレーター",
-  "description": "技術解説漫画の第一話なのだ",
+  "title": "作品タイトル",
+  "description": "作品の概要や説明",
   "panels": [
     {
       "page": 1,
-      "visual_anchor": "90s retro anime style, Metan looking at screen",
-      "dialogue": "これが次世代の工廠よ。",
-      "speaker_id": "metan",
-      "reference_url": "gs://bucket/assets/metan_design.png"
+      "visual_anchor": "90s retro anime style, description of scene...",
+      "dialogue": "セリフ内容",
+      "speaker_id": "character_id",
+      "reference_url": "gs://bucket/assets/design_sheet.png"
     }
   ]
 }' required></textarea>
 
                         <div class="alert alert-light border-start border-4 border-warning mt-3 py-3 shadow-sm">
                             <div class="fw-bold mb-2 text-dark">
-                                <i class="bi bi-diagram-3"></i> 💡 構造体定義の解説:
+                                <i class="bi bi-diagram-3"></i> 構造体定義の解説:
                             </div>
                             <ul class="mb-0 small text-muted" style="line-height: 1.6;">
-                                <li><code>panels[]</code> — 1つ1つのコマ（パネル）の配列。</li>
-                                <li><code>visual_anchor</code> — 画像生成の核。ここに画風や構図を叩き込むのだ！</li>
-                                <li><code>speaker_id</code> — キャラクターID。DNAを呼び出す鍵なのだ。</li>
+                                <li><code>panels[]</code> — 各コマ（パネル）の情報を格納する配列です。</li>
+                                <li><code>visual_anchor</code> — 画像生成の核となる項目です。画風や構図の詳細を指定してください。</li>
+                                <li><code>speaker_id</code> — キャラクターIDを指定します。事前定義されたキャラクター設定を呼び出します。</li>
                             </ul>
                         </div>
                     </div>
@@ -55,7 +55,7 @@
 
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-warning btn-lg text-dark fw-bold border-0 shadow-sm py-3">
-                            <i class="bi bi-cpu-fill me-2"></i>台本データを注入して錬成開始なのだ！
+                            <i class="bi bi-cpu-fill me-2"></i>台本データを送信してページを生成する
                         </button>
                     </div>
                 </form>
@@ -65,13 +65,11 @@
 </div>
 
 <style>
-    /* エディタ専用スタイル：
-       Bootstrapの .form-control が持つ color: #212529 を !important で完全に封殺するのだ！
-    */
+    /* エディタ専用スタイル */
     .json-editor-area {
         font-family: 'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace !important;
         background-color: #1e1e1e !important;
-        color: #e0e0e0 !important; /* 初期・入力後ともに明るいグレーで統一 */
+        color: #e0e0e0 !important;
         line-height: 1.6;
         padding: 1.5rem;
         border: 1px solid #333 !important;
@@ -79,15 +77,11 @@
         resize: vertical;
     }
 
-    /* プレースホルダー：初期表示のヒントを、黒背景でも沈まない「草色」にするのだ */
     .json-editor-area::placeholder {
         color: #7db766 !important;
         opacity: 0.8;
     }
 
-    /* フォーカス時：
-       青い光（Bootstrap標準）を消し、警告色の黄色いオーラを纏わせるのだ
-    */
     .json-editor-area:focus {
         background-color: #1e1e1e !important;
         color: #ffffff !important;
@@ -96,7 +90,7 @@
         outline: none;
     }
 
-    /* Chrome等のオートコンプリートで背景が変わるのを防ぐおまじないなのだ */
+    /* オートコンプリート対策 */
     .json-editor-area:-webkit-autofill,
     .json-editor-area:-webkit-autofill:hover,
     .json-editor-area:-webkit-autofill:focus {

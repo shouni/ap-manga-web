@@ -17,17 +17,17 @@
                         <textarea name="input_text" class="form-control json-editor-area" rows="15"
                                   spellcheck="false"
                                   placeholder='{
-  "title": "鋼鉄のオーケストレーター",
+  "title": "作品タイトル",
   "panels": [
     {
       "page": 1,
       "visual_anchor": "high quality, cinematic lighting...",
-      "speaker_id": "zundamon"
+      "speaker_id": "character_id"
     }
   ]
 }' required></textarea>
                         <div class="form-text mt-2 text-muted">
-                            生成済みの台本JSONを貼り付けるのだ。<code>panels</code> 配列が含まれている必要があるぞ。
+                            生成済みの台本JSONを貼り付けてください。<code>panels</code> 配列が含まれている必要があります。
                         </div>
                     </div>
 
@@ -40,7 +40,7 @@
                                        placeholder="例: 0, 2, 4">
                             </div>
                             <div class="form-text mt-2">
-                                <strong>指定したインデックスのコマだけ</strong>を生成。空欄なら全件一斉に錬成するのだ！
+                                <strong>指定したインデックスのコマのみ</strong>を生成します。空欄の場合は全件一斉に生成されます。
                             </div>
                         </div>
                     </div>
@@ -50,15 +50,15 @@
                             <i class="bi bi-info-circle-fill"></i> Image Generation Tip:
                         </div>
                         <p class="mb-0 small text-muted">
-                            特定のコマだけ修正したい場合は、対象のインデックス（0から開始）を指定して実行するのが効率的なのだ。
+                            特定のコマだけを修正したい場合は、対象のインデックス（0から開始）を指定して実行すると効率的です。
                         </p>
                     </div>
 
                     <hr class="my-4 text-secondary opacity-25">
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0">
-                            <i class="bi bi-play-circle-fill me-2"></i>パネル生成を開始するのだ！
+                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0 action-btn">
+                            <i class="bi bi-play-circle-fill me-2"></i>パネル生成を開始する
                         </button>
                     </div>
                 </form>
@@ -68,18 +68,18 @@
 </div>
 
 <style>
-    /* エディタの視認性を Page 画面と完全に統一したのだ */
+    /* エディタのスタイル設定 */
     .json-editor-area {
         font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace !important;
         background-color: #1e1e1e !important;
-        color: #e0e0e0 !important; /* Page画面と同じ明るいグレーに更新なのだ */
+        color: #e0e0e0 !important;
         line-height: 1.6;
         padding: 1.5rem;
         border: 1px solid #333 !important;
     }
 
     .json-editor-area::placeholder {
-        color: #7db766 !important; /* プレースホルダーも見やすく調整 */
+        color: #7db766 !important;
         opacity: 0.8;
     }
 
@@ -90,7 +90,7 @@
         box-shadow: 0 0 0 0.25rem rgba(118, 188, 33, 0.25) !important;
     }
 
-    /* 自動補完時の背景色汚染をブロックするのだ */
+    /* 自動補完時の背景色設定 */
     .json-editor-area:-webkit-autofill,
     .json-editor-area:-webkit-autofill:hover,
     .json-editor-area:-webkit-autofill:focus {
@@ -101,6 +101,16 @@
 
     .font-monospace-input {
         font-family: 'Fira Code', monospace;
+    }
+
+    .action-btn {
+        background-color: var(--zunda-green) !important;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+        background-color: var(--zunda-dark) !important;
+        transform: translateY(-2px);
     }
 </style>
 {{end}}

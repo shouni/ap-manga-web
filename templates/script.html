@@ -20,7 +20,7 @@
                                    placeholder="https://example.com/tech-blog" required>
                         </div>
                         <div class="form-text mt-2 text-muted">
-                            解説の元となる記事URLを入力。Geminiが内容を理解し、構造化された台本を錬成するのだ。
+                            解説の元となる記事URLを入力してください。Geminiが内容を理解し、構造化された台本を生成します。
                         </div>
                     </div>
 
@@ -32,7 +32,7 @@
                             <option value="solo">Solo (単独解説・独白形式)</option>
                         </select>
                         <div class="form-text mt-2">
-                            生成される台本のトーンと話者の構成を選択するのだ。
+                            生成される台本のトーンと話者の構成を選択してください。
                         </div>
                     </div>
 
@@ -41,15 +41,15 @@
                             <i class="bi bi-cpu-fill"></i> Processing Info:
                         </div>
                         <p class="mb-0 small text-muted">
-                            抽出された台本は <code>MangaResponse</code> JSON形式で出力され、そのまま「Panel」や「Page」の工程へ渡せるようになるのだ。
+                            抽出された台本は <code>MangaResponse</code> JSON形式で出力され、そのまま「Panel」や「Page」の工程で使用可能になります。
                         </p>
                     </div>
 
                     <hr class="my-4 text-secondary opacity-25">
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0">
-                            <i class="bi bi-magic me-2"></i>台本を錬成するのだ！
+                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0 action-btn">
+                            <i class="bi bi-magic me-2"></i>台本の抽出を開始する
                         </button>
                     </div>
                 </form>
@@ -59,13 +59,21 @@
 </div>
 
 <style>
-    /* 他の画面と共通の洗練されたスタイルなのだ */
+    /* 他の画面と共通の洗練されたスタイル設定 */
     .font-monospace-input {
         font-family: 'Fira Code', 'Cascadia Code', monospace;
         font-size: 0.95rem;
     }
     .card-header {
         border-bottom: 1px solid #f0f0f0;
+    }
+    .action-btn {
+        background-color: var(--zunda-green) !important;
+        transition: 0.2s;
+    }
+    .action-btn:hover {
+        background-color: var(--zunda-dark) !important;
+        transform: translateY(-1px);
     }
 </style>
 {{end}}

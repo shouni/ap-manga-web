@@ -11,43 +11,46 @@
             </p>
         </div>
         <div class="btn-group shadow-sm">
-            <a href="/" class="btn btn-outline-secondary border-2">
+            <a href="/" class="btn btn-outline-secondary border-2 px-3" title="ホームへ戻る">
                 <i class="bi bi-house-door"></i>
             </a>
-            <button class="btn btn-primary fw-bold px-4">
+            <button class="btn btn-primary fw-bold px-4 shadow-sm action-btn">
                 <i class="bi bi-download me-2"></i>Export
             </button>
         </div>
     </div>
 
-    <ul class="nav nav-pills justify-content-center mb-5 p-2 bg-white rounded-pill shadow border" id="mangaTab" role="tablist" style="max-width: fit-content; margin: 0 auto;">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active rounded-pill px-5 fw-bold"
-                    id="pages-tab"
-                    data-bs-toggle="pill"
-                    data-bs-target="#pages"
-                    type="button"
-                    role="tab"
-                    aria-controls="pages"
-                    aria-selected="true">
-                <i class="bi bi-book-half me-2"></i>漫画ページ
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-5 fw-bold"
-                    id="panels-tab"
-                    data-bs-toggle="pill"
-                    data-bs-target="#panels"
-                    type="button"
-                    role="tab"
-                    aria-controls="panels"
-                    aria-selected="false">
-                <i class="bi bi-grid-3x3-gap me-2"></i>生成パネル素材
-            </button>
-        </li>
-    </ul>
+    <div class="d-flex justify-content-center mb-5">
+        <ul class="nav nav-pills p-2 bg-white rounded-pill shadow-sm border border-secondary-subtle" id="mangaTab" role="tablist">
+            <li class="nav-item me-1" role="presentation">
+                <button class="nav-link active rounded-pill px-5 py-2 fw-bold shadow-sm"
+                        id="pages-tab"
+                        data-bs-toggle="pill"
+                        data-bs-target="#pages"
+                        type="button"
+                        role="tab"
+                        aria-controls="pages"
+                        aria-selected="true">
+                    <i class="bi bi-book-half me-2"></i>漫画ページ
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-pill px-5 py-2 fw-bold shadow-sm"
+                        id="panels-tab"
+                        data-bs-toggle="pill"
+                        data-bs-target="#panels"
+                        type="button"
+                        role="tab"
+                        aria-controls="panels"
+                        aria-selected="false">
+                    <i class="bi bi-grid-3x3-gap me-2"></i>生成パネル素材
+                </button>
+            </li>
+        </ul>
+    </div>
 
     <div class="tab-content" id="mangaTabContent">
+
         <div class="tab-pane fade show active" id="pages" role="tabpanel" aria-labelledby="pages-tab">
             <div class="manga-gallery d-flex flex-column align-items-center gap-5">
                 {{range $index, $url := .Data.PageURLs}}
@@ -55,13 +58,13 @@
                     <span class="badge rounded-pill mb-3 px-3 py-2 shadow-sm" style="background-color: var(--zunda-green);">
                         PAGE {{add $index 1}}
                     </span>
-                    <div class="shadow-lg rounded overflow-hidden border border-3 border-white bg-white">
-                        <img src="{{$url}}" class="img-fluid d-block mx-auto" {{if ne $index 0}}loading="lazy"{{end}}>
+                    <div class="shadow-lg rounded overflow-hidden border border-4 border-white bg-white">
+                        <img src="{{$url}}" class="img-fluid d-block mx-auto" {{if ne $index 0}}loading="lazy"{{end}} alt="Manga Page {{add $index 1}}">
                     </div>
                 </div>
                 {{else}}
-                <div class="alert alert-light border-start border-4 border-warning text-center shadow-sm w-100">
-                    ページ画像がまだ錬成されていないようなのだ。
+                <div class="alert alert-light border-start border-4 border-warning text-center shadow-sm w-100 py-4">
+                    <i class="bi bi-exclamation-triangle me-2"></i> ページ画像がまだ錬成されていないようなのだ。
                 </div>
                 {{end}}
             </div>
@@ -71,43 +74,129 @@
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 {{range $index, $url := .Data.PanelURLs}}
                 <div class="col">
-                    <div class="card h-100 border-0 shadow-sm panel-card">
-                        <img src="{{$url}}" class="card-img-top" loading="lazy">
-                        <div class="card-body py-2 bg-light text-center">
+                    <div class="card h-100 border-0 shadow-sm panel-card overflow-hidden">
+                        <div class="position-relative overflow-hidden bg-light" style="aspect-ratio: 1/1;">
+                            <img src="{{$url}}" class="card-img-top w-100 h-100 object-fit-cover" alt="Panel {{$index}}" loading="lazy">
+                            <div class="position-absolute top-0 start-0 m-2">
+                                <span class="badge bg-dark opacity-75">#{{$index}}</span>
+                            </div>
+                        </div>
+                        <div class="card-body py-2 bg-light text-center border-top">
                             <small class="text-muted fw-bold">Panel 素材 {{$index}}</small>
                         </div>
                     </div>
+                </div>
+                {{else}}
+                <div class="alert alert-light border-start border-4 border-info text-center shadow-sm w-100 py-4">
+                    <i class="bi bi-info-circle me-2"></i> パネル画像が見つかりませんでした。
                 </div>
                 {{end}}
             </div>
         </div>
     </div>
 
+    <div class="row justify-content-center mt-5 pt-5">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0 mb-5">
+                <div class="card-header bg-dark text-white d-flex align-items-center py-3">
+                    <i class="bi bi-file-text-fill me-2 text-warning"></i>
+                    <h5 class="mb-0 fw-bold">ストーリープロット ({{.Data.OriginalTitle}})</h5>
+                </div>
+                <div class="card-body p-4 p-md-5" style="background-color: #fafafa;">
+                    <div id="markdown-viewer" class="manga-content prose">{{.Data.PlotContent}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Markdownの描画処理
+        const viewer = document.getElementById('markdown-viewer');
+        if (viewer && viewer.textContent.trim() !== "") {
+            const rawHtml = marked.parse(viewer.textContent);
+            const cleanHtml = DOMPurify.sanitize(rawHtml);
+            viewer.innerHTML = cleanHtml;
+        }
+    });
+</script>
+
 <style>
-    /* タブの視認性を劇的に改善するのだ！ */
+    /* --- タブの視認性向上（今回の要なのだ！） --- */
     #mangaTab .nav-link {
-        color: #495057 !important;
-        background: transparent;
-        border: none;
-        transition: all 0.3s ease;
+        color: #6c757d !important;      /* 非アクティブ：はっきりしたグレー */
+        background-color: #f1f3f5 !important; /* 非アクティブ：薄いグレーで「ボタン感」を出す */
+        border: 1px solid #dee2e6 !important;
+        transition: all 0.2s ease-in-out;
+        opacity: 0.9;
     }
 
-    /* アクティブ時の色を強制的に上書きなのだ */
     #mangaTab .nav-link.active {
         background-color: var(--zunda-green) !important;
         color: white !important;
+        border-color: var(--zunda-green) !important;
         box-shadow: 0 4px 12px rgba(118, 188, 33, 0.4) !important;
+        opacity: 1;
     }
 
     #mangaTab .nav-link:hover:not(.active) {
-        background-color: #f8f9fa;
-        color: var(--zunda-green) !important;
+        background-color: #e9ecef !important;
+        color: var(--zunda-dark) !important;
+        border-color: #adb5bd !important;
+        transform: translateY(-1px);
+        opacity: 1;
     }
 
+    /* --- 漫画ギャラリーの装飾 --- */
     .manga-page-wrapper { width: 100%; max-width: 850px; }
-    .manga-page-wrapper img { transition: transform 0.3s ease; }
-    .manga-page-wrapper img:hover { transform: scale(1.01); }
+    .manga-page-wrapper img {
+        transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        cursor: zoom-in;
+    }
+    .manga-page-wrapper img:hover {
+        transform: scale(1.015);
+    }
+
+    /* --- Markdownコンテンツの装飾 --- */
+    .manga-content {
+        font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+        font-size: 1.05rem;
+        line-height: 1.8;
+        color: #333;
+    }
+    .manga-content h1, .manga-content h2 {
+        color: var(--zunda-dark);
+        border-bottom: 2px solid #eee;
+        margin-top: 2.5rem;
+        padding-bottom: 0.5rem;
+        font-weight: bold;
+    }
+    .manga-content blockquote {
+        border-left: 5px solid var(--zunda-green);
+        padding: 0.5rem 1rem;
+        background-color: #f8f9fa;
+        color: #666;
+        margin: 1.5rem 0;
+    }
+
+    /* --- パネルカードの装飾 --- */
+    .panel-card { transition: transform 0.3s ease; }
+    .panel-card:hover { transform: translateY(-5px); }
+    .object-fit-cover { object-fit: cover; }
+
+    /* --- 共通ボタン --- */
+    .action-btn {
+        background-color: var(--zunda-green) !important;
+        border: none !important;
+        transition: 0.2s;
+    }
+    .action-btn:hover {
+        background-color: var(--zunda-dark) !important;
+        transform: translateY(-1px);
+    }
 </style>
 {{end}}

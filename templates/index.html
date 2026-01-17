@@ -20,7 +20,7 @@
                                    spellcheck="false">
                         </div>
                         <div class="form-text mt-2 text-muted">
-                            解析したい記事のURLを入力。Gemini 3 Flashが最速で台本を抽出するのだ！
+                            解析したい記事のURLを入力してください。Gemini 3 Flashが内容を解析し、台本を抽出します。
                         </div>
                     </div>
 
@@ -32,16 +32,16 @@
                             <option value="solo">Solo (単独解説形式)</option>
                         </select>
                         <div class="form-text mt-2">
-                            キャラクターの構成とプロンプトのトーンを選択するのだ。
+                            出力されるキャラクター構成とプロンプトのトーンを選択します。
                         </div>
                     </div>
 
                     <div class="alert alert-light border-start border-4 border-info mt-4 py-3 shadow-sm">
                         <div class="fw-bold mb-1 text-info d-flex align-items-center">
-                            <i class="bi bi-info-circle-fill me-2"></i> 一括錬成プロセスの流れ:
+                            <i class="bi bi-info-circle-fill me-2"></i> 一括生成プロセスの流れ:
                         </div>
                         <p class="mb-0 small text-muted">
-                            URLから情報を抽出し、全パネルの画像生成、そして最終的なHTML出力までを全自動で完結させるのだ。
+                            URLからの情報抽出、全パネルの画像生成、最終的なHTML出力までをバックグラウンドで自動実行します。
                         </p>
                     </div>
 
@@ -49,7 +49,7 @@
 
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm border-0 action-btn">
-                            <i class="bi bi-magic me-2"></i>漫画を錬成するのだ！
+                            <i class="bi bi-magic me-2"></i>漫画の生成を開始する
                         </button>
                     </div>
                 </form>
@@ -59,11 +59,11 @@
 </div>
 
 <style>
-    /* 他の入力欄との整合性をとる追加スタイルなのだ */
+    /* 入力欄のスタイル */
     .font-monospace-input {
         font-family: 'Fira Code', 'Cascadia Code', monospace !important;
         font-size: 0.95rem;
-        background-color: #f8f9fa; /* 入力しやすいよう、URL欄は薄いグレーに */
+        background-color: #f8f9fa;
     }
 
     .font-monospace-input:focus {
@@ -76,7 +76,7 @@
         border-bottom: 1px solid #f0f0f0;
     }
 
-    /* ボタンの挙動をさらに「ずんだ」らしく！ */
+    /* ボタンのスタイル */
     .action-btn {
         background-color: var(--zunda-green) !important;
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
@@ -88,7 +88,7 @@
         box-shadow: 0 10px 20px rgba(118, 188, 33, 0.2) !important;
     }
 
-    /* オートコンフィル対策も忘れないのだ */
+    /* オートコンフィル対策 */
     input:-webkit-autofill {
         -webkit-box-shadow: 0 0 0px 1000px #f8f9fa inset !important;
     }

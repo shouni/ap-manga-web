@@ -9,24 +9,24 @@
 
             <div class="card-body py-5 px-4">
                 <div class="mb-4">
-                    <div class="display-1 text-success mb-3 animate-bounce">
+                    <div class="display-1 text-success mb-3">
                         <i class="bi bi-check2-circle" style="color: var(--zunda-green);"></i>
                     </div>
                 </div>
 
-                <h2 class="fw-bold mb-3" style="color: var(--zunda-dark);">漫画の錬成依頼を受け付けたのだ！</h2>
+                <h2 class="fw-bold mb-3" style="color: var(--zunda-dark);">漫画の生成リクエストを受け付けました</h2>
 
                 <p class="fs-5 text-muted mb-4">
-                    裏側で Gemini とボクの工廠が、一生懸命に筆を走らせているのだ。<br>
-                    完成まで数分かかるから、お茶でも飲んで待っているといいのだよ！
+                    現在、AIが台本の解析と画像の生成処理を行っています。<br>
+                    完了まで数分かかる場合がありますので、このまましばらくお待ちください。
                 </p>
 
                 <div class="bg-light p-4 rounded-4 mb-5 text-start border">
                     <div class="d-flex align-items-center mb-2">
                         <i class="bi bi-link-45deg me-2 text-primary fs-4"></i>
-                        <span class="fw-bold text-secondary small">対象URL / 識別子:</span>
+                        <span class="fw-bold text-secondary small">対象リソース:</span>
                     </div>
-                    <code class="text-break p-2 d-block bg-white rounded border font-monospace" style="color: var(--zunda-dark);">
+                    <code class="text-break p-2 d-block bg-white rounded border font-monospace" style="color: #495057;">
                         {{.Data.ScriptURL}}
                     </code>
                 </div>
@@ -35,40 +35,29 @@
 
                 <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
                     <a href="/" class="btn btn-outline-secondary btn-lg px-4 rounded-pill fw-bold">
-                        <i class="bi bi-house-door me-2"></i>トップへ戻る
+                        <i class="bi bi-house-door me-2"></i>ホームへ戻る
                     </a>
                     <a href="/output" class="btn btn-primary btn-lg px-5 rounded-pill fw-bold shadow">
-                        <i class="bi bi-collection-play me-2"></i>成果物を確認しにいく
+                        <i class="bi bi-collection-play me-2"></i>生成結果を確認する
                     </a>
                 </div>
             </div>
         </div>
 
         <p class="mt-4 text-secondary small">
-            <i class="bi bi-cpu me-1"></i> Status: Processing by Cloud Tasks & Gemini 3 Flash...
+            <i class="bi bi-cpu me-1"></i> System Status: Processing via Gemini 3 Flash and Cloud Tasks.
         </p>
     </div>
 </div>
 
 <style>
-    /* 完了アイコンを少し跳ねさせるアニメーションなのだ */
-    .animate-bounce {
-        animation: bounce 2s infinite;
-    }
-    @keyframes bounce {
-        0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-        40% {transform: translateY(-15px);}
-        60% {transform: translateY(-7px);}
-    }
-
-    /* 成果物確認ボタンを「ずんだ」カラーに */
+    /* ボタンの色はずんだスタイルを継承しつつ、落ち着いたトーンにするのだ */
     .btn-primary {
         background-color: var(--zunda-green) !important;
         border: none !important;
     }
     .btn-primary:hover {
         background-color: var(--zunda-dark) !important;
-        transform: scale(1.05);
     }
 </style>
 {{end}}
