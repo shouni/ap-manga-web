@@ -1,39 +1,43 @@
 {{define "content"}}
-<div class="row justify-content-center">
+<div class="row justify-content-center py-4">
     <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h4 class="mb-0">🚀 Generate - 一括漫画生成なのだ</h4>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="mb-0">🚀 Generate - 一括漫画生成</h4>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form action="/generate" method="POST">
                     <input type="hidden" name="command" value="generate">
 
-                    <div class="mb-3">
-                        <label class="form-label">ソースURL (Script URL)</label>
-                        <input type="url" name="script_url" class="form-control"
-                               placeholder="https://example.com/tech-blog" required>
-                        <div class="form-text">解析したい技術記事のURLを入力するのだ。</div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">モード</label>
-                            <select name="mode" class="form-select">
-                                <option value="dialogue" selected>Dialogue (解説)</option>
-                                <option value="duet">Duet (二人芝居)</option>
-                            </select>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">ソースURL (Script URL)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                            <input type="url" name="script_url" class="form-control form-control-lg"
+                                   placeholder="https://example.com/tech-blog" required>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">対象パネル (Target Panels)</label>
-                            <input type="text" name="target_panels" class="form-control" placeholder="例: 0,1,3">
-                            <div class="form-text">空欄なら全件。カンマ区切りで指定なのだ。</div>
+                        <div class="form-text mt-2 text-muted">
+                            解析したい技術記事やWebページのURLを入力してください。Geminiが台本を抽出します。
                         </div>
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg text-white">
-                            漫画を錬成するのだ！
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">生成モード</label>
+                        <select name="mode" class="form-select form-select-lg">
+                            <option value="dialogue" selected>Dialogue (解説・対話形式)</option>
+                            <option value="duet">Duet (二人芝居・掛け合い形式)</option>
+                            <option value="solo">Solo (単独解説形式)</option>
+                        </select>
+                        <div class="form-text mt-2">
+                            キャラクターの構成とプロンプトのトーンを選択します。
+                        </div>
+                    </div>
+
+                    <hr class="my-4 text-secondary">
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow">
+                            <i class="bi bi-magic"></i> 漫画を錬成するのだ！
                         </button>
                     </div>
                 </form>
