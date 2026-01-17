@@ -76,7 +76,7 @@
                 <div class="col">
                     <div class="card h-100 border-0 shadow-sm panel-card overflow-hidden">
                         <div class="position-relative overflow-hidden bg-light" style="aspect-ratio: 1/1;">
-                            <img src="{{$url}}" class="card-img-top w-100 h-100 object-fit-cover" alt="Panel {{$index}}" loading="lazy">
+                            <img src="{{$url}}" class="card-img-top w-100 h-100 object-fit-contain" alt="Panel {{$index}}" loading="lazy">
                             <div class="position-absolute top-0 start-0 m-2">
                                 <span class="badge bg-dark opacity-75">#{{$index}}</span>
                             </div>
@@ -115,7 +115,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Markdownの描画処理
         const viewer = document.getElementById('markdown-viewer');
         if (viewer && viewer.textContent.trim() !== "") {
             const rawHtml = marked.parse(viewer.textContent);
@@ -126,10 +125,9 @@
 </script>
 
 <style>
-    /* --- タブの視認性向上（今回の要なのだ！） --- */
     #mangaTab .nav-link {
-        color: #6c757d !important;      /* 非アクティブ：はっきりしたグレー */
-        background-color: #f1f3f5 !important; /* 非アクティブ：薄いグレーで「ボタン感」を出す */
+        color: #6c757d !important;
+        background-color: #f1f3f5 !important;
         border: 1px solid #dee2e6 !important;
         transition: all 0.2s ease-in-out;
         opacity: 0.9;
@@ -151,7 +149,6 @@
         opacity: 1;
     }
 
-    /* --- 漫画ギャラリーの装飾 --- */
     .manga-page-wrapper { width: 100%; max-width: 850px; }
     .manga-page-wrapper img {
         transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -161,7 +158,6 @@
         transform: scale(1.015);
     }
 
-    /* --- Markdownコンテンツの装飾 --- */
     .manga-content {
         font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
         font-size: 1.05rem;
@@ -183,12 +179,15 @@
         margin: 1.5rem 0;
     }
 
-    /* --- パネルカードの装飾 --- */
+    /* --- パネルカードの装飾：修正済み --- */
     .panel-card { transition: transform 0.3s ease; }
     .panel-card:hover { transform: translateY(-5px); }
-    .object-fit-cover { object-fit: cover; }
+    /* contain に変更し、背景との馴染みを良くしました */
+    .object-fit-contain {
+        object-fit: contain;
+        background-color: #f8f9fa;
+    }
 
-    /* --- 共通ボタン --- */
     .action-btn {
         background-color: var(--zunda-green) !important;
         border: none !important;

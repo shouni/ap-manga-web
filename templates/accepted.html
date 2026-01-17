@@ -34,11 +34,8 @@
                 <hr class="my-4 opacity-25">
 
                 <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-                    <a href="/" class="btn btn-outline-secondary btn-lg px-4 rounded-pill fw-bold">
+                    <a href="/" class="btn btn-primary btn-lg px-5 rounded-pill fw-bold shadow">
                         <i class="bi bi-house-door me-2"></i>ホームへ戻る
-                    </a>
-                    <a href="/output" class="btn btn-primary btn-lg px-5 rounded-pill fw-bold shadow">
-                        <i class="bi bi-collection-play me-2"></i>生成結果を確認する
                     </a>
                 </div>
             </div>
@@ -51,13 +48,15 @@
 </div>
 
 <style>
-    /* ボタンの色はずんだスタイルを継承しつつ、落ち着いたトーンにするのだ */
+    /* ホームへ戻るボタンをメインのアクションカラー（ずんだ色）に設定しました */
     .btn-primary {
         background-color: var(--zunda-green) !important;
         border: none !important;
+        transition: 0.2s;
     }
     .btn-primary:hover {
         background-color: var(--zunda-dark) !important;
+        transform: translateY(-1px);
     }
 </style>
 {{end}}
