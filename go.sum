@@ -124,8 +124,8 @@ github.com/shouni/go-gemini-client v1.0.3 h1:30aeRSnI76+jlp3vW6MbHh1rWkUJne0hqbm
 github.com/shouni/go-gemini-client v1.0.3/go.mod h1:DMuaUXihLfCFR3UXjN1TPhdzlw4s06ESLb+xxbS+q5k=
 github.com/shouni/go-http-kit v1.1.2 h1:hVhVSjF1yLt9kMJbI5yFYQvANuHCH3so7ynhCiXbI8Q=
 github.com/shouni/go-http-kit v1.1.2/go.mod h1:CFk1CJbTqRskKB70qbn+q2fVyH9zXNp9KWQuWp/lwFY=
-github.com/shouni/go-manga-kit v1.4.13 h1:Q2CuTy8jxOebHcsvOYa77IL9J1aS/KYh8zUNZh296Cc=
-github.com/shouni/go-manga-kit v1.4.13/go.mod h1:mHmLx7XScQ1FJamn/LTiLiUHE1aDfBVo3rHgm0ZTocE=
+github.com/shouni/go-manga-kit v1.4.15 h1:cirea/djvBffY469dDZev0ktylEtx5l2w4ZFcyzub94=
+github.com/shouni/go-manga-kit v1.4.15/go.mod h1:mHmLx7XScQ1FJamn/LTiLiUHE1aDfBVo3rHgm0ZTocE=
 github.com/shouni/go-notifier v1.1.4 h1:mIZAy2hX3QkVqCEl6Win81XJANJj1sp54tw3MGxSNW4=
 github.com/shouni/go-notifier v1.1.4/go.mod h1:7SanutXQN2OYDT3lYqjkDe6wHwKyVdVaNdXkoeOVSwA=
 github.com/shouni/go-remote-io v1.1.2 h1:KdZSXzMgV5ek3f7ca/lUn9y4JlsSo/CYYIcmIxgQnw0=
