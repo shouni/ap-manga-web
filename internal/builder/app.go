@@ -8,7 +8,7 @@ import (
 	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 
-	"github.com/shouni/go-ai-client/v2/pkg/ai/gemini"
+	"github.com/shouni/go-gemini-client/pkg/gemini"
 	"github.com/shouni/go-http-kit/pkg/httpkit"
 	mngkitCfg "github.com/shouni/go-manga-kit/pkg/config"
 	"github.com/shouni/go-manga-kit/pkg/workflow"

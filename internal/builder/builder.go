@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/shouni/go-ai-client/v2/pkg/ai/gemini"
+	"github.com/shouni/go-gemini-client/pkg/gemini"
 	"github.com/shouni/go-manga-kit/pkg/workflow"
 	"google.golang.org/genai"
 )
