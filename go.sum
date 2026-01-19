@@ -76,8 +76,8 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/forPelevin/gomoji v1.4.1 h1:7U+Bl8o6RV/dOQz7coQFWj/jX6Ram6/cWFOuFDEPEUo=
 github.com/forPelevin/gomoji v1.4.1/go.mod h1:mM6GtmCgpoQP2usDArc6GjbXrti5+FffolyQfGgPboQ=
-github.com/go-chi/chi/v5 v5.2.3 h1:WQIt9uxdsAbgIYgid+BpYc+liqQZGMHRaUwp0JUcvdE=
-github.com/go-chi/chi/v5 v5.2.3/go.mod h1:L2yAIGWB3H+phAw1NxKwWM+7eUH/lU8pOMm5hHcoops=
+github.com/go-chi/chi/v5 v5.2.4 h1:WtFKPHwlywe8Srng8j2BhOD9312j9cGUxG1SP4V2cR4=
+github.com/go-chi/chi/v5 v5.2.4/go.mod h1:X7Gx4mteadT3eDOMTsXzmI4/rwUpOwBHLpAfupzFJP0=
 github.com/go-jose/go-jose/v4 v4.1.3 h1:CVLmWDhDVRa6Mi/IgCgaopNosCaHz7zrMeF9MlZRkrs=
 github.com/go-jose/go-jose/v4 v4.1.3/go.mod h1:x4oUasVrzR7071A4TnHLGSPpNOm2a21K9Kf04k1rs08=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
@@ -124,8 +124,8 @@ github.com/shouni/go-gemini-client v1.0.3 h1:30aeRSnI76+jlp3vW6MbHh1rWkUJne0hqbm
 github.com/shouni/go-gemini-client v1.0.3/go.mod h1:DMuaUXihLfCFR3UXjN1TPhdzlw4s06ESLb+xxbS+q5k=
 github.com/shouni/go-http-kit v1.1.2 h1:hVhVSjF1yLt9kMJbI5yFYQvANuHCH3so7ynhCiXbI8Q=
 github.com/shouni/go-http-kit v1.1.2/go.mod h1:CFk1CJbTqRskKB70qbn+q2fVyH9zXNp9KWQuWp/lwFY=
-github.com/shouni/go-manga-kit v1.4.8 h1:Xb3QSudT8J/+UX8py1P4W6g9C+w773ZFbWLdxXtBG0M=
-github.com/shouni/go-manga-kit v1.4.8/go.mod h1:mHmLx7XScQ1FJamn/LTiLiUHE1aDfBVo3rHgm0ZTocE=
+github.com/shouni/go-manga-kit v1.4.9 h1:s8QXtABLN4/yfzYJDmMNaje+qFT8eEhRNX6O2y+RDQk=
+github.com/shouni/go-manga-kit v1.4.9/go.mod h1:mHmLx7XScQ1FJamn/LTiLiUHE1aDfBVo3rHgm0ZTocE=
 github.com/shouni/go-notifier v1.1.4 h1:mIZAy2hX3QkVqCEl6Win81XJANJj1sp54tw3MGxSNW4=
 github.com/shouni/go-notifier v1.1.4/go.mod h1:7SanutXQN2OYDT3lYqjkDe6wHwKyVdVaNdXkoeOVSwA=
 github.com/shouni/go-remote-io v1.1.2 h1:KdZSXzMgV5ek3f7ca/lUn9y4JlsSo/CYYIcmIxgQnw0=

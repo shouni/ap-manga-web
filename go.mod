@@ -4,11 +4,11 @@ go 1.25
 
 require (
 	cloud.google.com/go/cloudtasks v1.13.7
-	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-chi/chi/v5 v5.2.4
 	github.com/gorilla/sessions v1.4.0
 	github.com/shouni/go-gemini-client v1.0.3
 	github.com/shouni/go-http-kit v1.1.2
-	github.com/shouni/go-manga-kit v1.4.8
+	github.com/shouni/go-manga-kit v1.4.9
 	github.com/shouni/go-notifier v1.1.4
 	github.com/shouni/go-remote-io v1.1.2
 	github.com/shouni/go-utils v1.0.16
