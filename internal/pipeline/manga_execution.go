@@ -111,6 +111,13 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 			return fmt.Errorf("page step failed: %w", err)
 		}
 
+		publishResult, err = e.pipeline.runPublishStep(ctx, manga, e)
+		if err != nil {
+			return err
+		}
+
+		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga, publishResult)
+
 	default:
 		err = fmt.Errorf("unsupported command: %s", e.payload.Command)
 		return err
