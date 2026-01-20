@@ -8,7 +8,6 @@ import (
 	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 
-	"github.com/shouni/go-gemini-client/pkg/gemini"
 	"github.com/shouni/go-http-kit/pkg/httpkit"
 	mngkitCfg "github.com/shouni/go-manga-kit/pkg/config"
 	"github.com/shouni/go-manga-kit/pkg/workflow"
@@ -19,40 +18,34 @@ import (
 // AppContext はアプリケーションの依存関係を保持します。
 // 各フィールドをインターフェースで定義することで、将来的なモック利用を容易にします。
 type AppContext struct {
-	Config          config.Config
-	Reader          remoteio.InputReader
-	Writer          remoteio.OutputWriter
-	Signer          remoteio.URLSigner
-	WorkflowBuilder workflow.WorkflowBuilder
-	SlackNotifier   adapters.SlackNotifier
-	AIClient        gemini.GenerativeModel
-	HTTPClient      httpkit.ClientInterface
+	Config        config.Config
+	Reader        remoteio.InputReader
+	Writer        remoteio.OutputWriter
+	Signer        remoteio.URLSigner
+	Workflow      workflow.Workflow
+	SlackNotifier adapters.SlackNotifier
+	HTTPClient    httpkit.ClientInterface
 }
 
 // BuildAppContext は外部サービスとの接続を確立し、依存関係を組み立てます。
 func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error) {
 	// 1. 基盤クライアントの初期化
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
-	aiClient, err := initializeAIClient(ctx, cfg.GeminiAPIKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize AI client: %w", err)
-	}
-
 	// 2. I/O インフラ (GCS等) の初期化
-	gcsFactory, err := gcsfactory.NewGCSClientFactory(ctx)
+	ioFactory, err := gcsfactory.New(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GCS factory: %w", err)
 	}
 
-	reader, err := gcsFactory.NewInputReader()
+	reader, err := ioFactory.InputReader()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create input reader: %w", err)
 	}
-	writer, err := gcsFactory.NewOutputWriter()
+	writer, err := ioFactory.OutputWriter()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create output writer: %w", err)
 	}
-	signer, err := gcsFactory.NewGCSURLSigner()
+	signer, err := ioFactory.URLSigner()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create URL signer: %w", err)
 	}
@@ -64,7 +57,8 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 	}
 
 	// 4. ワークフロービルダーの構築
-	wfBuilder, err := workflow.NewBuilder(
+	flow, err := workflow.New(
+		ctx,
 		mngkitCfg.Config{
 			GeminiAPIKey: cfg.GeminiAPIKey,
 			GeminiModel:  cfg.GeminiModel,
@@ -73,7 +67,6 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 			RateInterval: config.DefaultRateLimit,
 		},
 		httpClient,
-		aiClient,
 		reader,
 		writer,
 		charData,
@@ -89,14 +82,13 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 	}
 
 	return &AppContext{
-		Config:          cfg,
-		Reader:          reader,
-		Writer:          writer,
-		Signer:          signer,
-		WorkflowBuilder: wfBuilder,
-		SlackNotifier:   slack,
-		AIClient:        aiClient,
-		HTTPClient:      httpClient,
+		Config:        cfg,
+		Reader:        reader,
+		Writer:        writer,
+		Signer:        signer,
+		Workflow:      flow,
+		SlackNotifier: slack,
+		HTTPClient:    httpClient,
 	}, nil
 }
 
