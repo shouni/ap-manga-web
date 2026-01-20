@@ -1,15 +1,14 @@
 package builder
 
 import (
-	"context"
-	"fmt"
-	"io"
-
 	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
+	"context"
+	"fmt"
 
 	"github.com/shouni/go-http-kit/pkg/httpkit"
 	mngkitCfg "github.com/shouni/go-manga-kit/pkg/config"
+	"github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/workflow"
 	"github.com/shouni/go-remote-io/pkg/gcsfactory"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
@@ -51,26 +50,30 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 	}
 
 	// 3. キャラクター設定の読み込み
-	charData, err := loadCharacterConfig(ctx, reader, cfg.CharacterConfig)
+	// キャラクターマップの読み込み
+	charsMap, err := domain.LoadCharacterMap(ctx, reader, cfg.CharacterConfig)
 	if err != nil {
-		return nil, err // エラーメッセージは関数内で付与済み
+		return nil, fmt.Errorf("キャラクターマップの読み込みに失敗しました: %w", err)
 	}
 
 	// 4. ワークフロービルダーの構築
-	flow, err := workflow.New(
-		ctx,
-		mngkitCfg.Config{
+	args := workflow.ManagerArgs{
+		Config: mngkitCfg.Config{
 			GeminiAPIKey: cfg.GeminiAPIKey,
 			GeminiModel:  cfg.GeminiModel,
 			ImageModel:   cfg.ImageModel,
 			StyleSuffix:  cfg.StyleSuffix,
 			RateInterval: config.DefaultRateLimit,
 		},
-		httpClient,
-		reader,
-		writer,
-		charData,
-	)
+		HTTPClient:    httpClient,
+		Reader:        reader,
+		Writer:        writer,
+		CharactersMap: charsMap,
+		ScriptPrompt:  nil,
+		ImagePrompt:   nil,
+	}
+
+	wf, err := workflow.New(ctx, args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create workflow builder: %w", err)
 	}
@@ -86,27 +89,8 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		Reader:        reader,
 		Writer:        writer,
 		Signer:        signer,
-		Workflow:      flow,
+		Workflow:      wf,
 		SlackNotifier: slack,
 		HTTPClient:    httpClient,
 	}, nil
-}
-
-// loadCharacterConfig は指定されたパスからキャラクター設定を読み込みます。
-func loadCharacterConfig(ctx context.Context, reader remoteio.InputReader, path string) ([]byte, error) {
-	if path == "" {
-		return nil, fmt.Errorf("character config path is empty")
-	}
-
-	rc, err := reader.Open(ctx, path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open character config (path: %s): %w", path, err)
-	}
-	defer rc.Close()
-
-	data, err := io.ReadAll(rc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read character config (path: %s): %w", path, err)
-	}
-	return data, nil
 }
