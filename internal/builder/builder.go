@@ -25,7 +25,7 @@ func BuildPanelImageRunner(ctx context.Context, appCtx *AppContext) (workflow.Pa
 	return runner, nil
 }
 
-// BuildPageImageRunner は複数ページへの自動分割・統合画像生成に対応した Runner を構築するのだ。
+// BuildPageImageRunner は複数ページへの自動分割・統合画像生成に対応した Runner を構築します。
 func BuildPageImageRunner(ctx context.Context, appCtx *AppContext) (workflow.PageImageRunner, error) {
 	runner, err := appCtx.Workflow.BuildPageImageRunner()
 	if err != nil {
