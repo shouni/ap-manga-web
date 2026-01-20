@@ -6,15 +6,13 @@ require (
 	cloud.google.com/go/cloudtasks v1.13.7
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/gorilla/sessions v1.4.0
-	github.com/shouni/go-gemini-client v1.0.3
 	github.com/shouni/go-http-kit v1.1.2
-	github.com/shouni/go-manga-kit v1.4.15
+	github.com/shouni/go-manga-kit v1.4.17
 	github.com/shouni/go-notifier v1.1.4
-	github.com/shouni/go-remote-io v1.1.2
+	github.com/shouni/go-remote-io v1.2.0
 	github.com/shouni/go-utils v1.0.16
 	golang.org/x/oauth2 v0.34.0
-	google.golang.org/api v0.259.0
-	google.golang.org/genai v1.42.0
+	google.golang.org/api v0.260.0
 )
 
 require (
@@ -55,14 +53,15 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.7 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.9 // indirect
 	github.com/googleapis/gax-go/v2 v2.16.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/shouni/gemini-image-kit v1.2.0 // indirect
+	github.com/shouni/gemini-image-kit v1.2.2 // indirect
+	github.com/shouni/go-gemini-client v1.0.4 // indirect
 	github.com/shouni/go-text-format v1.1.3 // indirect
 	github.com/shouni/go-web-exact/v2 v2.0.13 // indirect
 	github.com/slack-go/slack v0.17.3 // indirect
@@ -83,6 +82,7 @@ require (
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
+	google.golang.org/genai v1.42.0 // indirect
 	google.golang.org/genproto v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b // indirect
