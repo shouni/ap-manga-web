@@ -53,7 +53,7 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 	// キャラクターマップの読み込み
 	charsMap, err := domain.LoadCharacterMap(ctx, reader, cfg.CharacterConfig)
 	if err != nil {
-		return nil, fmt.Errorf("キャラクターマップの読み込みに失敗しました: %w", err)
+		return nil, fmt.Errorf("キャラクターマップの読み込みに失敗しました (path: %s): %w", cfg.CharacterConfig, err)
 	}
 
 	// 4. ワークフロービルダーの構築
@@ -73,7 +73,7 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		ImagePrompt:   nil,
 	}
 
-	wf, err := workflow.New(ctx, args)
+	workflowManager, err := workflow.New(ctx, args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create workflow builder: %w", err)
 	}
@@ -89,7 +89,7 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		Reader:        reader,
 		Writer:        writer,
 		Signer:        signer,
-		Workflow:      wf,
+		Workflow:      workflowManager,
 		SlackNotifier: slack,
 		HTTPClient:    httpClient,
 	}, nil
