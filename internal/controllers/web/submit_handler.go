@@ -1,10 +1,11 @@
 package web
 
 import (
-	"ap-manga-web/internal/domain"
 	"log/slog"
 	"net/http"
 	"regexp"
+
+	"ap-manga-web/internal/domain"
 )
 
 var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
