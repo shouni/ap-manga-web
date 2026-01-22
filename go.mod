@@ -7,7 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/gorilla/sessions v1.4.0
 	github.com/shouni/go-http-kit v1.1.2
-	github.com/shouni/go-manga-kit v1.5.7
+	github.com/shouni/go-manga-kit v1.5.8
 	github.com/shouni/go-notifier v1.1.4
 	github.com/shouni/go-remote-io v1.2.0
 	github.com/shouni/go-utils v1.0.17
