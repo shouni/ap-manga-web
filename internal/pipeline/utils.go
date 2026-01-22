@@ -109,10 +109,11 @@ func (e *mangaExecution) buildScriptNotification(manga *mangadom.MangaResponse, 
 
 // buildDesignNotification はデザインシート生成の結果に基づいてSlack通知用リクエストを構築します。
 func (e *mangaExecution) buildDesignNotification(outputStorageURI string, seed int64) (*domain.NotificationRequest, string, string) {
+	storageURI := e.pipeline.appCtx.Config.GetGCSObjectURL(asset.CharacterDesignDir)
 	return &domain.NotificationRequest{
 		SourceURL:      "N/A (Design)",
 		OutputCategory: "design-sheet",
 		TargetTitle:    fmt.Sprintf("Design: %s (Seed: %d)", e.payload.InputText, seed),
 		ExecutionMode:  "design",
-	}, domain.NotAvailable, outputStorageURI
+	}, domain.NotAvailable, storageURI
 }
