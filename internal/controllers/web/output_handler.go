@@ -39,11 +39,11 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 			return false
 		}
 		if errors.Is(err, ErrInvalidPath) {
-			slog.WarnContext(ctx, "Invalid path request for images", "title", title, "type", imageType, "error", err)
-			http.Error(w, "Invalid Title Path", http.StatusBadRequest)
+			slog.WarnContext(ctx, "画像のリクエストパスが不正です", "title", title, "type", imageType, "error", err)
+			http.Error(w, "不正なタイトルパスです", http.StatusBadRequest)
 		} else {
-			slog.ErrorContext(ctx, "Failed to prepare image URLs", "title", title, "type", imageType, "error", err)
-			http.Error(w, "Failed to retrieve manga images", http.StatusInternalServerError)
+			slog.ErrorContext(ctx, "画像URLの生成に失敗しました", "title", title, "type", imageType, "error", err)
+			http.Error(w, "漫画画像の取得に失敗しました", http.StatusInternalServerError)
 		}
 		return true
 	}
@@ -52,11 +52,11 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	plotContent, err := h.loadPlotContent(r, title)
 	if err != nil {
 		if errors.Is(err, ErrInvalidPath) {
-			slog.WarnContext(ctx, "Invalid path request for plot", "title", title, "error", err)
-			http.Error(w, "Invalid Title Path", http.StatusBadRequest)
+			slog.WarnContext(ctx, "プロットのリクエストパスが不正です", "title", title, "error", err)
+			http.Error(w, "不正なタイトルパスです", http.StatusBadRequest)
 		} else {
-			slog.ErrorContext(ctx, "Failed to load plot content", "title", title, "error", err)
-			http.Error(w, "Failed to load plot content", http.StatusInternalServerError)
+			slog.ErrorContext(ctx, "プロット内容の読み込みに失敗しました", "title", title, "error", err)
+			http.Error(w, "プロットの読み込みに失敗しました", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -90,21 +90,20 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) loadPlotContent(r *http.Request, title string) (string, error) {
 	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotName)
 	if err != nil {
-		return "", err // ErrInvalidPath がラップされて返却されるのだ
+		return "", err
 	}
 
 	plotPath := h.cfg.GetGCSObjectURL(relPath)
 	rc, err := h.reader.Open(r.Context(), plotPath)
 	if err != nil {
-		// ファイルが見つからない場合は空文字として扱い、ビューアー側で「データなし」を表示させる
-		slog.WarnContext(r.Context(), "Plot file not found, skipping rendering", "path", plotPath)
+		slog.WarnContext(r.Context(), "プロットファイルが見つからないため、レンダリングをスキップします", "path", plotPath)
 		return "", nil
 	}
 	defer rc.Close()
 
 	data, err := io.ReadAll(rc)
 	if err != nil {
-		return "", fmt.Errorf("failed to read plot file: %w", err)
+		return "", fmt.Errorf("プロットファイルの読み込みに失敗しました: %w", err)
 	}
 	return string(data), nil
 }
@@ -128,7 +127,7 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *rege
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list images from store: %w", err)
+		return nil, fmt.Errorf("ストレージからの画像リスト取得に失敗しました: %w", err)
 	}
 
 	// ページ順・パネル順を正しく表示するため、ファイル名でソートする
@@ -138,14 +137,14 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *rege
 	for _, gcsPath := range filePaths {
 		u, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, config.SignedURLExpiration)
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to generate signed URL", "path", gcsPath, "error", err)
+			slog.ErrorContext(ctx, "署名付きURLの生成に失敗しました", "path", gcsPath, "error", err)
 			continue
 		}
 		signedURLs = append(signedURLs, u)
 	}
 
 	if len(filePaths) > 0 && len(signedURLs) == 0 {
-		return nil, errors.New("could not generate any signed URLs for the available image assets")
+		return nil, errors.New("利用可能な画像アセットに対して署名付きURLを生成できませんでした")
 	}
 
 	return signedURLs, nil
