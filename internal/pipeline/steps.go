@@ -1,14 +1,11 @@
 package pipeline
 
 import (
+	"ap-manga-web/internal/builder"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
-	"strings"
-
-	"ap-manga-web/internal/builder"
 
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/publisher"
@@ -107,12 +104,7 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution)
 		return "", 0, fmt.Errorf("character ID required")
 	}
 
-	destDir := path.Join(
-		p.appCtx.Config.BaseOutputDir,
-		"character",
-	)
-	baseFileName := "design_" + strings.Join(charIDs, "_") + ".png"
-	outputFullURL := p.appCtx.Config.GetGCSObjectURL(path.Join(destDir, baseFileName))
+	outputDir := p.appCtx.Config.GetGCSObjectURL(p.appCtx.Config.BaseOutputDir)
 
-	return runner.Run(ctx, charIDs, exec.payload.Seed, outputFullURL)
+	return runner.Run(ctx, charIDs, exec.payload.Seed, outputDir)
 }
