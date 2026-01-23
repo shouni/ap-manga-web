@@ -1,10 +1,11 @@
 package builder
 
 import (
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/config"
 	"context"
 	"fmt"
+
+	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/config"
 
 	"github.com/shouni/go-http-kit/pkg/httpkit"
 	mngkitCfg "github.com/shouni/go-manga-kit/pkg/config"

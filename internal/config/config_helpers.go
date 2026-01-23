@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/shouni/go-utils/security"
+	"github.com/shouni/netarmor/securenet"
 )
 
 // GetWorkDir は特定のリクエストに対する一意の作業ディレクトリを返します。
@@ -59,5 +59,5 @@ func ValidateEssentialConfig(cfg Config) error {
 
 // IsSecureURL は指定された URL が HTTPS または localhost であるか判定します。
 func IsSecureURL(rawURL string) bool {
-	return security.IsSecureServiceURL(rawURL)
+	return securenet.IsSecureServiceURL(rawURL)
 }

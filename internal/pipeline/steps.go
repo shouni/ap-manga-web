@@ -1,11 +1,12 @@
 package pipeline
 
 import (
-	"ap-manga-web/internal/builder"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"ap-manga-web/internal/builder"
 
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/publisher"
