@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/cloudtasks v1.13.7
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/gorilla/sessions v1.4.0
-	github.com/shouni/go-http-kit v1.1.3
+	github.com/shouni/go-http-kit v1.2.1
 	github.com/shouni/go-manga-kit v1.5.10
 	github.com/shouni/go-notifier v1.1.4
 	github.com/shouni/go-remote-io v1.2.0
