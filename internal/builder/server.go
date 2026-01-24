@@ -9,10 +9,11 @@ import (
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/controllers/auth"
 	"ap-manga-web/internal/controllers/web"
-	"ap-manga-web/internal/controllers/worker"
+	"ap-manga-web/internal/domain"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/shouni/gcp-kit/worker"
 )
 
 // NewServerHandler は HTTP ルーティング、認証、各ハンドラーの依存関係をすべて組み立てます。
@@ -87,7 +88,7 @@ func NewServerHandler(
 	// Cloud Tasks 専用ルート (Worker 用)
 	r.Group(func(r chi.Router) {
 		r.Use(authHandler.TaskOIDCVerificationMiddleware)
-		r.Post("/tasks/generate", workerHandler.GenerateTask)
+		r.Post("/tasks/generate", workerHandler.ProcessTask)
 	})
 
 	return r, nil
