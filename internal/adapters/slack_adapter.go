@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"path"
 	"strings"
 
 	"ap-manga-web/internal/domain"
@@ -110,7 +111,13 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 // buildSlackContent 指定された公開URL、ストレージURI、通知リクエストに基づき、Slack メッセージの内容を生成します。
 func (a *SlackAdapter) buildSlackContent(publicURL, storageURI string, req domain.NotificationRequest) string {
 	// GCS Console URL の構築
-	consoleURL := "https://console.cloud.google.com/storage/browser/" + strings.TrimPrefix(storageURI, "gs://")
+	trimmedPath := strings.TrimPrefix(storageURI, "gs://")
+	consoleURL := "https://console.cloud.google.com/storage/browser/" + trimmedPath
+
+	// ファイル名にドットが含まれる場合は、詳細画面 (_details/) へのリンクに差し替える
+	if strings.Contains(path.Base(trimmedPath), ".") {
+		consoleURL = "https://console.cloud.google.com/storage/browser/_details/" + trimmedPath
+	}
 
 	// 基本メッセージの構築
 	var sb strings.Builder
