@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strings"
 
-	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/controllers/auth"
 	"ap-manga-web/internal/controllers/web"
@@ -19,13 +18,11 @@ import (
 
 // NewServerHandler は HTTP ルーティング、認証、各ハンドラーの依存関係をすべて組み立てます。
 func NewServerHandler(
-	cfg config.Config,
 	appCtx *AppContext,
-	taskAdapter adapters.TaskAdapter,
-	pipelineExecutor worker.TaskExecutor[domain.GenerateTaskPayload],
+	pipelineExecutor worker.MangaPipelineExecutor,
 ) (http.Handler, error) {
 	// 1. 基本的なバリデーション（起動時の不備を早期に防ぐ）
-	if cfg.ServiceURL == "" {
+	if appCtx.Config.ServiceURL == "" {
 		return nil, fmt.Errorf("config ServiceURL is required for auth redirect")
 	}
 
@@ -37,19 +34,19 @@ func NewServerHandler(
 	// --- 各ハンドラーの初期化 ---
 
 	// Auth Handler
-	authHandler, err := createAuthHandler(cfg)
+	authHandler, err := createAuthHandler(appCtx.Config)
 	if err != nil {
 		return nil, err
 	}
 
 	// Web Handler (UI)
-	webHandler, err := web.NewHandler(cfg, taskAdapter, appCtx.Reader, appCtx.Signer)
+	webHandler, err := web.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.Reader, appCtx.Signer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize web handler: %w", err)
 	}
 
 	// Worker Handler
-	workerHandler := worker.NewHandler[domain.GenerateTaskPayload](pipelineExecutor)
+	workerHandler := worker.NewHandler(appCtx.Config, pipelineExecutor)
 
 	// --- ルーティング定義 ---
 
@@ -74,7 +71,7 @@ func NewServerHandler(
 		r.Post("/generate", webHandler.HandleSubmit)
 
 		// Output Delivery Routes (Manga Viewer)
-		if prefix := getOutputRoutePrefix(cfg.BaseOutputDir); prefix != "" {
+		if prefix := getOutputRoutePrefix(appCtx.Config.BaseOutputDir); prefix != "" {
 			r.Route(prefix, func(r chi.Router) {
 				// Maps directly to /{title} and passes it to ServeOutput.
 				// This ensures that the viewer has a clean, title-based URL.

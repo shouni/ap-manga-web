@@ -3,7 +3,6 @@ module ap-manga-web
 go 1.25
 
 require (
-	cloud.google.com/go/cloudtasks v1.13.7
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/gorilla/sessions v1.4.0
 	github.com/shouni/gcp-kit v1.0.1
@@ -22,6 +21,7 @@ require (
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.18.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
+	cloud.google.com/go/cloudtasks v1.13.7 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.5.3 // indirect
 	cloud.google.com/go/monitoring v1.24.3 // indirect

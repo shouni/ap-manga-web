@@ -10,7 +10,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/builder"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/pipeline"
@@ -33,28 +32,22 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("config validation failed: %w", err)
 	}
 
-	// 2. アダプターの初期化とライフサイクル管理
-	taskAdapter, err := adapters.NewCloudTasksAdapter(ctx, cfg)
-	if err != nil {
-		return fmt.Errorf("failed to initialize cloud tasks adapter: %w", err)
-	}
-	defer func() {
-		slog.Info("Closing task adapter...")
-		if err := taskAdapter.Close(); err != nil {
-			slog.Error("Failed to close task adapter", "error", err)
-		}
-	}()
-
-	// 3. アプリケーションコンテキストの構築
+	// 2. アプリケーションコンテキストの構築
 	appCtx, err := builder.BuildAppContext(ctx, cfg)
 	if err != nil {
 		// ここでは Fatal せず、run の戻り値としてエラーを返すのが綺麗なのだ
 		return fmt.Errorf("failed to build application context: %w", err)
 	}
+	// リソースを解放する
+	defer func() {
+		slog.Info("Closing application context...")
+		appCtx.Close()
+	}()
+
 	mangaPipeline := pipeline.NewMangaPipeline(appCtx)
 
-	// 4. ハンドラーの作成 (Web & Worker を含む)
-	handler, err := builder.NewServerHandler(cfg, appCtx, taskAdapter, mangaPipeline)
+	// 3. ハンドラーの作成 (Web & Worker を含む)
+	handler, err := builder.NewServerHandler(appCtx, mangaPipeline)
 	if err != nil {
 		return fmt.Errorf("failed to create server handler: %w", err)
 	}

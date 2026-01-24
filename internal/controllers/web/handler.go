@@ -9,9 +9,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
 
+	"github.com/shouni/gcp-kit/tasks"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
@@ -20,14 +21,19 @@ const titleSuffix = " - AP Manga Web"
 type Handler struct {
 	cfg           config.Config
 	templateCache map[string]*template.Template
-	taskAdapter   adapters.TaskAdapter
+	taskEnqueuer  *tasks.Enqueuer[domain.GenerateTaskPayload]
 	reader        remoteio.InputReader
 	signer        remoteio.URLSigner
 }
 
 // NewHandler 指定された構成、アダプター、入力リーダー、および URL 署名を使用して新しいハンドラーを初期化し、返します。
 // 指定されたディレクトリからテンプレートをコンパイルし、その中にレイアウト ファイルが存在することを確認します。
-func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remoteio.InputReader, signer remoteio.URLSigner) (*Handler, error) {
+func NewHandler(
+	cfg config.Config,
+	taskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload],
+	reader remoteio.InputReader,
+	signer remoteio.URLSigner,
+) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
@@ -61,7 +67,7 @@ func NewHandler(cfg config.Config, taskAdapter adapters.TaskAdapter, reader remo
 	return &Handler{
 		cfg:           cfg,
 		templateCache: cache,
-		taskAdapter:   taskAdapter,
+		taskEnqueuer:  taskEnqueuer,
 		reader:        reader,
 		signer:        signer,
 	}, nil

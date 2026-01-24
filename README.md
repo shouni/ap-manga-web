@@ -125,7 +125,7 @@ go run main.go
 ```text
 ap-manga-web/
 ├── internal/
-│   ├── adapters/     # Cloud Tasks連携、Slack通知等の外部アダプター
+│   ├── adapters/     # Slack通知等の外部アダプター
 │   ├── builder/      # Appコンテキスト、タスク実行コンポーネント(Runner)の構築、サーバー初期化
 │   ├── config/       # 環境変数管理、キャラクターDNA定義 (characters.json)
 │   ├── controllers/
@@ -200,9 +200,9 @@ sequenceDiagram
 
 ## 🤝 依存関係 (Dependencies)
 
+* [shouni/gcp-kit](https://github.com/shouni/gcp-kit) - GCP上でのWebツールキット
+* [shouni/go-remote-io](https://github.com/shouni/go-remote-io) - I/O操作を統一化ライブラリ
 * [shouni/go-manga-kit](https://github.com/shouni/go-manga-kit) - 自動ページ分割に対応した作画制作ワークフロー
-* [shouni/gemini-image-kit](https://github.com/shouni/gemini-image-kit) - Geminiによる画像生成を抽象化するライブラリ
-* [shouni/go-remote-io](https://github.com/shouni/go-remote-io) - GCSとローカルファイルシステムのI/O操作を統一化するライブラリ
 
 ## 📜 ライセンス (License)
 

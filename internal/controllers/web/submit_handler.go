@@ -38,7 +38,7 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.taskAdapter.EnqueueGenerateTask(r.Context(), payload); err != nil {
+	if err := h.taskEnqueuer.Enqueue(r.Context(), payload); err != nil {
 		slog.Error("Failed to enqueue task", "error", err)
 		http.Error(w, "Failed to schedule task", http.StatusInternalServerError)
 		return
