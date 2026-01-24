@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/controllers/web"
 	"ap-manga-web/internal/domain"
+	"ap-manga-web/internal/server"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -44,7 +44,7 @@ func NewServerHandler(
 	}
 
 	// Web UI 用Handlerの初期化
-	webHandler, err := web.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.Reader, appCtx.Signer)
+	webHandler, err := server.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.Reader, appCtx.Signer)
 	if err != nil {
 		return nil, fmt.Errorf("WebHandlerの初期化に失敗しました: %w", err)
 	}
@@ -71,47 +71,47 @@ func setupCommonMiddleware(r *chi.Mux) {
 func setupRoutes(
 	r chi.Router,
 	cfg config.Config,
-	authH *auth.Handler,
-	webH *web.Handler,
-	workerH *worker.Handler[domain.GenerateTaskPayload],
+	authHandler *auth.Handler,
+	webHandler *server.Handler,
+	workerHandler *worker.Handler[domain.GenerateTaskPayload],
 ) {
 	// --- 公開ルート (OAuth2 認証フロー) ---
 	r.Route("/auth", func(r chi.Router) {
-		r.Get("/login", authH.Login)
-		r.Get("/callback", authH.Callback)
+		r.Get("/login", authHandler.Login)
+		r.Get("/callback", authHandler.Callback)
 	})
 
 	// --- 認証が必要なルート (Web UI 用) ---
 	r.Group(func(r chi.Router) {
-		r.Use(authH.Middleware)
+		r.Use(authHandler.Middleware)
 
-		r.Get("/", webH.Index)
-		r.Get("/design", webH.Design)
-		r.Get("/script", webH.Script)
-		r.Get("/panel", webH.Panel)
-		r.Get("/page", webH.Page)
+		r.Get("/", webHandler.Index)
+		r.Get("/design", webHandler.Design)
+		r.Get("/script", webHandler.Script)
+		r.Get("/panel", webHandler.Panel)
+		r.Get("/page", webHandler.Page)
 
-		r.Post("/generate", webH.HandleSubmit)
+		r.Post("/generate", webHandler.HandleSubmit)
 
-		setupOutputRoutes(r, cfg.BaseOutputDir, webH)
+		setupOutputRoutes(r, cfg.BaseOutputDir, webHandler)
 	})
 
 	// --- Cloud Tasks 専用ルート (Worker 用) ---
 	r.Group(func(r chi.Router) {
-		r.Use(authH.TaskOIDCVerificationMiddleware)
-		r.Post("/tasks/generate", workerH.ProcessTask)
+		r.Use(authHandler.TaskOIDCVerificationMiddleware)
+		r.Post("/tasks/generate", workerHandler.ProcessTask)
 	})
 }
 
 // setupOutputRoutes は生成された漫画成果物を表示するための動的ルーティングを設定します。
-func setupOutputRoutes(r chi.Router, baseDir string, webH *web.Handler) {
+func setupOutputRoutes(r chi.Router, baseDir string, webHandler *server.Handler) {
 	prefix := getOutputRoutePrefix(baseDir)
 	if prefix == "" {
 		return
 	}
 
 	r.Route(prefix, func(r chi.Router) {
-		r.Get("/{title}", webH.ServeOutput)
+		r.Get("/{title}", webHandler.ServeOutput)
 		r.Get("/{title}/", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, strings.TrimSuffix(r.URL.Path, "/"), http.StatusMovedPermanently)
 		})
@@ -134,7 +134,7 @@ func createAuthHandler(appCtx *AppContext) (*auth.Handler, error) {
 		ClientSecret:      cfg.GoogleClientSecret,
 		RedirectURL:       redirectURL,
 		SessionAuthKey:    cfg.SessionSecret,
-		SessionEncryptKey: cfg.SessionSecret, // TODO::通常AESで利用されるため、16, 24, 32バイトのいずれかの長さである必
+		SessionEncryptKey: cfg.SessionEncryptKey,
 		SessionName:       defaultSessionName,
 		IsSecureCookie:    isSecure,
 		AllowedEmails:     cfg.AllowedEmails,

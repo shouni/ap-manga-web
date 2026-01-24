@@ -44,7 +44,7 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 
 本プロジェクトは、拡張性を高めるために以下の3層構造で設計されています。
 
-1. **Controller 層**: Web/Worker ハンドラーが外部との窓口となる。
+1. **Server 層**: Web/Worker ハンドラーが外部との窓口となる。
 2. **Pipeline 層**: `MangaPipeline` が全体の指揮官となり、台本・画像生成・公開・Slack通知を制御。内部で個別のタスク実行コンポーネント（Runner）を呼び出す。
 
 ---
@@ -67,7 +67,8 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `IMAGE_MODEL` | 画像生成に使用するモデル名 | `gemini-3-pro-image-preview` |
 | `GOOGLE_CLIENT_ID` | OAuthクライアントID | - |
 | `GOOGLE_CLIENT_SECRET` | OAuthクライアントシークレット | - |
-| `SESSION_SECRET` | セッション暗号化用のランダム文字列 | - |
+| `SESSION_SECRET` | セッションデータのHMAC署名用シークレット | - |
+| `SESSION_ENCRYPT_KEY` | セッションデータのAES暗号化用シークレット | - |
 | `ALLOWED_EMAILS` | 許可するメールアドレス（カンマ区切り） | - |
 | `ALLOWED_DOMAINS` | 許可するドメイン（例: `example.com`） | - |
 | `SLACK_WEBHOOK_URL` | 通知を送る先の Slack Webhook URL | - |
@@ -128,10 +129,9 @@ ap-manga-web/
 │   ├── adapters/     # Slack通知等の外部アダプター
 │   ├── builder/      # Appコンテキスト、タスク実行コンポーネント(Runner)の構築、サーバー初期化
 │   ├── config/       # 環境変数管理、キャラクターDNA定義 (characters.json)
-│   ├── controllers/
-│   │   └── web/      # UIハンドラー (Design, Panel, Page等の画面制御)
 │   ├── domain/       # ドメインモデル (TaskPayload, NotificationRequest)
-│   └── pipeline/     # 全体の指揮官。解析、生成、公開、通知のフロー制御
+│   ├── pipeline/     # 全体の指揮官。解析、生成、公開、通知のフロー制御
+│   └── server/       # UIハンドラー (Design, Panel, Page等の画面制御)
 ├── templates/        # Bootstrap 5 を採用したUIテンプレート
 └── main.go           # エントリーポイント
 
@@ -142,7 +142,7 @@ ap-manga-web/
 ## 💻 ワークフロー (Workflow)
 
 1. **Request**: ユーザーが Web フォームから Markdown プロット等を送信。
-2. **Enqueue**: `web.Handler` が `CloudTasksAdapter` を介してジョブを投入。
+2. **Enqueue**: `server.Handler` が `CloudTasksAdapter` を介してジョブを投入。
 3. **Worker**: `worker.Handler` がリクエストを受け、`MangaPipeline` を起動。
 4. **Pipeline**:
     * **Phase 1: Script/Page**: プロットのパースと物語構成。
@@ -157,9 +157,9 @@ ap-manga-web/
 ```mermaid
 sequenceDiagram
     participant User as User (Web UI)
-    participant Web as Web Controller
+    participant Web as Web
     participant Queue as Cloud Tasks
-    participant Worker as Worker Controller
+    participant Worker as Worker
     participant Pipeline as Manga Pipeline
     participant Gemini as Gemini API
     participant GCS as Cloud Storage
