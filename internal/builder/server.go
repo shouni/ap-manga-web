@@ -27,7 +27,6 @@ type TaskExecutor interface {
 }
 
 // NewServerHandler は HTTP ルーティング、認証、各Handlerの依存関係をすべて組み立てます。
-// 起動時に ServiceURL のチェックを行い、各種Handlerの初期化に失敗した場合はエラーを返します。
 func NewServerHandler(
 	appCtx *AppContext,
 	executor TaskExecutor,
@@ -38,8 +37,8 @@ func NewServerHandler(
 
 	// 1. 各Handlerの初期化
 
-	// 認証Handlerの初期化
-	authHandler, err := createAuthHandler(appCtx.Config)
+	// 認証Handlerの初期化 (appCtx を渡して HttpClient を利用可能にする)
+	authHandler, err := createAuthHandler(appCtx)
 	if err != nil {
 		return nil, fmt.Errorf("認証Handlerの初期化に失敗しました: %w", err)
 	}
@@ -69,7 +68,6 @@ func setupCommonMiddleware(r *chi.Mux) {
 }
 
 // setupRoutes はアプリケーションのルーティング構造を定義します。
-// 公開ルート、認証必須ルート、Cloud Tasks 専用ルートに論理的に分割します。
 func setupRoutes(
 	r chi.Router,
 	cfg config.Config,
@@ -95,12 +93,10 @@ func setupRoutes(
 
 		r.Post("/generate", webH.HandleSubmit)
 
-		// 生成済み成果物の配信エンドポイントを設定
 		setupOutputRoutes(r, cfg.BaseOutputDir, webH)
 	})
 
 	// --- Cloud Tasks 専用ルート (Worker 用) ---
-	// OIDC トークンによる検証ミドルウェアを適用します。
 	r.Group(func(r chi.Router) {
 		r.Use(authH.TaskOIDCVerificationMiddleware)
 		r.Post("/tasks/generate", workerH.ProcessTask)
@@ -108,7 +104,6 @@ func setupRoutes(
 }
 
 // setupOutputRoutes は生成された漫画成果物を表示するための動的ルーティングを設定します。
-// 末尾のスラッシュを正規化するリダイレクト処理を含みます。
 func setupOutputRoutes(r chi.Router, baseDir string, webH *web.Handler) {
 	prefix := getOutputRoutePrefix(baseDir)
 	if prefix == "" {
@@ -116,21 +111,23 @@ func setupOutputRoutes(r chi.Router, baseDir string, webH *web.Handler) {
 	}
 
 	r.Route(prefix, func(r chi.Router) {
-		// /{title} を ServeOutput にマッピング
 		r.Get("/{title}", webH.ServeOutput)
-		// /title/ へのアクセスを /title に正規化
 		r.Get("/{title}/", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, strings.TrimSuffix(r.URL.Path, "/"), http.StatusMovedPermanently)
 		})
 	})
 }
 
-// createAuthHandler は config.Config から認証ライブラリ用の設定を構築し、ハンドラーを生成します。
-func createAuthHandler(cfg config.Config) (*auth.Handler, error) {
+// createAuthHandler は AppContext から認証ライブラリ用の設定を構築し、ハンドラーを生成します。
+func createAuthHandler(appCtx *AppContext) (*auth.Handler, error) {
+	cfg := appCtx.Config
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {
 		return nil, fmt.Errorf("リダイレクトURLの構築に失敗しました: %w", err)
 	}
+
+	// 指定された HttpClient の判定メソッドを使用
+	isSecure := appCtx.HTTPClient.IsSecureServiceURL(cfg.ServiceURL)
 
 	return auth.NewHandler(auth.Config{
 		ClientID:          cfg.GoogleClientID,
@@ -139,14 +136,14 @@ func createAuthHandler(cfg config.Config) (*auth.Handler, error) {
 		SessionAuthKey:    cfg.SessionSecret,
 		SessionEncryptKey: cfg.SessionSecret,
 		SessionName:       defaultSessionName,
-		IsSecureCookie:    strings.HasPrefix(cfg.ServiceURL, "https"),
+		IsSecureCookie:    isSecure,
 		AllowedEmails:     cfg.AllowedEmails,
 		AllowedDomains:    cfg.AllowedDomains,
 		TaskAudienceURL:   cfg.ServiceURL,
 	})
 }
 
-// getOutputRoutePrefix は BaseOutputDir を基に、URL のプレフィックス（例: "/output"）を生成します。
+// getOutputRoutePrefix は BaseOutputDir を基に URL プレフィックスを生成します。
 func getOutputRoutePrefix(baseDir string) string {
 	if baseDir == "" {
 		return ""
