@@ -125,7 +125,7 @@ go run main.go
 ```text
 ap-manga-web/
 ├── internal/
-│   ├── adapters/     # Cloud Tasks連携、Slack通知等の外部アダプター
+│   ├── adapters/     # Slack通知等の外部アダプター
 │   ├── builder/      # Appコンテキスト、タスク実行コンポーネント(Runner)の構築、サーバー初期化
 │   ├── config/       # 環境変数管理、キャラクターDNA定義 (characters.json)
 │   ├── controllers/
