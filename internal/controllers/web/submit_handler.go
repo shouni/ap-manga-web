@@ -13,15 +13,15 @@ var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)
 // HandleSubmit タスク生成リクエストのフォーム送信を処理します。
 func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		slog.Warn("Failed to parse form", "error", err)
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		slog.Warn("フォームの解析に失敗しました", "error", err)
+		http.Error(w, "リクエストの解析に失敗しました", http.StatusBadRequest)
 		return
 	}
 
 	targetPanels := r.FormValue("target_panels")
 	if !validTargetPanels.MatchString(targetPanels) {
-		slog.WarnContext(r.Context(), "Invalid characters in target_panels", "input", targetPanels)
-		http.Error(w, "Bad Request: invalid panel format.", http.StatusBadRequest)
+		slog.WarnContext(r.Context(), "target_panels に不正な文字が含まれています", "input", targetPanels)
+		http.Error(w, "不正なパネル形式です。数字とカンマのみ使用できます。", http.StatusBadRequest)
 		return
 	}
 
@@ -34,15 +34,15 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if payload.Command == "" {
-		http.Error(w, "Command is required", http.StatusBadRequest)
+		http.Error(w, "コマンド（Command）は必須項目です", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.taskEnqueuer.Enqueue(r.Context(), payload); err != nil {
-		slog.Error("Failed to enqueue task", "error", err)
-		http.Error(w, "Failed to schedule task", http.StatusInternalServerError)
+		slog.Error("タスクのエンキューに失敗しました", "error", err)
+		http.Error(w, "タスクのスケジュールに失敗しました。管理者にお問い合わせください。", http.StatusInternalServerError)
 		return
 	}
 
-	h.render(w, http.StatusAccepted, "accepted.html", "Accepted", payload)
+	h.render(w, http.StatusAccepted, "accepted.html", "タスク受付完了", payload)
 }

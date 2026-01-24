@@ -129,9 +129,7 @@ ap-manga-web/
 │   ├── builder/      # Appコンテキスト、タスク実行コンポーネント(Runner)の構築、サーバー初期化
 │   ├── config/       # 環境変数管理、キャラクターDNA定義 (characters.json)
 │   ├── controllers/
-│   │   ├── auth/     # Google OAuth 2.0 & OIDC Token検証
-│   │   ├── web/      # UIハンドラー (Design, Panel, Page等の画面制御)
-│   │   └── worker/   # Cloud Tasks専用エンドポイント (非同期タスク実行)
+│   │   └── web/      # UIハンドラー (Design, Panel, Page等の画面制御)
 │   ├── domain/       # ドメインモデル (TaskPayload, NotificationRequest)
 │   └── pipeline/     # 全体の指揮官。解析、生成、公開、通知のフロー制御
 ├── templates/        # Bootstrap 5 を採用したUIテンプレート
