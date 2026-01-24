@@ -43,8 +43,10 @@ type Config struct {
 	// OAuth & Session Settings
 	GoogleClientID     string
 	GoogleClientSecret string
-	SessionSecret      string
-	SessionEncryptKey  string
+	// SessionSecret はセッションデータのHMAC署名用シークレットキーです。
+	SessionSecret string
+	// SessionEncryptKey はセッションデータのAES暗号化用シークレットキーです。 16, 24, 32 バイトのいずれかである必要があります。
+	SessionEncryptKey string
 
 	// Authz Settings
 	AllowedEmails  []string
@@ -87,13 +89,14 @@ func LoadConfig() Config {
 		TemplateDir:         templateDir,
 		ShutdownTimeout:     15 * time.Second,
 
-		// OAuth
+		// OAuth & Session
 		GoogleClientID:     envutil.GetEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: envutil.GetEnv("GOOGLE_CLIENT_SECRET", ""),
 		SessionSecret:      envutil.GetEnv("SESSION_SECRET", ""),
 		SessionEncryptKey:  envutil.GetEnv("SESSION_ENCRYPT_KEY", ""),
-		AllowedEmails:      text.ParseCommaSeparatedList(allowedEmails),
-		AllowedDomains:     text.ParseCommaSeparatedList(allowedDomains),
+
+		AllowedEmails:  text.ParseCommaSeparatedList(allowedEmails),
+		AllowedDomains: text.ParseCommaSeparatedList(allowedDomains),
 
 		CharacterConfig: charConfig,
 		StyleSuffix:     DefaultStyleSuffix,

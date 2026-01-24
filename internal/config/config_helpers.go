@@ -54,6 +54,21 @@ func ValidateEssentialConfig(cfg Config) error {
 		return fmt.Errorf("configuration error: GEMINI_API_KEY is not set")
 	}
 
+	if cfg.SessionEncryptKey == "" {
+		return fmt.Errorf("SESSION_ENCRYPT_KEY が設定されていません。セキュアな運用のために必須です")
+	}
+
+	// SessionEncryptKey の長さチェック (AES要件: 16, 24, 32 bytes)
+	keyLen := len(cfg.SessionEncryptKey)
+	if keyLen != 16 && keyLen != 24 && keyLen != 32 {
+		return fmt.Errorf("SESSION_ENCRYPT_KEY の長さが不正です (%d バイト)。16, 24, 32 バイトのいずれかにしてください", keyLen)
+	}
+
+	// SessionSecret の空チェック
+	if cfg.SessionSecret == "" {
+		return fmt.Errorf("SESSION_SECRET が設定されていません")
+	}
+
 	return nil
 }
 
