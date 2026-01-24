@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/controllers/web"
 	"ap-manga-web/internal/domain"
+	"ap-manga-web/internal/server"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -44,7 +44,7 @@ func NewServerHandler(
 	}
 
 	// Web UI 用Handlerの初期化
-	webHandler, err := web.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.Reader, appCtx.Signer)
+	webHandler, err := server.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.Reader, appCtx.Signer)
 	if err != nil {
 		return nil, fmt.Errorf("WebHandlerの初期化に失敗しました: %w", err)
 	}
@@ -72,7 +72,7 @@ func setupRoutes(
 	r chi.Router,
 	cfg config.Config,
 	authH *auth.Handler,
-	webH *web.Handler,
+	webH *server.Handler,
 	workerH *worker.Handler[domain.GenerateTaskPayload],
 ) {
 	// --- 公開ルート (OAuth2 認証フロー) ---
@@ -104,14 +104,14 @@ func setupRoutes(
 }
 
 // setupOutputRoutes は生成された漫画成果物を表示するための動的ルーティングを設定します。
-func setupOutputRoutes(r chi.Router, baseDir string, webH *web.Handler) {
+func setupOutputRoutes(r chi.Router, baseDir string, webHandler *server.Handler) {
 	prefix := getOutputRoutePrefix(baseDir)
 	if prefix == "" {
 		return
 	}
 
 	r.Route(prefix, func(r chi.Router) {
-		r.Get("/{title}", webH.ServeOutput)
+		r.Get("/{title}", webHandler.ServeOutput)
 		r.Get("/{title}/", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, strings.TrimSuffix(r.URL.Path, "/"), http.StatusMovedPermanently)
 		})

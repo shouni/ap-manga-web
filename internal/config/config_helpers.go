@@ -59,7 +59,7 @@ func ValidateEssentialConfig(cfg Config) error {
 	}
 
 	// SessionEncryptKey の長さチェック (AES要件: 16, 24, 32 bytes)
-	keyLen := len(cfg.SessionEncryptKey)
+	keyLen := len([]byte(cfg.SessionEncryptKey))
 	if keyLen != 16 && keyLen != 24 && keyLen != 32 {
 		return fmt.Errorf("SESSION_ENCRYPT_KEY の長さが不正です (%d バイト)。16, 24, 32 バイトのいずれかにしてください", keyLen)
 	}

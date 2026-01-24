@@ -129,10 +129,9 @@ ap-manga-web/
 │   ├── adapters/     # Slack通知等の外部アダプター
 │   ├── builder/      # Appコンテキスト、タスク実行コンポーネント(Runner)の構築、サーバー初期化
 │   ├── config/       # 環境変数管理、キャラクターDNA定義 (characters.json)
-│   ├── controllers/
-│   │   └── web/      # UIハンドラー (Design, Panel, Page等の画面制御)
 │   ├── domain/       # ドメインモデル (TaskPayload, NotificationRequest)
-│   └── pipeline/     # 全体の指揮官。解析、生成、公開、通知のフロー制御
+│   ├── pipeline/     # 全体の指揮官。解析、生成、公開、通知のフロー制御
+│   └── server/       # UIハンドラー (Design, Panel, Page等の画面制御)
 ├── templates/        # Bootstrap 5 を採用したUIテンプレート
 └── main.go           # エントリーポイント
 
@@ -143,7 +142,7 @@ ap-manga-web/
 ## 💻 ワークフロー (Workflow)
 
 1. **Request**: ユーザーが Web フォームから Markdown プロット等を送信。
-2. **Enqueue**: `web.Handler` が `CloudTasksAdapter` を介してジョブを投入。
+2. **Enqueue**: `server.Handler` が `CloudTasksAdapter` を介してジョブを投入。
 3. **Worker**: `worker.Handler` がリクエストを受け、`MangaPipeline` を起動。
 4. **Pipeline**:
     * **Phase 1: Script/Page**: プロットのパースと物語構成。
@@ -158,9 +157,9 @@ ap-manga-web/
 ```mermaid
 sequenceDiagram
     participant User as User (Web UI)
-    participant Web as Web Controller
+    participant Web as Web
     participant Queue as Cloud Tasks
-    participant Worker as Worker Controller
+    participant Worker as Worker
     participant Pipeline as Manga Pipeline
     participant Gemini as Gemini API
     participant GCS as Cloud Storage
