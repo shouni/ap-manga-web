@@ -40,7 +40,7 @@ func run(ctx context.Context) error {
 	}
 	// リソースを解放する
 	defer func() {
-		slog.Info("アプリケーションコンテキストをクローズ中...")
+		slog.Info("Closing application context...")
 		appCtx.Close()
 	}()
 

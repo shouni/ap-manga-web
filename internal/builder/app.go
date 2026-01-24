@@ -22,14 +22,22 @@ import (
 // AppContext はアプリケーションの依存関係を保持します。
 // 各フィールドをインターフェースで定義することで、将来的なモック利用を容易にします。
 type AppContext struct {
-	Config        config.Config
-	HTTPClient    httpkit.ClientInterface
-	IOFactory     remoteio.IOFactory
-	Reader        remoteio.InputReader
-	Writer        remoteio.OutputWriter
-	Signer        remoteio.URLSigner
-	TaskEnqueuer  *tasks.Enqueuer[domain.GenerateTaskPayload]
-	Workflow      workflow.Workflow
+	Config     config.Config
+	HTTPClient httpkit.ClientInterface
+
+	// I/O and Storage
+	IOFactory remoteio.IOFactory
+	Reader    remoteio.InputReader
+	Writer    remoteio.OutputWriter
+	Signer    remoteio.URLSigner
+
+	// Asynchronous Task
+	TaskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload]
+
+	// Business Logic
+	Workflow workflow.Workflow
+
+	// External Adapters
 	SlackNotifier adapters.SlackNotifier
 }
 
