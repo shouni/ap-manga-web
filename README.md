@@ -201,7 +201,6 @@ sequenceDiagram
 ## 🤝 依存関係 (Dependencies)
 
 * [shouni/go-manga-kit](https://github.com/shouni/go-manga-kit) - 自動ページ分割に対応した作画制作ワークフロー
-* [shouni/gemini-image-kit](https://github.com/shouni/gemini-image-kit) - Geminiによる画像生成を抽象化するライブラリ
 * [shouni/go-remote-io](https://github.com/shouni/go-remote-io) - GCSとローカルファイルシステムのI/O操作を統一化するライブラリ
 
 ## 📜 ライセンス (License)

@@ -3,12 +3,11 @@ module ap-manga-web
 go 1.25
 
 require (
-	cloud.google.com/go/cloudtasks v1.13.7
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/gorilla/sessions v1.4.0
 	github.com/shouni/gcp-kit v1.0.1
 	github.com/shouni/go-http-kit v1.2.1
-	github.com/shouni/go-manga-kit v1.5.10
+	github.com/shouni/go-manga-kit v1.5.11
 	github.com/shouni/go-notifier v1.1.4
 	github.com/shouni/go-remote-io v1.2.0
 	github.com/shouni/go-utils v1.0.18
@@ -22,6 +21,7 @@ require (
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.18.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
+	cloud.google.com/go/cloudtasks v1.13.7 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.5.3 // indirect
 	cloud.google.com/go/monitoring v1.24.3 // indirect
@@ -62,7 +62,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/shouni/gemini-image-kit v1.2.4 // indirect
+	github.com/shouni/gemini-image-kit v1.2.5 // indirect
 	github.com/shouni/go-gemini-client v1.0.5 // indirect
 	github.com/shouni/go-text-format v1.1.3 // indirect
 	github.com/shouni/go-web-exact/v2 v2.0.13 // indirect
