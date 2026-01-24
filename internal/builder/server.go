@@ -134,7 +134,7 @@ func createAuthHandler(appCtx *AppContext) (*auth.Handler, error) {
 		ClientSecret:      cfg.GoogleClientSecret,
 		RedirectURL:       redirectURL,
 		SessionAuthKey:    cfg.SessionSecret,
-		SessionEncryptKey: cfg.SessionSecret, // TODO::通常AESで利用されるため、16, 24, 32バイトのいずれかの長さである必
+		SessionEncryptKey: cfg.SessionEncryptKey,
 		SessionName:       defaultSessionName,
 		IsSecureCookie:    isSecure,
 		AllowedEmails:     cfg.AllowedEmails,

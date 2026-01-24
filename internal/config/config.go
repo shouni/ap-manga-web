@@ -44,6 +44,7 @@ type Config struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 	SessionSecret      string
+	SessionEncryptKey  string
 
 	// Authz Settings
 	AllowedEmails  []string
@@ -90,6 +91,7 @@ func LoadConfig() Config {
 		GoogleClientID:     envutil.GetEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: envutil.GetEnv("GOOGLE_CLIENT_SECRET", ""),
 		SessionSecret:      envutil.GetEnv("SESSION_SECRET", ""),
+		SessionEncryptKey:  envutil.GetEnv("SESSION_ENCRYPT_KEY", ""),
 		AllowedEmails:      text.ParseCommaSeparatedList(allowedEmails),
 		AllowedDomains:     text.ParseCommaSeparatedList(allowedDomains),
 
