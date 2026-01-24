@@ -67,7 +67,8 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `IMAGE_MODEL` | 画像生成に使用するモデル名 | `gemini-3-pro-image-preview` |
 | `GOOGLE_CLIENT_ID` | OAuthクライアントID | - |
 | `GOOGLE_CLIENT_SECRET` | OAuthクライアントシークレット | - |
-| `SESSION_SECRET` | セッション暗号化用のランダム文字列 | - |
+| `SESSION_SECRET` | セッションデータのHMAC署名用シークレット | - |
+| `SESSION_ENCRYPT_KEY` | セッションデータのAES暗号化用シークレット | - |
 | `ALLOWED_EMAILS` | 許可するメールアドレス（カンマ区切り） | - |
 | `ALLOWED_DOMAINS` | 許可するドメイン（例: `example.com`） | - |
 | `SLACK_WEBHOOK_URL` | 通知を送る先の Slack Webhook URL | - |
