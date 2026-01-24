@@ -19,8 +19,8 @@ import (
 
 const defaultSessionName = "ap-manga-session"
 
-// TaskExecutor は、ライブラリ側のインターフェース定義に合わせた
-// domain.GenerateTaskPayload 専用のエグゼキューター定義です。
+// TaskExecutor は、非同期タスクのペイロードを受け取り、
+// 対応するビジネスロジックを実行する責務を抽象化します。
 type TaskExecutor interface {
 	// Execute はデコードされたペイロードを受け取り、漫画生成の各パイプラインを実行します。
 	Execute(ctx context.Context, payload domain.GenerateTaskPayload) error
