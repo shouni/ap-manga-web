@@ -118,6 +118,8 @@ github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRI
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
+github.com/shouni/gcp-kit v1.0.1 h1:FMHWE7jCIu50jCQE4Mj3MlvGTdri/CbLDeoDMDMOwYc=
+github.com/shouni/gcp-kit v1.0.1/go.mod h1:M/77f3gM9taUjGAV3hZZF+zvNG7OWViTyqiEeJCPnfo=
 github.com/shouni/gemini-image-kit v1.2.5 h1:DZ26UqiIFnDuhzHQq72czKdPxK9F1dAaApksoCkwC0Q=
 github.com/shouni/gemini-image-kit v1.2.5/go.mod h1:bkJmNM9mixZwaOGedlfR7BNz4c49d3jG8D4sV25UnhI=
 github.com/shouni/go-gemini-client v1.0.5 h1:SmjvNmpRqayKju5PHUlCb5HhjMxaArN0NzbL5ioFL/4=

@@ -10,10 +10,11 @@ import (
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/controllers/auth"
 	"ap-manga-web/internal/controllers/web"
-	"ap-manga-web/internal/controllers/worker"
+	"ap-manga-web/internal/domain"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/shouni/gcp-kit/worker"
 )
 
 // NewServerHandler は HTTP ルーティング、認証、各ハンドラーの依存関係をすべて組み立てます。
@@ -21,7 +22,7 @@ func NewServerHandler(
 	cfg config.Config,
 	appCtx *AppContext,
 	taskAdapter adapters.TaskAdapter,
-	pipelineExecutor worker.MangaPipelineExecutor,
+	pipelineExecutor worker.TaskExecutor[domain.GenerateTaskPayload],
 ) (http.Handler, error) {
 	// 1. 基本的なバリデーション（起動時の不備を早期に防ぐ）
 	if cfg.ServiceURL == "" {
@@ -48,7 +49,7 @@ func NewServerHandler(
 	}
 
 	// Worker Handler
-	workerHandler := worker.NewHandler(cfg, pipelineExecutor)
+	workerHandler := worker.NewHandler[domain.GenerateTaskPayload](pipelineExecutor)
 
 	// --- ルーティング定義 ---
 
@@ -90,7 +91,7 @@ func NewServerHandler(
 	// Cloud Tasks 専用ルート (Worker 用)
 	r.Group(func(r chi.Router) {
 		r.Use(authHandler.TaskOIDCVerificationMiddleware)
-		r.Post("/tasks/generate", workerHandler.GenerateTask)
+		r.Post("/tasks/generate", workerHandler.ProcessTask)
 	})
 
 	return r, nil
