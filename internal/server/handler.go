@@ -1,11 +1,8 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
 	"html/template"
-	"log/slog"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -71,36 +68,4 @@ func NewHandler(
 		reader:        reader,
 		signer:        signer,
 	}, nil
-}
-
-// render は HTML テンプレートをレンダリングし、レスポンスを書き込みます。
-func (h *Handler) render(w http.ResponseWriter, status int, pageName string, title string, data any) {
-	tmpl, ok := h.templateCache[pageName]
-	if !ok {
-		slog.Error("キャッシュ内にテンプレートが見つかりません", "page", pageName)
-		http.Error(w, "システムエラーが発生しました（テンプレート未定義）", http.StatusInternalServerError)
-		return
-	}
-
-	renderData := struct {
-		Title string
-		Data  any
-	}{
-		Title: title + titleSuffix,
-		Data:  data,
-	}
-
-	var buf bytes.Buffer
-	// レイアウトファイルをベースに実行します
-	if err := tmpl.ExecuteTemplate(&buf, "layout.html", renderData); err != nil {
-		slog.Error("テンプレートのレンダリングに失敗しました", "page", pageName, "error", err)
-		http.Error(w, "画面の表示中にエラーが発生しました", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(status)
-	if _, err := buf.WriteTo(w); err != nil {
-		slog.Error("レスポンスの書き込みに失敗しました", "error", err)
-	}
 }
