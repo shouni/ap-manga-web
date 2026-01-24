@@ -71,35 +71,35 @@ func setupCommonMiddleware(r *chi.Mux) {
 func setupRoutes(
 	r chi.Router,
 	cfg config.Config,
-	authH *auth.Handler,
-	webH *server.Handler,
-	workerH *worker.Handler[domain.GenerateTaskPayload],
+	authHandler *auth.Handler,
+	webHandler *server.Handler,
+	workerHandler *worker.Handler[domain.GenerateTaskPayload],
 ) {
 	// --- 公開ルート (OAuth2 認証フロー) ---
 	r.Route("/auth", func(r chi.Router) {
-		r.Get("/login", authH.Login)
-		r.Get("/callback", authH.Callback)
+		r.Get("/login", authHandler.Login)
+		r.Get("/callback", authHandler.Callback)
 	})
 
 	// --- 認証が必要なルート (Web UI 用) ---
 	r.Group(func(r chi.Router) {
-		r.Use(authH.Middleware)
+		r.Use(authHandler.Middleware)
 
-		r.Get("/", webH.Index)
-		r.Get("/design", webH.Design)
-		r.Get("/script", webH.Script)
-		r.Get("/panel", webH.Panel)
-		r.Get("/page", webH.Page)
+		r.Get("/", webHandler.Index)
+		r.Get("/design", webHandler.Design)
+		r.Get("/script", webHandler.Script)
+		r.Get("/panel", webHandler.Panel)
+		r.Get("/page", webHandler.Page)
 
-		r.Post("/generate", webH.HandleSubmit)
+		r.Post("/generate", webHandler.HandleSubmit)
 
-		setupOutputRoutes(r, cfg.BaseOutputDir, webH)
+		setupOutputRoutes(r, cfg.BaseOutputDir, webHandler)
 	})
 
 	// --- Cloud Tasks 専用ルート (Worker 用) ---
 	r.Group(func(r chi.Router) {
-		r.Use(authH.TaskOIDCVerificationMiddleware)
-		r.Post("/tasks/generate", workerH.ProcessTask)
+		r.Use(authHandler.TaskOIDCVerificationMiddleware)
+		r.Post("/tasks/generate", workerHandler.ProcessTask)
 	})
 }
 
