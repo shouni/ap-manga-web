@@ -202,7 +202,7 @@ sequenceDiagram
 
 * [shouni/gcp-kit](https://github.com/shouni/gcp-kit) - GCP上でのWebツールキット
 * [shouni/go-remote-io](https://github.com/shouni/go-remote-io) - I/O操作を統一化ライブラリ
-* [shouni/go-manga-kit](https://github.com/shouni/go-manga-kit) - 作画制作ワークフロー
+* [shouni/go-manga-kit](https://github.com/shouni/go-manga-kit) - 自動ページ分割に対応した作画制作ワークフロー
 
 ## 📜 ライセンス (License)
 

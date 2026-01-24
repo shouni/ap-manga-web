@@ -22,8 +22,7 @@ import (
 // AppContext はアプリケーションの依存関係を保持します。
 // 各フィールドをインターフェースで定義することで、将来的なモック利用を容易にします。
 type AppContext struct {
-	Config     config.Config
-	HTTPClient httpkit.ClientInterface
+	Config config.Config
 
 	// I/O and Storage
 	IOFactory remoteio.IOFactory
@@ -38,6 +37,7 @@ type AppContext struct {
 	Workflow workflow.Workflow
 
 	// External Adapters
+	HTTPClient    httpkit.ClientInterface
 	SlackNotifier adapters.SlackNotifier
 }
 
@@ -75,7 +75,7 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		QueueID:             cfg.QueueID,
 		WorkerURL:           workerURL,
 		ServiceAccountEmail: cfg.ServiceAccountEmail,
-		Audience:            cfg.ServiceURL,
+		Audience:            cfg.TaskAudienceURL,
 	}
 	taskEnqueuer, err := tasks.NewEnqueuer[domain.GenerateTaskPayload](ctx, taskCfg)
 	if err != nil {
@@ -118,13 +118,13 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 
 	return &AppContext{
 		Config:        cfg,
-		HTTPClient:    httpClient,
 		IOFactory:     ioFactory,
 		Reader:        reader,
 		Writer:        writer,
 		Signer:        signer,
 		TaskEnqueuer:  taskEnqueuer,
 		Workflow:      workflowManager,
+		HTTPClient:    httpClient,
 		SlackNotifier: slack,
 	}, nil
 }
