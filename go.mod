@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/go-chi/chi/v5 v5.2.4
-	github.com/shouni/gcp-kit v1.0.1
+	github.com/shouni/gcp-kit v1.0.2
 	github.com/shouni/go-http-kit v1.2.1
 	github.com/shouni/go-manga-kit v1.5.11
 	github.com/shouni/go-notifier v1.1.4
