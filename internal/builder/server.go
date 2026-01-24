@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,16 +10,22 @@ import (
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/controllers/auth"
 	"ap-manga-web/internal/controllers/web"
-	"ap-manga-web/internal/controllers/worker"
+	"ap-manga-web/internal/domain"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/shouni/gcp-kit/worker"
 )
+
+// taskExecutor は、非同期タスクを受け取りレビュー処理のパイプラインを実行するインターフェースです。
+type taskExecutor interface {
+	Execute(ctx context.Context, payload domain.GenerateTaskPayload) error
+}
 
 // NewServerHandler は HTTP ルーティング、認証、各ハンドラーの依存関係をすべて組み立てます。
 func NewServerHandler(
 	appCtx *AppContext,
-	pipelineExecutor worker.MangaPipelineExecutor,
+	pipelineExecutor taskExecutor,
 ) (http.Handler, error) {
 	// 1. 基本的なバリデーション（起動時の不備を早期に防ぐ）
 	if appCtx.Config.ServiceURL == "" {
@@ -45,7 +52,7 @@ func NewServerHandler(
 	}
 
 	// Worker Handler
-	workerHandler := worker.NewHandler(appCtx.Config, pipelineExecutor)
+	workerHandler := worker.NewHandler(pipelineExecutor)
 
 	// --- ルーティング定義 ---
 
@@ -87,7 +94,7 @@ func NewServerHandler(
 	// Cloud Tasks 専用ルート (Worker 用)
 	r.Group(func(r chi.Router) {
 		r.Use(authHandler.TaskOIDCVerificationMiddleware)
-		r.Post("/tasks/generate", workerHandler.GenerateTask)
+		r.Post("/tasks/generate", workerHandler.ProcessTask)
 	})
 
 	return r, nil
