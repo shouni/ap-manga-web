@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/controllers/auth"
 	"ap-manga-web/internal/controllers/web"
 	"ap-manga-web/internal/domain"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/shouni/gcp-kit/auth"
 	"github.com/shouni/gcp-kit/worker"
 )
 
@@ -102,23 +102,27 @@ func NewServerHandler(
 
 // --- ヘルパー関数 ---
 
-// createAuthHandler initializes and returns an authentication handler based on the given configuration.
+// createAuthHandler は認証ハンドラーを初期化します
 func createAuthHandler(cfg config.Config) (*auth.Handler, error) {
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build auth redirect URL: %w", err)
 	}
 
-	return auth.NewHandler(auth.AuthConfig{
-		RedirectURL:     redirectURL,
-		TaskAudienceURL: cfg.ServiceURL,
-		ClientID:        cfg.GoogleClientID,
-		ClientSecret:    cfg.GoogleClientSecret,
-		SessionKey:      cfg.SessionSecret,
-		IsSecureCookie:  config.IsSecureURL(cfg.ServiceURL),
-		AllowedEmails:   cfg.AllowedEmails,
-		AllowedDomains:  cfg.AllowedDomains,
-	}), nil
+	// SessionEncryptKey は AES 用に 16/24/32 バイトである必要があります
+	// SessionSecret を流用していますが、本来は環境変数で個別に持つのが理想です
+	return auth.NewHandler(auth.Config{
+		ClientID:          cfg.GoogleClientID,
+		ClientSecret:      cfg.GoogleClientSecret,
+		RedirectURL:       redirectURL,
+		SessionAuthKey:    cfg.SessionSecret, // 署名用
+		SessionEncryptKey: cfg.SessionSecret, // 暗号化用 (長さが16,24,32であること)
+		SessionName:       "ap-manga-session",
+		IsSecureCookie:    strings.HasPrefix(cfg.ServiceURL, "https"),
+		AllowedEmails:     cfg.AllowedEmails,
+		AllowedDomains:    cfg.AllowedDomains,
+		TaskAudienceURL:   cfg.ServiceURL,
+	})
 }
 
 // getOutputRoutePrefix generates a URL route prefix by trimming slashes from baseDir and prefixing with a single slash.

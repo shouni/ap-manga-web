@@ -4,7 +4,6 @@ go 1.25
 
 require (
 	github.com/go-chi/chi/v5 v5.2.4
-	github.com/gorilla/sessions v1.4.0
 	github.com/shouni/gcp-kit v1.0.1
 	github.com/shouni/go-http-kit v1.2.1
 	github.com/shouni/go-manga-kit v1.5.11
@@ -12,8 +11,6 @@ require (
 	github.com/shouni/go-remote-io v1.2.0
 	github.com/shouni/go-utils v1.0.18
 	github.com/shouni/netarmor v1.0.0
-	golang.org/x/oauth2 v0.34.0
-	google.golang.org/api v0.262.0
 )
 
 require (
@@ -58,6 +55,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.11 // indirect
 	github.com/googleapis/gax-go/v2 v2.16.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
+	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
@@ -80,10 +78,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
+	google.golang.org/api v0.262.0 // indirect
 	google.golang.org/genai v1.43.0 // indirect
 	google.golang.org/genproto v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
