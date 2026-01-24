@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,10 +17,15 @@ import (
 	"github.com/shouni/gcp-kit/worker"
 )
 
+// taskExecutor は、非同期タスクを受け取りレビュー処理のパイプラインを実行するインターフェースです。
+type taskExecutor interface {
+	Execute(ctx context.Context, payload domain.GenerateTaskPayload) error
+}
+
 // NewServerHandler は HTTP ルーティング、認証、各ハンドラーの依存関係をすべて組み立てます。
 func NewServerHandler(
 	appCtx *AppContext,
-	pipelineExecutor worker.MangaPipelineExecutor,
+	taskExecutor taskExecutor,
 ) (http.Handler, error) {
 	// 1. 基本的なバリデーション（起動時の不備を早期に防ぐ）
 	if appCtx.Config.ServiceURL == "" {
@@ -46,7 +52,7 @@ func NewServerHandler(
 	}
 
 	// Worker Handler
-	workerHandler := worker.NewHandler(appCtx.Config, pipelineExecutor)
+	workerHandler := worker.NewHandler(taskExecutor)
 
 	// --- ルーティング定義 ---
 
