@@ -105,5 +105,7 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution)
 		return "", 0, fmt.Errorf("キャラクターIDが必要です")
 	}
 
-	return runner.Run(ctx, charIDs, exec.payload.Seed, p.appCtx.Config.GCSBucket)
+	outputDir := p.appCtx.Config.GetGCSObjectURL(p.appCtx.Config.BaseOutputDir)
+
+	return runner.Run(ctx, charIDs, exec.payload.Seed, outputDir)
 }
