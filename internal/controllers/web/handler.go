@@ -26,8 +26,8 @@ type Handler struct {
 	signer        remoteio.URLSigner
 }
 
-// NewHandler 指定された構成、アダプター、入力リーダー、および URL 署名を使用して新しいハンドラーを初期化し、返します。
-// 指定されたディレクトリからテンプレートをコンパイルし、その中にレイアウト ファイルが存在することを確認します。
+// NewHandler は指定された構成に基づいて新しいハンドラーを初期化します。
+// テンプレートをコンパイルし、レイアウトファイルが存在することを確認します。
 func NewHandler(
 	cfg config.Config,
 	taskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload],
@@ -38,12 +38,12 @@ func NewHandler(
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
 	if _, err := os.Stat(layoutPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("layout template not found: %s", layoutPath)
+		return nil, fmt.Errorf("レイアウトテンプレートが見つかりません: %s", layoutPath)
 	}
 
 	pagePaths, err := filepath.Glob(filepath.Join(cfg.TemplateDir, "*.html"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to glob for page templates: %w", err)
+		return nil, fmt.Errorf("ページテンプレートの検索に失敗しました: %w", err)
 	}
 
 	funcMap := template.FuncMap{
@@ -59,7 +59,7 @@ func NewHandler(
 		tmpl := template.New(pageName).Funcs(funcMap)
 		tmpl, err = tmpl.ParseFiles(layoutPath, pagePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse template %s: %w", pageName, err)
+			return nil, fmt.Errorf("テンプレート %s の解析に失敗しました: %w", pageName, err)
 		}
 		cache[pageName] = tmpl
 	}
@@ -73,12 +73,12 @@ func NewHandler(
 	}, nil
 }
 
-// render HTML テンプレートをレンダリングし、指定されたステータスとページの詳細とともにレスポンス ライターに書き込みます
+// render は HTML テンプレートをレンダリングし、レスポンスを書き込みます。
 func (h *Handler) render(w http.ResponseWriter, status int, pageName string, title string, data any) {
 	tmpl, ok := h.templateCache[pageName]
 	if !ok {
-		slog.Error("Template not found in cache", "page", pageName)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		slog.Error("キャッシュ内にテンプレートが見つかりません", "page", pageName)
+		http.Error(w, "システムエラーが発生しました（テンプレート未定義）", http.StatusInternalServerError)
 		return
 	}
 
@@ -91,13 +91,16 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageName string, tit
 	}
 
 	var buf bytes.Buffer
+	// レイアウトファイルをベースに実行します
 	if err := tmpl.ExecuteTemplate(&buf, "layout.html", renderData); err != nil {
-		slog.Error("Failed to render template", "page", pageName, "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		slog.Error("テンプレートのレンダリングに失敗しました", "page", pageName, "error", err)
+		http.Error(w, "画面の表示中にエラーが発生しました", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	buf.WriteTo(w)
+	if _, err := buf.WriteTo(w); err != nil {
+		slog.Error("レスポンスの書き込みに失敗しました", "error", err)
+	}
 }
