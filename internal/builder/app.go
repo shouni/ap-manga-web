@@ -110,7 +110,7 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		return nil, fmt.Errorf("failed to create workflow builder: %w", err)
 	}
 
-	// 5. Slack アダプターの初期化
+	// 6. Slack アダプターの初期化
 	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
