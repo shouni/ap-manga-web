@@ -15,50 +15,44 @@ import (
 	"ap-manga-web/internal/pipeline"
 )
 
+// Run は、設定ロード、バリデーション、サーバーのライフサイクル管理を行います。
 func Run(ctx context.Context) error {
-	// 1. 設定のロードとバリデーション
 	cfg := config.LoadConfig()
 	if err := config.ValidateEssentialConfig(cfg); err != nil {
 		return fmt.Errorf("config validation failed: %w", err)
 	}
 
-	// 2. アプリケーションコンテキストの構築
 	appCtx, err := builder.BuildAppContext(ctx, cfg)
 	if err != nil {
-		// ここでは Fatal せず、run の戻り値としてエラーを返すのが綺麗なのだ
 		return fmt.Errorf("failed to build application context: %w", err)
 	}
-	// リソースを解放する
 	defer func() {
-		slog.Info("Closing application context...")
+		slog.Info("♻️ Closing application context...")
 		appCtx.Close()
 	}()
 
+	// 1. ハンドラーの組み立て (builder からハンドラーセットを取得)
 	mangaPipeline := pipeline.NewMangaPipeline(appCtx)
-
-	// 3. ハンドラーの作成 (Web & Worker を含む)
-	handler, err := builder.NewServerHandler(appCtx, mangaPipeline)
+	h, err := builder.BuildHandlers(appCtx, mangaPipeline)
 	if err != nil {
-		return fmt.Errorf("failed to create server handler: %w", err)
+		return fmt.Errorf("failed to build handlers: %w", err)
 	}
+
+	// 2. ルーターの構築 (このパッケージ内でルーティングを定義)
+	router := NewRouter(cfg, h)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: handler,
+		Handler: router,
 	}
 
-	// 5. サーバー起動
+	// --- サーバー起動とシグナル待機 ---
 	serverErrors := make(chan error, 1)
 	go func() {
-		slog.Info("🚀 Server starting...",
-			"port", cfg.Port,
-			"service_url", cfg.ServiceURL,
-			"project_id", cfg.ProjectID,
-		)
+		slog.Info("🚀 Server starting...", "port", cfg.Port, "service_url", cfg.ServiceURL)
 		serverErrors <- srv.ListenAndServe()
 	}()
 
-	// 6. シグナル待機 (Graceful Shutdown)
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
@@ -67,27 +61,19 @@ func Run(ctx context.Context) error {
 		if !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("server error: %w", err)
 		}
-
 	case <-shutdown:
-		slog.Info("Starting graceful shutdown...")
-
-		// ShutdownTimeout が設定されていない場合の安全策
+		slog.Info("⚠️ Starting graceful shutdown...")
 		timeout := cfg.ShutdownTimeout
 		if timeout == 0 {
-			timeout = 30 // デフォルト30秒なのだ
+			timeout = 30
 		}
-
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		if err := srv.Shutdown(shutdownCtx); err != nil {
-			slog.Error("Graceful shutdown failed", "error", err)
-			if err := srv.Close(); err != nil {
-				return fmt.Errorf("could not stop server gracefully: %w", err)
-			}
+			return fmt.Errorf("could not stop server gracefully: %w", err)
 		}
-		slog.Info("Server stopped cleanly")
+		slog.Info("✅ Server stopped cleanly")
 	}
-
 	return nil
 }
