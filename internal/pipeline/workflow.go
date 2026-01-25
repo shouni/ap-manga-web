@@ -6,15 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"ap-manga-web/internal/builder"
-
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
 // runScriptStep はスクリプト生成フェーズを実行し、生成された台本をJSONとしてGCSに保存します。
 func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution) (*mangadom.MangaResponse, string, error) {
-	runner, err := builder.BuildScriptRunner(ctx, p.appCtx)
+	runner, err := p.appCtx.Workflow.BuildScriptRunner()
 	if err != nil {
 		return nil, "", err
 	}
@@ -38,7 +36,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution)
 
 // runPanelStep は台本に基づき画像を生成・保存し、更新された台本を返します。
 func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) (*mangadom.MangaResponse, error) {
-	runner, err := builder.BuildPanelImageRunner(ctx, p.appCtx)
+	runner, err := p.appCtx.Workflow.BuildPanelImageRunner()
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +47,7 @@ func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *mangadom.MangaR
 
 // runPublishStep は漫画データを統合し、HTML等を出力します。
 func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) (publisher.PublishResult, error) {
-	runner, err := builder.BuildPublishRunner(ctx, p.appCtx)
+	runner, err := p.appCtx.Workflow.BuildPublishRunner()
 	if err != nil {
 		return publisher.PublishResult{}, err
 	}
@@ -78,8 +76,7 @@ func (p *MangaPipeline) runPageStep(ctx context.Context, manga *mangadom.MangaRe
 	if manga == nil {
 		return nil, fmt.Errorf("manga data is nil")
 	}
-	// 1. ビルダーを介して Runner を構築
-	pageRunner, err := builder.BuildPageImageRunner(ctx, p.appCtx)
+	pageRunner, err := p.appCtx.Workflow.BuildPageImageRunner()
 	if err != nil {
 		return nil, fmt.Errorf("PageImageRunnerの構築に失敗しました: %w", err)
 	}
@@ -95,7 +92,7 @@ func (p *MangaPipeline) runPageStep(ctx context.Context, manga *mangadom.MangaRe
 
 // runDesignStep はデザインシート生成します。
 func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution) (string, int64, error) {
-	runner, err := builder.BuildDesignRunner(ctx, p.appCtx)
+	runner, err := p.appCtx.Workflow.BuildDesignRunner()
 	if err != nil {
 		return "", 0, err
 	}
