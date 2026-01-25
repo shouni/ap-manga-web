@@ -14,12 +14,12 @@ import (
 func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution) (*mangadom.MangaResponse, string, error) {
 	runner, err := p.appCtx.Workflow.BuildScriptRunner()
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("ScriptRunnerの構築に失敗しました: %w", err)
 	}
 
 	manga, err := runner.Run(ctx, exec.payload.ScriptURL, exec.payload.Mode)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("ScriptRunnerの実行に失敗しました: %w", err)
 	}
 
 	plotFile := exec.resolvePlotFileURL(manga)
@@ -38,7 +38,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution)
 func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) (*mangadom.MangaResponse, error) {
 	runner, err := p.appCtx.Workflow.BuildPanelImageRunner()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("PanelImageRunnerの構築に失敗しました: %w", err)
 	}
 	plotFile := exec.resolvePlotFileURL(manga)
 
@@ -49,7 +49,7 @@ func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *mangadom.MangaR
 func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *mangadom.MangaResponse, exec *mangaExecution) (publisher.PublishResult, error) {
 	runner, err := p.appCtx.Workflow.BuildPublishRunner()
 	if err != nil {
-		return publisher.PublishResult{}, err
+		return publisher.PublishResult{}, fmt.Errorf("PublishRunnerの構築に失敗しました: %w", err)
 	}
 
 	return runner.Run(ctx, manga, exec.resolveOutputURL(manga))
@@ -94,7 +94,7 @@ func (p *MangaPipeline) runPageStep(ctx context.Context, manga *mangadom.MangaRe
 func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution) (string, int64, error) {
 	runner, err := p.appCtx.Workflow.BuildDesignRunner()
 	if err != nil {
-		return "", 0, err
+		return "", 0, fmt.Errorf("DesignRunnerの構築に失敗しました: %w", err)
 	}
 
 	charIDs := p.parseCSV(exec.payload.InputText)
