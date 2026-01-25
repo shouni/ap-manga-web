@@ -142,7 +142,7 @@ ap-manga-web/
 │   ├── pipeline/                 # 指揮官（ビジネスロジックのフロー制御）
 │   │   ├── pipeline.go           # メインの実行フロー定義
 │   │   ├── manga_execution.go    # 漫画生成の具体的な実行フェーズ
-│   │   ├── steps.go              # 各ステップ（解析、生成等）の定義
+│   │   ├── workflow.go           # 各ステップ（解析、生成等）の定義
 │   │   ├── pipeline_helpers.go   # パイプライン内での補助処理
 │   │   └── utils.go              # 共通ユーティリティ
 │   └── server/                   # HTTP サーバー層
