@@ -20,7 +20,6 @@ import (
 )
 
 // AppContext はアプリケーションの依存関係を保持します。
-// 各フィールドをインターフェースで定義することで、将来的なモック利用を容易にします。
 type AppContext struct {
 	Config config.Config
 
@@ -43,32 +42,83 @@ type AppContext struct {
 
 // BuildAppContext は外部サービスとの接続を確立し、依存関係を組み立てます。
 func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error) {
-	// 1. 基盤クライアントの初期化
+	// 1. HttpClient (全アダプターの基盤)
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
 
-	// 2. I/O インフラ (GCS等) の初期化
-	ioFactory, err := gcsfactory.New(ctx)
+	// 2. I/O Infrastructure (GCS)
+	io, err := buildIO(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize IO components: %w", err)
+	}
+
+	// 3. Task Enqueuer
+	enqueuer, err := buildTaskEnqueuer(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize task enqueuer: %w", err)
+	}
+
+	// 4. Workflow (Core Logic)
+	wf, err := buildWorkflow(ctx, cfg, httpClient, io.reader, io.writer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create workflow builder: %w", err)
+	}
+
+	// 5. Slack Adapter
+	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
+	}
+
+	return &AppContext{
+		Config:        cfg,
+		IOFactory:     io.factory,
+		Reader:        io.reader,
+		Writer:        io.writer,
+		Signer:        io.signer,
+		TaskEnqueuer:  enqueuer,
+		Workflow:      wf,
+		HTTPClient:    httpClient,
+		SlackNotifier: slack,
+	}, nil
+}
+
+// --- Helpers ---
+
+type ioComponents struct {
+	factory remoteio.IOFactory
+	reader  remoteio.InputReader
+	writer  remoteio.OutputWriter
+	signer  remoteio.URLSigner
+}
+
+// buildIO は、リモート I/O 操作を処理するための ioComponents インスタンスを初期化して返します
+func buildIO(ctx context.Context) (*ioComponents, error) {
+	factory, err := gcsfactory.New(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GCS factory: %w", err)
 	}
-	reader, err := ioFactory.InputReader()
+	r, err := factory.InputReader()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create input reader: %w", err)
 	}
-	writer, err := ioFactory.OutputWriter()
+	w, err := factory.OutputWriter()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create output writer: %w", err)
 	}
-	signer, err := ioFactory.URLSigner()
+	s, err := factory.URLSigner()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create URL signer: %w", err)
 	}
+	return &ioComponents{factory: factory, reader: r, writer: w, signer: s}, nil
+}
 
-	// 3. Cloud Tasks Enqueuer の初期化
+// buildTaskEnqueuer は、Cloud Tasks エンキューアを初期化して返します。
+func buildTaskEnqueuer(ctx context.Context, cfg config.Config) (*tasks.Enqueuer[domain.GenerateTaskPayload], error) {
 	workerURL, err := url.JoinPath(cfg.ServiceURL, "/tasks/generate")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build worker URL: %w", err)
 	}
+
 	taskCfg := tasks.Config{
 		ProjectID:           cfg.ProjectID,
 		LocationID:          cfg.LocationID,
@@ -77,18 +127,16 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		ServiceAccountEmail: cfg.ServiceAccountEmail,
 		Audience:            cfg.TaskAudienceURL,
 	}
-	taskEnqueuer, err := tasks.NewEnqueuer[domain.GenerateTaskPayload](ctx, taskCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize task enqueuer: %w", err)
-	}
+	return tasks.NewEnqueuer[domain.GenerateTaskPayload](ctx, taskCfg)
+}
 
-	// 4. キャラクターマップの読み込み
+// buildWorkflow は、ワークフローを初期化および構築します。
+func buildWorkflow(ctx context.Context, cfg config.Config, httpClient httpkit.ClientInterface, reader remoteio.InputReader, writer remoteio.OutputWriter) (workflow.Workflow, error) {
 	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, reader, cfg.CharacterConfig)
 	if err != nil {
-		return nil, fmt.Errorf("キャラクターマップの読み込みに失敗しました (path: %s): %w", cfg.CharacterConfig, err)
+		return nil, fmt.Errorf("failed to load character map (path: %s): %w", cfg.CharacterConfig, err)
 	}
 
-	// 5. ワークフロービルダーの構築
 	args := workflow.ManagerArgs{
 		Config: mangaKitCfg.Config{
 			GeminiAPIKey: cfg.GeminiAPIKey,
@@ -101,35 +149,11 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 		Reader:        reader,
 		Writer:        writer,
 		CharactersMap: charsMap,
-		ScriptPrompt:  nil,
-		ImagePrompt:   nil,
 	}
-
-	workflowManager, err := workflow.New(ctx, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create workflow builder: %w", err)
-	}
-
-	// 6. Slack アダプターの初期化
-	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
-	}
-
-	return &AppContext{
-		Config:        cfg,
-		IOFactory:     ioFactory,
-		Reader:        reader,
-		Writer:        writer,
-		Signer:        signer,
-		TaskEnqueuer:  taskEnqueuer,
-		Workflow:      workflowManager,
-		HTTPClient:    httpClient,
-		SlackNotifier: slack,
-	}, nil
+	return workflow.New(ctx, args)
 }
 
-// Close は、AppContextが保持するすべてのリソース（クライアント接続など）を解放します。
+// Close は、AppContextが保持するすべてのリソースを解放します。
 func (a *AppContext) Close() {
 	if a.IOFactory != nil {
 		if err := a.IOFactory.Close(); err != nil {
