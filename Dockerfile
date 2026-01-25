@@ -13,10 +13,8 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 WORKDIR /app
-
 COPY templates /app/templates
 COPY internal/config/characters.json /app/internal/config/characters.json
-
 COPY --from=builder /app/main /app/main
 
 ENV TZ=Asia/Tokyo
