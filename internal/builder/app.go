@@ -48,7 +48,7 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 	// 2. I/O Infrastructure (GCS)
 	io, err := buildIO(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize IO components: %w", err)
 	}
 
 	// 3. Task Enqueuer
