@@ -131,8 +131,7 @@ ap-manga-web/
 │   │   └── slack_adapter.go      # Slack通知の実装
 │   ├── builder/                  # DIコンテナ / 依存関係の組み立て
 │   │   ├── app.go                # AppContext（基盤クライアント群）の定義と構築
-│   │   ├── handlers.go           # 各種HTTPハンドラーの生成
-│   │   └── runners.go            # Pipeline等、実行コンポーネントの構築
+│   │   └── handlers.go           # 各種HTTPハンドラーの生成
 │   ├── config/                   # 設定・リソース管理
 │   │   ├── characters.json       # キャラクターDNA定義（マスターデータ）
 │   │   ├── config.go             # 設定構造体とロード処理
