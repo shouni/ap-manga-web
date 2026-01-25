@@ -82,11 +82,12 @@ func Run(ctx context.Context) error {
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			slog.Error("Graceful shutdown failed, forcing close", "error", err)
 
-			// シャットダウンに失敗した場合は強制的にクローズしてリソースを解放する
 			if closeErr := srv.Close(); closeErr != nil {
-				return fmt.Errorf("could not stop server: shutdown error: %v, close error: %v", err, closeErr)
+				// 両方のエラーをラップして返す
+				return errors.Join(err, fmt.Errorf("subsequent server close also failed: %w", closeErr))
 			}
-			return fmt.Errorf("could not stop server gracefully: %w", err)
+			// 強制クローズは成功したが、元のシャットダウンエラーを報告する
+			return fmt.Errorf("graceful shutdown failed, server was forcibly closed: %w", err)
 		}
 
 		slog.Info("✅ Server stopped cleanly")
