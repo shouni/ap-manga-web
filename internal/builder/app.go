@@ -54,13 +54,13 @@ func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error
 	// 3. Task Enqueuer
 	enqueuer, err := buildTaskEnqueuer(ctx, cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize task enqueuer: %w", err)
 	}
 
 	// 4. Workflow (Core Logic)
 	wf, err := buildWorkflow(ctx, cfg, httpClient, io.reader, io.writer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create workflow builder: %w", err)
 	}
 
 	// 5. Slack Adapter
@@ -130,7 +130,7 @@ func buildTaskEnqueuer(ctx context.Context, cfg config.Config) (*tasks.Enqueuer[
 	return tasks.NewEnqueuer[domain.GenerateTaskPayload](ctx, taskCfg)
 }
 
-// buildWorkflow は、ークフローを初期化および構築します。
+// buildWorkflow は、ワークフローを初期化および構築します。
 func buildWorkflow(ctx context.Context, cfg config.Config, httpClient httpkit.ClientInterface, reader remoteio.InputReader, writer remoteio.OutputWriter) (workflow.Workflow, error) {
 	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, reader, cfg.CharacterConfig)
 	if err != nil {
