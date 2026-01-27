@@ -6,7 +6,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/shouni/gcp-kit v1.0.2
 	github.com/shouni/go-http-kit v1.2.1
-	github.com/shouni/go-manga-kit v1.5.13
+	github.com/shouni/go-manga-kit v1.5.14
 	github.com/shouni/go-notifier v1.1.4
 	github.com/shouni/go-remote-io v1.2.0
 	github.com/shouni/go-utils v1.0.18
@@ -62,7 +62,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shouni/gemini-image-kit v1.2.6 // indirect
 	github.com/shouni/go-gemini-client v1.0.5 // indirect
-	github.com/shouni/go-text-format v1.1.3 // indirect
+	github.com/shouni/go-text-format v1.2.0 // indirect
 	github.com/shouni/go-web-exact/v2 v2.0.13 // indirect
 	github.com/slack-go/slack v0.17.3 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
