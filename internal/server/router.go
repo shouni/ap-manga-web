@@ -16,7 +16,7 @@ import (
 )
 
 // NewRouter は、ミドルウェアとルーティングを統合した http.Handler を構築します。
-func NewRouter(cfg config.Config, h *builder.AppHandlers) http.Handler {
+func NewRouter(cfg *config.Config, h *builder.AppHandlers) http.Handler {
 	r := chi.NewRouter()
 
 	setupCommonMiddleware(r)
@@ -25,15 +25,17 @@ func NewRouter(cfg config.Config, h *builder.AppHandlers) http.Handler {
 	return r
 }
 
+// setupCommonMiddleware は、 ログ記録、リカバリ、パス クリーニングなど、提供されたルーターの共通ミドルウェアを構成します。
 func setupCommonMiddleware(r *chi.Mux) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.CleanPath)
 }
 
+// setupRoutes は、認証、Web UI、ワーカー タスク処理に基づいてアプリケーションの HTTP ルートを初期化します。
 func setupRoutes(
 	r chi.Router,
-	cfg config.Config,
+	cfg *config.Config,
 	authHandler *auth.Handler,
 	webHandler *handlers.Handler,
 	workerHandler *worker.Handler[domain.GenerateTaskPayload],
@@ -66,6 +68,7 @@ func setupRoutes(
 	})
 }
 
+// setupOutputRoutes は。指定されたベースディレクトリとハンドラを使用して、指定されたルーター上の出力関連のルートを設定します。
 func setupOutputRoutes(r chi.Router, baseDir string, webHandler *handlers.Handler) {
 	prefix := "/" + strings.Trim(baseDir, "/")
 	if prefix == "/" {

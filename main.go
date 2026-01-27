@@ -1,19 +1,30 @@
 package main
 
 import (
+	"ap-manga-web/internal/config"
 	"context"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"ap-manga-web/internal/server"
 )
 
 func main() {
-	// アプリケーション全体のロガーをJSON形式に設定します。
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	if err := server.Run(context.Background()); err != nil {
-		slog.Error("Application fatal error", "error", err)
+	cfg := config.LoadConfig()
+
+	// ここでバリデーションを呼ぶと、より堅牢になるのだ！
+	if err := config.ValidateEssentialConfig(cfg); err != nil {
+		slog.Error("Config validation failed", "error", err)
+		os.Exit(1)
+	}
+
+	if err := server.Run(ctx, cfg); err != nil {
+		slog.Error("Application failed", "error", err)
 		os.Exit(1)
 	}
 }
