@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"ap-manga-web/internal/builder"
@@ -19,10 +16,8 @@ import (
 // デフォルトのシャットダウン猶予時間
 const defaultShutdownTimeout = 30 * time.Second
 
-// Run は、サーバーの構築、起動、およびライフサイクル管理を行います。
-// Configを引数で受け取ることで、環境変数への直接依存を排除しています。
+// Run はサーバーの構築、起動、およびライフサイクル管理を行います。
 func Run(ctx context.Context, cfg *config.Config) error {
-	// 1. アプリケーションコンテキストの構築
 	appCtx, err := builder.BuildAppContext(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to build application context: %w", err)
@@ -32,7 +27,6 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		appCtx.Close()
 	}()
 
-	// 2. ハンドラーとルーターの組み立て
 	mangaPipeline := pipeline.NewMangaPipeline(appCtx)
 	h, err := builder.BuildHandlers(appCtx, mangaPipeline)
 	if err != nil {
@@ -46,7 +40,6 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		Handler: router,
 	}
 
-	// 3. サーバー起動とシグナル待機
 	serverErrors := make(chan error, 1)
 	go func() {
 		slog.Info("🚀 Server starting...", "port", cfg.Port, "service_url", cfg.ServiceURL)
@@ -55,16 +48,13 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		}
 	}()
 
-	// システムシグナルの待機
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-
+	// シグナル処理は main.go から渡された ctx に一任する
 	select {
 	case err := <-serverErrors:
 		return fmt.Errorf("server error: %w", err)
 
-	case sig := <-quit:
-		slog.Info("⚠️ Signal received, starting graceful shutdown...", "signal", sig)
+	case <-ctx.Done(): // シグナル受信時にここが通知される
+		slog.Info("⚠️ Shutdown signal received via context, starting graceful shutdown...")
 		return gracefulShutdown(srv, cfg.ShutdownTimeout)
 	}
 }
@@ -76,10 +66,11 @@ func gracefulShutdown(srv *http.Server, cfgTimeout time.Duration) error {
 		timeout = defaultShutdownTimeout
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	// シャットダウン用のタイムアウト付きコンテキスト
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("Graceful shutdown failed, forcing close", "error", err)
 		if closeErr := srv.Close(); closeErr != nil {
 			return errors.Join(err, fmt.Errorf("subsequent server close also failed: %w", closeErr))
