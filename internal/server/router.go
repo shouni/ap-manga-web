@@ -68,7 +68,7 @@ func setupRoutes(
 	})
 }
 
-// setupOutputRoutes は。指定されたベースディレクトリとハンドラを使用して、指定されたルーター上の出力関連のルートを設定します。
+// setupOutputRoutes は、指定されたベースディレクトリとハンドラを使用して、指定されたルーター上の出力関連のルートを設定します。
 func setupOutputRoutes(r chi.Router, baseDir string, webHandler *handlers.Handler) {
 	prefix := "/" + strings.Trim(baseDir, "/")
 	if prefix == "/" {
