@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 
@@ -22,16 +21,10 @@ type AppHandlers struct {
 	Worker *worker.Handler[domain.GenerateTaskPayload]
 }
 
-// TaskExecutor は、非同期タスクのペイロードを受け取り、
-// 対応するビジネスロジックを実行する責務を抽象化します。
-type TaskExecutor interface {
-	Execute(ctx context.Context, payload domain.GenerateTaskPayload) error
-}
-
 // BuildHandlers は各ハンドラーの依存関係をすべて組み立て、AppHandlers 構造体を返します。
 func BuildHandlers(
 	appCtx *AppContext,
-	executor TaskExecutor,
+	executor worker.TaskExecutor[domain.GenerateTaskPayload],
 ) (*AppHandlers, error) {
 	if appCtx.Config.ServiceURL == "" {
 		return nil, fmt.Errorf("認証リダイレクトのために ServiceURL の設定が必要です")
