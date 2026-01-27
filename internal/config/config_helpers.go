@@ -38,7 +38,7 @@ func (c Config) GetGCSObjectURL(path string) string {
 
 // ValidateEssentialConfig はアプリケーション実行に不可欠な設定を検証します。
 func ValidateEssentialConfig(cfg *Config) error {
-	if !IsSecureURL(cfg.ServiceURL) {
+	if !securenet.IsSecureServiceURL(cfg.ServiceURL) {
 		return fmt.Errorf("security error: SERVICE_URL ('%s') must be HTTPS in production", cfg.ServiceURL)
 	}
 
@@ -70,9 +70,4 @@ func ValidateEssentialConfig(cfg *Config) error {
 	}
 
 	return nil
-}
-
-// IsSecureURL は指定された URL が HTTPS または localhost であるか判定します。
-func IsSecureURL(rawURL string) bool {
-	return securenet.IsSecureServiceURL(rawURL)
 }
