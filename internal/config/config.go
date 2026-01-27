@@ -57,7 +57,7 @@ type Config struct {
 }
 
 // LoadConfig は環境変数から設定を読み込み、Config 構造体を生成します。
-func LoadConfig() Config {
+func LoadConfig() *Config {
 	serviceURL := envutil.GetEnv("SERVICE_URL", "http://localhost:8080")
 	allowedEmails := envutil.GetEnv("ALLOWED_EMAILS", "")
 	allowedDomains := envutil.GetEnv("ALLOWED_DOMAINS", "")
@@ -71,7 +71,7 @@ func LoadConfig() Config {
 	templateDir := path.Join(baseDir, "templates")
 	charConfig := path.Join(baseDir, DefaultCharactersFile)
 
-	return Config{
+	return &Config{
 		ServiceURL:          serviceURL,
 		Port:                envutil.GetEnv("PORT", "8080"),
 		ProjectID:           envutil.GetEnv("GCP_PROJECT_ID", "your-gcp-project"),

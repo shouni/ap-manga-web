@@ -21,7 +21,7 @@ import (
 
 // AppContext はアプリケーションの依存関係を保持します。
 type AppContext struct {
-	Config config.Config
+	Config *config.Config
 
 	// I/O and Storage
 	IOFactory remoteio.IOFactory
@@ -41,7 +41,7 @@ type AppContext struct {
 }
 
 // BuildAppContext は外部サービスとの接続を確立し、依存関係を組み立てます。
-func BuildAppContext(ctx context.Context, cfg config.Config) (*AppContext, error) {
+func BuildAppContext(ctx context.Context, cfg *config.Config) (*AppContext, error) {
 	// 1. HttpClient (全アダプターの基盤)
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
 
@@ -113,7 +113,7 @@ func buildIO(ctx context.Context) (*ioComponents, error) {
 }
 
 // buildTaskEnqueuer は、Cloud Tasks エンキューアを初期化して返します。
-func buildTaskEnqueuer(ctx context.Context, cfg config.Config) (*tasks.Enqueuer[domain.GenerateTaskPayload], error) {
+func buildTaskEnqueuer(ctx context.Context, cfg *config.Config) (*tasks.Enqueuer[domain.GenerateTaskPayload], error) {
 	workerURL, err := url.JoinPath(cfg.ServiceURL, "/tasks/generate")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build worker URL: %w", err)
@@ -131,7 +131,7 @@ func buildTaskEnqueuer(ctx context.Context, cfg config.Config) (*tasks.Enqueuer[
 }
 
 // buildWorkflow は、ワークフローを初期化および構築します。
-func buildWorkflow(ctx context.Context, cfg config.Config, httpClient httpkit.ClientInterface, reader remoteio.InputReader, writer remoteio.OutputWriter) (workflow.Workflow, error) {
+func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, reader remoteio.InputReader, writer remoteio.OutputWriter) (workflow.Workflow, error) {
 	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, reader, cfg.CharacterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load character map (path: %s): %w", cfg.CharacterConfig, err)
