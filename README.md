@@ -154,7 +154,7 @@ ap-manga-web/
 │           ├── handler.go          # ハンドラー共通構造体・基盤
 │           ├── view_handlers.go    # 各種画面表示（Index, Design, Page等）
 │           ├── submit_handler.go   # フォーム送信・タスク投入
-│           ├── output_handler.go   # 生成された成果物の配信制御
+│           ├── preview_handler.go  # 生成された成果物の配信制御
 │           └── handler_helpers.go  # ハンドラー内の共通補助処理
 └── templates/                      # UIテンプレート (Bootstrap 5)
 
