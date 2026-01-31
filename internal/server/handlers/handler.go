@@ -17,7 +17,6 @@ import (
 const titleSuffix = " - AP Manga Web"
 
 type Handler struct {
-	//	appCtx *app.AppContext
 	cfg           *config.Config
 	templateCache map[string]*template.Template
 	taskEnqueuer  *tasks.Enqueuer[domain.GenerateTaskPayload]
@@ -29,7 +28,6 @@ type Handler struct {
 // NewHandler は指定された構成に基づいて新しいハンドラーを初期化します。
 // テンプレートをコンパイルし、レイアウトファイルが存在することを確認します。
 func NewHandler(
-	//	appCtx *app.AppContext,
 	cfg *config.Config,
 	taskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload],
 	reader remoteio.InputReader,
