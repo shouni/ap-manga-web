@@ -26,6 +26,7 @@ type AppHandlers struct {
 // BuildHandlers は各ハンドラーの依存関係をすべて組み立て、AppHandlers 構造体を返します。
 func BuildHandlers(
 	appCtx *app.Context,
+	executor pipeline.Pipeline,
 ) (*AppHandlers, error) {
 	if appCtx.Config.ServiceURL == "" {
 		return nil, fmt.Errorf("認証リダイレクトのために ServiceURL の設定が必要です")
@@ -44,7 +45,6 @@ func BuildHandlers(
 	}
 
 	// 3. 非同期ワーカー用Handlerの初期化
-	executor := pipeline.NewMangaPipeline(appCtx)
 	workerHandler := worker.NewHandler[domain.GenerateTaskPayload](executor)
 
 	return &AppHandlers{

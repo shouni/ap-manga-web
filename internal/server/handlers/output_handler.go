@@ -68,9 +68,14 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	// 3. マッピング処理：構造体内の相対パスを署名付きURLに置き換える
 	panelMap := make(map[string]string)
 	for _, u := range signedPanelURLs {
-		// 署名付きURLのクエリパラメータを除去してファイル名を取得
 		cleanPath := strings.Split(u, "?")[0]
-		panelMap[path.Base(cleanPath)] = u
+		fileName := path.Base(cleanPath)
+
+		if existing, ok := panelMap[fileName]; ok {
+			slog.WarnContext(ctx, "ファイル名の衝突を検知しました。画像が正しく表示されない可能性があります",
+				"filename", fileName, "existing", existing, "new", u)
+		}
+		panelMap[fileName] = u
 	}
 
 	for i := range manga.Panels {

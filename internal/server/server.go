@@ -1,6 +1,7 @@
 package server
 
 import (
+	"ap-manga-web/internal/pipeline"
 	"context"
 	"errors"
 	"fmt"
@@ -26,7 +27,8 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		appCtx.Close()
 	}()
 
-	h, err := builder.BuildHandlers(appCtx)
+	executor := pipeline.NewMangaPipeline(appCtx)
+	h, err := builder.BuildHandlers(appCtx, executor)
 	if err != nil {
 		return fmt.Errorf("failed to build handlers: %w", err)
 	}
