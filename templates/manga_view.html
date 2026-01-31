@@ -72,17 +72,17 @@
 
         <div class="tab-pane fade" id="panels" role="tabpanel" aria-labelledby="panels-tab">
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                {{range $index, $page := .Data.Manga.Pages}}
+                {{range $index, $panel := .Data.Manga.Panels}}
                 <div class="col">
                     <div class="card h-100 border-0 shadow-sm panel-card overflow-hidden">
                         <div class="position-relative overflow-hidden bg-light" style="aspect-ratio: 1/1;">
-                            <img src="{{$page.ReferenceURL}}" class="card-img-top w-100 h-100 object-fit-contain" alt="Panel {{$index}}" loading="lazy">
+                            <img src="{{$panel.ReferenceURL}}" class="card-img-top w-100 h-100 object-fit-contain" alt="Panel {{$index}}" loading="lazy">
                             <div class="position-absolute top-0 start-0 m-2">
                                 <span class="badge bg-dark opacity-75">Panel #{{add $index 1}}</span>
                             </div>
                         </div>
                         <div class="card-body py-2 bg-light text-center border-top">
-                            <small class="text-muted fw-bold">{{if $page.SpeakerID}}{{$page.SpeakerID}}{{else}}背景/演出{{end}}</small>
+                            <small class="text-muted fw-bold">{{if $panel.SpeakerID}}{{$panel.SpeakerID}}{{else}}背景/演出{{end}}</small>
                         </div>
                     </div>
                 </div>
