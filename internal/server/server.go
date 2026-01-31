@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"ap-manga-web/internal/pipeline"
-
 	"ap-manga-web/internal/builder"
 	"ap-manga-web/internal/config"
 )
@@ -28,7 +26,7 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		appCtx.Close()
 	}()
 
-	executor := pipeline.NewMangaPipeline(appCtx)
+	executor := builder.BuildPipeline(appCtx)
 	h, err := builder.BuildHandlers(appCtx, executor)
 	if err != nil {
 		return fmt.Errorf("failed to build handlers: %w", err)
