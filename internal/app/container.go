@@ -24,7 +24,8 @@ type Container struct {
 	TaskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload]
 
 	// Business Logic
-	Workflow *Workflow
+	// Workflow holds the collection of runners provided by the manga-kit.
+	Workflow *workflow.Runners
 
 	// External Adapters
 	HTTPClient    httpkit.ClientInterface
@@ -45,15 +46,6 @@ func (r *RemoteIO) Close() error {
 		return r.Factory.Close()
 	}
 	return nil
-}
-
-// Workflow は、構築済みの各 Runner を保持します。
-type Workflow struct {
-	DesignRunner     workflow.DesignRunner
-	ScriptRunner     workflow.ScriptRunner
-	PanelImageRunner workflow.PanelImageRunner
-	PageImageRunner  workflow.PageImageRunner
-	PublishRunner    workflow.PublishRunner
 }
 
 // Close は、Container が保持するすべての外部接続リソースを安全に解放します。
