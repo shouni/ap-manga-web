@@ -23,7 +23,6 @@ type mangaViewData struct {
 	Title         string
 	OriginalTitle string
 	Manga         domain.MangaResponse // JSONからデコードしURL置換済みのデータ
-	PlotContent   string               // URL置換済みのMarkdown
 	PageURLs      []string             // ページ全体画像の署名付きURL
 }
 
@@ -87,8 +86,6 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 4. 置換後の構造体から Markdown を構築する
-	plotMarkdown := h.workflow.Publish.BuildMarkdown(&manga)
 	// 署名付きURLの有効期限に同期させる
 	cacheAgeSec := int64(config.SignedURLExpiration.Seconds())
 	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", cacheAgeSec))
@@ -98,7 +95,6 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		Title:         title,
 		OriginalTitle: manga.Title,
 		Manga:         manga,
-		PlotContent:   plotMarkdown,
 		PageURLs:      signedPageURLs,
 	})
 }

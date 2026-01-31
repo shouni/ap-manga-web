@@ -36,7 +36,7 @@
                     <div class="text-center">
                         <span class="badge rounded-pill mb-3 px-3 py-2 shadow-sm" style="background-color: var(--zunda-green);">PAGE {{add $index 1}}</span>
                     </div>
-                    <div class="shadow-lg rounded border border-4 border-white bg-white">
+                    <div class="shadow-lg rounded border border-4 border-white bg-white overflow-hidden">
                         <img src="{{$url}}" class="manga-actual-img" {{if ne $index 0}}loading="lazy"{{end}}>
                     </div>
                 </div>
@@ -45,17 +45,15 @@
         </div>
 
         <div class="tab-pane fade" id="panels" role="tabpanel">
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
                 {{range $index, $panel := .Data.Manga.Panels}}
                 <div class="col">
-                    <div class="card h-100 border-0 shadow-sm panel-card">
-                        <div class="position-relative overflow-hidden bg-light" style="aspect-ratio: 1 / 1;">
-                            <img src="{{$panel.ReferenceURL}}" class="card-img-top w-100 h-100 object-fit-contain" loading="lazy">
-                            <span class="badge bg-dark opacity-75 position-absolute top-0 start-0 m-2">#{{add $index 1}}</span>
-                        </div>
-                        <div class="card-body py-2 text-center border-top">
-                            <small class="text-muted fw-bold d-block">{{if $panel.SpeakerID}}{{$panel.SpeakerID}}{{else}}背景/演出{{end}}</small>
-                            <div class="mt-1 small text-muted" style="font-size: 0.7rem;">{{$panel.VisualAnchor}}</div>
+                    <div class="position-relative panel-asset-wrapper shadow-sm rounded overflow-hidden bg-light border border-2 border-white">
+                        <a href="{{$panel.ReferenceURL}}" target="_blank">
+                            <img src="{{$panel.ReferenceURL}}" class="w-100 h-100 object-fit-cover panel-zoom-img" loading="lazy">
+                        </a>
+                        <div class="position-absolute bottom-0 start-0 w-100 p-2 text-white small bg-dark bg-opacity-50 text-truncate">
+                            #{{add $index 1}} {{if $panel.SpeakerID}}{{$panel.SpeakerID}}{{end}}
                         </div>
                     </div>
                 </div>
@@ -68,12 +66,39 @@
                 <div class="col-lg-10">
                     <div class="card shadow-sm border-0 mb-5 overflow-hidden">
                         <div class="card-header bg-dark text-white py-3 text-center border-0">
-                            <h5 class="mb-0 fw-bold">Plot: {{.Data.OriginalTitle}}</h5>
+                            <h5 class="mb-0 fw-bold">Story Analysis: {{.Data.OriginalTitle}}</h5>
                         </div>
                         <div class="card-body p-4 p-md-5 bg-white">
-                            <div id="markdown-viewer" class="manga-content prose">
-                                {{.Data.PlotContent}}
-                            </div>
+                            <article class="manga-content">
+                                <h2 class="mb-4">あらすじ</h2>
+                                <p class="lead text-muted mb-5">{{.Data.Manga.Description}}</p>
+                                <hr class="my-5">
+
+                                {{range $index, $panel := .Data.Manga.Panels}}
+                                <section class="plot-segment mb-5">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="badge bg-secondary me-2">PANEL {{add $index 1}}</span>
+                                        <h3 class="m-0 h5 text-dark">構成案</h3>
+                                    </div>
+
+                                    {{if $panel.ReferenceURL}}
+                                    <div class="text-center mb-4">
+                                        <img src="{{$panel.ReferenceURL}}" class="img-fluid rounded shadow-sm border" style="max-height: 400px;" alt="Panel Image">
+                                    </div>
+                                    {{end}}
+
+                                    <div class="dialogue-box p-3 bg-light rounded border-start border-4 border-success mb-3 shadow-sm">
+                                        <div class="mb-2"><span class="badge bg-success small">{{$panel.SpeakerID}}</span></div>
+                                        <p class="mb-0 text-dark" style="white-space: pre-wrap;">{{$panel.Dialogue}}</p>
+                                    </div>
+
+                                    <div class="visual-memo p-2 px-3 bg-light-subtle rounded small text-muted border">
+                                        <i class="bi bi-camera-reels me-2"></i><strong>Visual Anchor:</strong> {{$panel.VisualAnchor}}
+                                    </div>
+                                </section>
+                                {{if lt (add $index 1) (len $.Data.Manga.Panels)}}<hr class="my-5 opacity-25">{{end}}
+                                {{end}}
+                            </article>
                         </div>
                     </div>
                 </div>
@@ -82,71 +107,17 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const viewer = document.getElementById('markdown-viewer');
-        if (viewer && viewer.textContent.trim() !== "") {
-            marked.setOptions({ breaks: true });
-            viewer.innerHTML = DOMPurify.sanitize(marked.parse(viewer.textContent));
-        }
-    });
-</script>
-
 <style>
-    /* 共通設定 */
     #mangaTab .nav-link { color: #6c757d !important; background-color: #f1f3f5 !important; border: 1px solid #dee2e6 !important; }
     #mangaTab .nav-link.active { background-color: var(--zunda-green) !important; color: white !important; border-color: var(--zunda-green) !important; }
-
-    /* 漫画ページ：1000px制限と歪み防止 */
-    .manga-page-wrapper {
-        width: 100%;
-        max-width: 1000px;
-        margin: 0 auto;
-    }
-    .manga-actual-img {
-        display: block;
-        width: 100%;
-        height: auto !important; /* アスペクト比維持 */
-        aspect-ratio: auto !important;
-        object-fit: contain;
-    }
-
-    /* プロット：センター寄せ */
-    .manga-content { color: #333; font-size: 1.1rem; line-height: 2.2; }
-
-    /* 二重タイトル防止：プロット内の最初のH1だけ消すのだ */
-    .manga-content h1:first-child { display: none !important; }
-
-    .manga-content p, .manga-content h1, .manga-content h2, .manga-content h3 {
-        text-align: center;
-        margin-left: auto;
-        margin-right: auto;
-        margin-bottom: 1.5rem;
-    }
-
-    /* プロット内画像の歪み対策 */
-    .manga-content img {
-        display: block;
-        max-width: 100%;
-        height: auto !important;
-        aspect-ratio: auto !important;
-        margin: 2rem auto;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    }
-
-    .manga-content ul, .manga-content ol {
-        display: table;
-        text-align: left;
-        margin: 0 auto 2rem auto;
-    }
-
-    .object-fit-contain { object-fit: contain; background-color: #f8f9fa; }
-    .panel-card { transition: transform 0.2s; }
-    .panel-card:hover { transform: translateY(-3px); }
     .action-btn { background-color: var(--zunda-green) !important; border: none !important; }
+    .panel-asset-wrapper { aspect-ratio: 1 / 1; transition: transform 0.2s; }
+    .panel-asset-wrapper:hover { transform: scale(1.05); z-index: 10; }
+    .object-fit-cover { object-fit: cover; }
+    .manga-page-wrapper { width: 100%; max-width: 1000px; margin: 0 auto; }
+    .manga-actual-img { display: block; width: 100%; height: auto !important; object-fit: contain; }
+    .manga-content h2 { font-weight: 800; color: var(--zunda-dark); border-bottom: 3px solid var(--zunda-green); display: inline-block; padding-bottom: 5px; margin-bottom: 2rem; }
+    .plot-segment h3 { border-left: 4px solid var(--zunda-green); padding-left: 12px; font-weight: bold; }
+    .dialogue-box { background-color: #f8fdf5 !important; }
 </style>
 {{end}}
