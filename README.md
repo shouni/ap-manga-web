@@ -125,36 +125,38 @@ go run main.go
 
 ```text
 ap-manga-web/
-├── main.go                       # エントリーポイント
+├── main.go                         # エントリーポイント
 ├── internal/
-│   ├── adapters/                 # 外部システム連携
-│   │   └── slack_adapter.go      # Slack通知の実装
-│   ├── builder/                  # DIコンテナ / 依存関係の組み立て
-│   │   ├── app.go                # AppContext（基盤クライアント群）の定義と構築
-│   │   └── handlers.go           # 各種HTTPハンドラーの生成
-│   ├── config/                   # 設定・リソース管理
-│   │   ├── characters.json       # キャラクターDNA定義（マスターデータ）
-│   │   ├── config.go             # 設定構造体とロード処理
-│   │   └── config_helpers.go     # 設定関連の補助関数
-│   ├── domain/                   # ドメインモデル（型定義）
-│   │   ├── task.go               # GenerateTaskPayload 等、処理の核となる型
-│   │   └── notification.go       # 通知に関連するデータ構造
-│   ├── pipeline/                 # 指揮官（ビジネスロジックのフロー制御）
-│   │   ├── pipeline.go           # メインの実行フロー定義
-│   │   ├── manga_execution.go    # 漫画生成の具体的な実行フェーズ
-│   │   ├── workflow.go           # 各ステップ（解析、生成等）の定義
-│   │   ├── pipeline_helpers.go   # パイプライン内での補助処理
-│   │   └── utils.go              # 共通ユーティリティ
-│   └── server/                   # HTTP サーバー層
-│       ├── server.go             # サーバーのライフサイクル（Run/Shutdown）
-│       ├── router.go             # chiによるルーティングとミドルウェア設定
-│       └── handlers/             # HTTPリクエストハンドラーの実体
-│           ├── handler.go        # ハンドラー共通構造体・基盤
-│           ├── view_handlers.go  # 各種画面表示（Index, Design, Page等）
-│           ├── submit_handler.go # フォーム送信・タスク投入
-│           ├── output_handler.go # 生成された成果物の配信制御
-│           └── handler_helpers.go # ハンドラー内の共通補助処理
-└── templates/                    # UIテンプレート (Bootstrap 5)
+│   ├── app/                        # アプリケーションの基盤構造
+│   │   └── container.go            # Container 構造体と Close メソッドの定義
+│   ├── adapters/                   # 外部システム連携
+│   │   └── slack_adapter.go        # Slack通知の実装
+│   ├── builder/                    # DIコンテナ / 依存関係の組み立て
+│   │   ├── app.go                  # Containerの構築
+│   │   └── handlers.go             # 各種HTTPハンドラーの生成
+│   ├── config/                     # 設定・リソース管理
+│   │   ├── characters.json         # キャラクターDNA定義（マスターデータ）
+│   │   ├── config.go               # 設定構造体とロード処理
+│   │   └── config_helpers.go       # 設定関連の補助関数
+│   ├── domain/                     # ドメインモデル（型定義）
+│   │   ├── task.go                 # GenerateTaskPayload 等、処理の核となる型
+│   │   └── notification.go         # 通知に関連するデータ構造
+│   ├── pipeline/                   # 指揮官（ビジネスロジックのフロー制御）
+│   │   ├── pipeline.go             # メインの実行フロー定義
+│   │   ├── manga_execution.go      # 漫画生成の具体的な実行フェーズ
+│   │   ├── workflow.go             # 各ステップ（解析、生成等）の定義
+│   │   ├── pipeline_helpers.go     # パイプライン内での補助処理
+│   │   └── utils.go                # 共通ユーティリティ
+│   └── server/                     # HTTP サーバー層
+│       ├── server.go               # サーバーのライフサイクル（Run/Shutdown）
+│       ├── router.go               # chiによるルーティングとミドルウェア設定
+│       └── handlers/               # HTTPリクエストハンドラーの実体
+│           ├── handler.go          # ハンドラー共通構造体・基盤
+│           ├── view_handlers.go    # 各種画面表示（Index, Design, Page等）
+│           ├── submit_handler.go   # フォーム送信・タスク投入
+│           ├── output_handler.go   # 生成された成果物の配信制御
+│           └── handler_helpers.go  # ハンドラー内の共通補助処理
+└── templates/                      # UIテンプレート (Bootstrap 5)
 
 ```
 
