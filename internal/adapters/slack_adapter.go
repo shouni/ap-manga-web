@@ -29,7 +29,6 @@ type SlackNotifier interface {
 // --- 具象アダプター ---
 
 type SlackAdapter struct {
-	httpClient  httpkit.ClientInterface
 	webhookURL  string
 	slackClient *slack.Client
 }
@@ -44,15 +43,14 @@ func NewSlackAdapter(httpClient httpkit.ClientInterface, webhookURL string) (*Sl
 	}
 
 	return &SlackAdapter{
-		httpClient:  httpClient,
 		webhookURL:  webhookURL,
 		slackClient: client,
 	}, nil
 }
 
 // Notify 公開URLとストレージ情報を含む、プロセス完了時のSlack通知送信。
-func (a *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error {
-	if a.slackClient == nil {
+func (s *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error {
+	if s.slackClient == nil {
 		slog.Info("Slackクライアントが初期化されていないため、通知をスキップします。", "storage_uri", storageURI)
 		return nil
 	}
@@ -66,9 +64,9 @@ func (a *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string,
 	}
 
 	title := fmt.Sprintf("%s 漫画の錬成が完了しました！", icon)
-	content := a.buildSlackContent(publicURL, storageURI, req)
+	content := s.buildSlackContent(publicURL, storageURI, req)
 
-	if err := a.slackClient.SendTextWithHeader(ctx, title, content); err != nil {
+	if err := s.slackClient.SendTextWithHeader(ctx, title, content); err != nil {
 		return fmt.Errorf("Slackへの投稿に失敗しました: %w", err)
 	}
 
@@ -77,8 +75,8 @@ func (a *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string,
 }
 
 // NotifyError エラー詳細と実行メタデータを含むSlackエラー通知の送信。
-func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req domain.NotificationRequest) error {
-	if a.slackClient == nil {
+func (s *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req domain.NotificationRequest) error {
+	if s.slackClient == nil {
 		slog.Info("Slackクライアントが初期化されていないため、エラー通知をスキップします。", "error", errDetail)
 		return nil
 	}
@@ -100,7 +98,7 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 
 	content := sb.String()
 
-	if err := a.slackClient.SendTextWithHeader(ctx, title, content); err != nil {
+	if err := s.slackClient.SendTextWithHeader(ctx, title, content); err != nil {
 		return fmt.Errorf("Slackへのエラー通知に失敗しました: %w", err)
 	}
 
@@ -109,7 +107,7 @@ func (a *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 }
 
 // buildSlackContent 指定された公開URL、ストレージURI、通知リクエストに基づき、Slack メッセージの内容を生成します。
-func (a *SlackAdapter) buildSlackContent(publicURL, storageURI string, req domain.NotificationRequest) string {
+func (s *SlackAdapter) buildSlackContent(publicURL, storageURI string, req domain.NotificationRequest) string {
 	// GCS Console URL の構築
 	trimmedPath := strings.TrimPrefix(storageURI, "gs://")
 	consoleURL := "https://console.cloud.google.com/storage/browser/" + trimmedPath
