@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"ap-manga-web/internal/app"
 	"fmt"
 	"html/template"
 	"os"
 	"path/filepath"
 
+	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 

@@ -15,16 +15,16 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-manga-kit/pkg/asset"
-	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/pkg/domain"
 )
 
 // mangaViewData はテンプレート「manga_view.html」に渡すためのデータ構造体
 type mangaViewData struct {
 	Title         string
 	OriginalTitle string
-	Manga         mangadom.MangaResponse // JSONからデコードしURL置換済みのデータ
-	PlotContent   string                 // URL置換済みのMarkdown
-	PageURLs      []string               // ページ全体画像の署名付きURL
+	Manga         domain.MangaResponse // JSONからデコードしURL置換済みのデータ
+	PlotContent   string               // URL置換済みのMarkdown
+	PageURLs      []string             // ページ全体画像の署名付きURL
 }
 
 // ServeOutput は指定されたタイトルの漫画成果物を取得し、ビューアー画面を表示する。
@@ -104,8 +104,8 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 }
 
 // loadMangaJSON は GCS から manga_plot.json を読み込み、ドメインモデルにデコードします。
-func (h *Handler) loadMangaJSON(r *http.Request, title string) (mangadom.MangaResponse, error) {
-	var manga mangadom.MangaResponse
+func (h *Handler) loadMangaJSON(r *http.Request, title string) (domain.MangaResponse, error) {
+	var manga domain.MangaResponse
 	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotJson)
 	if err != nil {
 		return manga, err
