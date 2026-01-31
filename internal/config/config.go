@@ -17,7 +17,7 @@ const (
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
 	DefaultHTTPTimeout      = 60 * time.Second
 	DefaultRateLimit        = 5 * time.Second
-	DefaultMaxPanelsPerPage = 5
+	DefaultMaxPanelsPerPage = 6
 	DefaultCharactersFile   = "internal/config/characters.json"
 	DefaultStyleSuffix      = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
 )
