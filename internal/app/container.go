@@ -24,6 +24,7 @@ type Container struct {
 	TaskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload]
 
 	// Business Logic
+	// Workflow holds the collection of runners provided by the manga-kit.
 	Workflow *workflow.Runners
 
 	// External Adapters

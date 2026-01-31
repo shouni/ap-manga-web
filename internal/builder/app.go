@@ -142,5 +142,9 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		return nil, fmt.Errorf("failed to create workflow manager: %w", err)
 	}
 
-	return mgr.BuildRunners()
+	runners, err := mgr.BuildRunners()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build workflow runners: %w", err)
+	}
+	return runners, nil
 }
