@@ -31,6 +31,7 @@ type Container struct {
 	SlackNotifier adapters.SlackNotifier
 }
 
+// RemoteIO は外部ストレージ操作に関するコンポーネントをまとめます。
 type RemoteIO struct {
 	Factory remoteio.IOFactory
 	Reader  remoteio.InputReader
@@ -38,6 +39,15 @@ type RemoteIO struct {
 	Signer  remoteio.URLSigner
 }
 
+// Close は、RemoteIO が保持する Factory などの内部リソースを解放します。
+func (r *RemoteIO) Close() error {
+	if r.Factory != nil {
+		return r.Factory.Close()
+	}
+	return nil
+}
+
+// Workflow は、構築済みの各 Runner を保持します。
 type Workflow struct {
 	DesignRunner     workflow.DesignRunner
 	ScriptRunner     workflow.ScriptRunner
@@ -46,13 +56,16 @@ type Workflow struct {
 	PublishRunner    workflow.PublishRunner
 }
 
-// Close は、Context が保持するすべての外部接続リソースを安全に解放します。
+// Close は、Container が保持するすべての外部接続リソースを安全に解放します。
 func (c *Container) Close() {
-	if c.RemoteIO.Factory != nil {
-		if err := c.RemoteIO.Factory.Close(); err != nil {
-			slog.Error("failed to close IOFactory", "error", err)
+	// RemoteIO のリソース解放を委譲
+	if c.RemoteIO != nil {
+		if err := c.RemoteIO.Close(); err != nil {
+			slog.Error("failed to close RemoteIO", "error", err)
 		}
 	}
+
+	// TaskEnqueuer のリソース解放
 	if c.TaskEnqueuer != nil {
 		if err := c.TaskEnqueuer.Close(); err != nil {
 			slog.Error("failed to close task enqueuer", "error", err)

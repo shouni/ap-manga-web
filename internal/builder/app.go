@@ -20,9 +20,7 @@ import (
 )
 
 // BuildContainer は外部サービスとの接続を確立し、依存関係を組み立てた app.Container を返します。
-// 名前付き戻り値 (err error) を利用して、初期化失敗時のみ確保済みリソースを defer で解放します。
 func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Container, err error) {
-	// クリーンアップ対象のリソースを管理するスライス
 	var resources []io.Closer
 	defer func() {
 		if err != nil {
@@ -42,7 +40,7 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize IO components: %w", err)
 	}
-	resources = append(resources, rio.Factory)
+	resources = append(resources, rio)
 
 	// 3. Task Enqueuer
 	enqueuer, err := buildTaskEnqueuer(ctx, cfg)
@@ -144,7 +142,7 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		return nil, fmt.Errorf("failed to create workflow manager: %w", err)
 	}
 
-	// 各 Runner を個別にビルドし、Fail Fast を実現する
+	// 各 Runner をビルド
 	dr, err := mgr.BuildDesignRunner()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build DesignRunner: %w", err)
