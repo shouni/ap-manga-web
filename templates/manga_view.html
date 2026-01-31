@@ -97,10 +97,10 @@
 
 <style>
     /* 共通設定 */
-    #mangaTab .nav-link { color: #6c757d !important; background-color: #f1f3f5 !important; border: 1px solid #dee2e6 !important; transition: 0.2s; }
+    #mangaTab .nav-link { color: #6c757d !important; background-color: #f1f3f5 !important; border: 1px solid #dee2e6 !important; }
     #mangaTab .nav-link.active { background-color: var(--zunda-green) !important; color: white !important; border-color: var(--zunda-green) !important; }
 
-    /* 漫画ページ用：アスペクト比を絶対守るマンなのだ */
+    /* 漫画ページ：1000px制限と歪み防止 */
     .manga-page-wrapper {
         width: 100%;
         max-width: 1000px;
@@ -109,48 +109,44 @@
     .manga-actual-img {
         display: block;
         width: 100%;
-        max-width: 100%;
-        height: auto !important; /* 何が何でも自動計算なのだ */
-        object-fit: scale-down;
+        height: auto !important; /* アスペクト比維持 */
+        aspect-ratio: auto !important;
+        object-fit: contain;
     }
 
-    /* ストーリープロット：個別に中央寄せをかけるのだ */
+    /* プロット：センター寄せ */
     .manga-content { color: #333; font-size: 1.1rem; line-height: 2.2; }
 
-    /* 텍スト要素の中央寄せ */
-    .manga-content p,
-    .manga-content h1,
-    .manga-content h2,
-    .manga-content h3 {
+    /* 二重タイトル防止：プロット内の最初のH1だけ消すのだ */
+    .manga-content h1:first-child { display: none !important; }
+
+    .manga-content p, .manga-content h1, .manga-content h2, .manga-content h3 {
         text-align: center;
         margin-left: auto;
         margin-right: auto;
         margin-bottom: 1.5rem;
     }
 
-    /* プロット内の画像：ここが歪みの原因だったのだ！ */
+    /* プロット内画像の歪み対策 */
     .manga-content img {
         display: block;
         max-width: 100%;
-        height: auto !important; /* 正方形を阻止！ */
-        aspect-ratio: auto !important; /* これも追加なのだ */
+        height: auto !important;
+        aspect-ratio: auto !important;
         margin: 2rem auto;
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
 
-    /* リスト要素 */
     .manga-content ul, .manga-content ol {
-        display: table; /* inline-blockより安定して中央に置けるのだ */
+        display: table;
         text-align: left;
         margin: 0 auto 2rem auto;
     }
 
-    /* パネル素材（タイル表示用） */
     .object-fit-contain { object-fit: contain; background-color: #f8f9fa; }
     .panel-card { transition: transform 0.2s; }
     .panel-card:hover { transform: translateY(-3px); }
-
     .action-btn { background-color: var(--zunda-green) !important; border: none !important; }
 </style>
 {{end}}
