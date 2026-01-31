@@ -25,7 +25,7 @@ type AppHandlers struct {
 
 // BuildHandlers は各ハンドラーの依存関係をすべて組み立て、AppHandlers 構造体を返します。
 func BuildHandlers(
-	appCtx *app.Context,
+	appCtx *app.Container,
 	executor pipeline.Pipeline,
 ) (*AppHandlers, error) {
 	if appCtx.Config.ServiceURL == "" {
@@ -55,7 +55,7 @@ func BuildHandlers(
 }
 
 // createAuthHandler は AppContext から認証ライブラリ用の設定を構築し、ハンドラーを生成します。
-func createAuthHandler(appCtx *app.Context) (*auth.Handler, error) {
+func createAuthHandler(appCtx *app.Container) (*auth.Handler, error) {
 	cfg := appCtx.Config
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {

@@ -20,7 +20,7 @@ import (
 )
 
 // BuildContext は外部サービスとの接続を確立し、依存関係を組み立てた app.Context を返します。
-func BuildContext(ctx context.Context, cfg *config.Config) (*app.Context, error) {
+func BuildContext(ctx context.Context, cfg *config.Config) (*app.Container, error) {
 	// 1. HttpClient (全アダプターの基盤)
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
 
@@ -48,7 +48,7 @@ func BuildContext(ctx context.Context, cfg *config.Config) (*app.Context, error)
 		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
 	}
 
-	return &app.Context{
+	return &app.Container{
 		Config:        cfg,
 		RemoteIO:      *io,
 		TaskEnqueuer:  enqueuer,

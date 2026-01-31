@@ -15,11 +15,11 @@ type Pipeline interface {
 
 // MangaPipeline はパイプラインの実行に必要な外部依存関係を保持するサービス構造体です。
 type MangaPipeline struct {
-	appCtx *app.Context
+	appCtx *app.Container
 }
 
 // NewMangaPipeline は MangaPipeline の新しいインスタンスを生成します。
-func NewMangaPipeline(appCtx *app.Context) *MangaPipeline {
+func NewMangaPipeline(appCtx *app.Container) *MangaPipeline {
 	return &MangaPipeline{appCtx: appCtx}
 }
 

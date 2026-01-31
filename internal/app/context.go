@@ -13,8 +13,8 @@ import (
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// Context はアプリケーションの依存関係（DIコンテナ）を保持します。
-type Context struct {
+// Container はアプリケーションの依存関係（DIコンテナ）を保持します。
+type Container struct {
 	Config *config.Config
 
 	// I/O and Storage
@@ -39,7 +39,7 @@ type RemoteIO struct {
 }
 
 // Close は、Context が保持するすべての外部接続リソースを安全に解放します。
-func (c *Context) Close() {
+func (c *Container) Close() {
 	if c.RemoteIO.Factory != nil {
 		if err := c.RemoteIO.Factory.Close(); err != nil {
 			slog.Error("failed to close IOFactory", "error", err)
