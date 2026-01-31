@@ -1,6 +1,7 @@
 package server
 
 import (
+	"ap-manga-web/internal/pipeline"
 	"context"
 	"errors"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 
 	"ap-manga-web/internal/builder"
 	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/pipeline"
 )
 
 // デフォルトのシャットダウン猶予時間
@@ -18,7 +18,7 @@ const defaultShutdownTimeout = 30 * time.Second
 
 // Run はサーバーの構築、起動、およびライフサイクル管理を行います。
 func Run(ctx context.Context, cfg *config.Config) error {
-	appCtx, err := builder.BuildAppContext(ctx, cfg)
+	appCtx, err := builder.BuildContainer(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to build application context: %w", err)
 	}
@@ -27,8 +27,8 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		appCtx.Close()
 	}()
 
-	mangaPipeline := pipeline.NewMangaPipeline(appCtx)
-	h, err := builder.BuildHandlers(appCtx, mangaPipeline)
+	executor := pipeline.NewMangaPipeline(appCtx)
+	h, err := builder.BuildHandlers(appCtx, executor)
 	if err != nil {
 		return fmt.Errorf("failed to build handlers: %w", err)
 	}

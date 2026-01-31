@@ -4,17 +4,22 @@ import (
 	"context"
 	"time"
 
-	"ap-manga-web/internal/builder"
+	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/domain"
 )
 
+// Pipeline  は、デコードされたペイロードを受け取って実際の処理を行うインターフェースです。
+type Pipeline interface {
+	Execute(ctx context.Context, payload domain.GenerateTaskPayload) (err error)
+}
+
 // MangaPipeline はパイプラインの実行に必要な外部依存関係を保持するサービス構造体です。
 type MangaPipeline struct {
-	appCtx *builder.AppContext
+	appCtx *app.Container
 }
 
 // NewMangaPipeline は MangaPipeline の新しいインスタンスを生成します。
-func NewMangaPipeline(appCtx *builder.AppContext) *MangaPipeline {
+func NewMangaPipeline(appCtx *app.Container) *MangaPipeline {
 	return &MangaPipeline{appCtx: appCtx}
 }
 

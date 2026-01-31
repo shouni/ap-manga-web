@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 
 	"github.com/shouni/gcp-kit/tasks"
-	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
 const titleSuffix = " - AP Manga Web"
@@ -19,8 +19,8 @@ type Handler struct {
 	cfg           *config.Config
 	templateCache map[string]*template.Template
 	taskEnqueuer  *tasks.Enqueuer[domain.GenerateTaskPayload]
-	reader        remoteio.InputReader
-	signer        remoteio.URLSigner
+	remoteIO      *app.RemoteIO
+	workflow      *app.Workflow
 }
 
 // NewHandler は指定された構成に基づいて新しいハンドラーを初期化します。
@@ -28,11 +28,16 @@ type Handler struct {
 func NewHandler(
 	cfg *config.Config,
 	taskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload],
-	reader remoteio.InputReader,
-	signer remoteio.URLSigner,
+	remoteIO *app.RemoteIO,
+	workflow *app.Workflow,
 ) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
+
+	// テンプレートで共通利用する関数群を定義
+	funcMap := template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+	}
 
 	if _, err := os.Stat(layoutPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("レイアウトテンプレートが見つかりません: %s", layoutPath)
@@ -43,18 +48,13 @@ func NewHandler(
 		return nil, fmt.Errorf("ページテンプレートの検索に失敗しました: %w", err)
 	}
 
-	funcMap := template.FuncMap{
-		"add": func(a, b int) int { return a + b },
-	}
-
 	for _, pagePath := range pagePaths {
 		pageName := filepath.Base(pagePath)
 		if pageName == "layout.html" {
 			continue
 		}
 
-		tmpl := template.New(pageName).Funcs(funcMap)
-		tmpl, err = tmpl.ParseFiles(layoutPath, pagePath)
+		tmpl, err := template.New(pageName).Funcs(funcMap).ParseFiles(layoutPath, pagePath)
 		if err != nil {
 			return nil, fmt.Errorf("テンプレート %s の解析に失敗しました: %w", pageName, err)
 		}
@@ -65,7 +65,7 @@ func NewHandler(
 		cfg:           cfg,
 		templateCache: cache,
 		taskEnqueuer:  taskEnqueuer,
-		reader:        reader,
-		signer:        signer,
+		remoteIO:      remoteIO,
+		workflow:      workflow,
 	}, nil
 }
