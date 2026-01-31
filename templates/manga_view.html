@@ -23,53 +23,74 @@
     <div class="d-flex justify-content-center mb-5">
         <ul class="nav nav-pills p-2 bg-white rounded-pill shadow-sm border border-secondary-subtle" id="mangaTab" role="tablist">
             <li class="nav-item me-1" role="presentation">
-                <button class="nav-link active rounded-pill px-4 fw-bold" id="pages-tab" data-bs-toggle="pill" data-bs-target="#pages" type="button" role="tab">
-                    <i class="bi bi-book-half me-1"></i>漫画ページ
+                <button class="nav-link active rounded-pill px-5 py-2 fw-bold"
+                        id="pages-tab"
+                        data-bs-toggle="pill"
+                        data-bs-target="#pages"
+                        type="button"
+                        role="tab"
+                        aria-controls="pages"
+                        aria-selected="true">
+                    <i class="bi bi-book-half me-2"></i>漫画ページ
                 </button>
             </li>
             <li class="nav-item me-1" role="presentation">
-                <button class="nav-link rounded-pill px-4 fw-bold" id="panels-tab" data-bs-toggle="pill" data-bs-target="#panels" type="button" role="tab">
-                    <i class="bi bi-grid-3x3-gap me-1"></i>パネル素材
-                </button>
-            </li>
-            <li class="nav-item me-1" role="presentation">
-                <button class="nav-link rounded-pill px-4 fw-bold" id="storyboard-tab" data-bs-toggle="pill" data-bs-target="#storyboard" type="button" role="tab">
-                    <i class="bi bi-layout-text-sidebar-reverse me-1"></i>絵コンテ
+                <button class="nav-link rounded-pill px-5 py-2 fw-bold"
+                        id="panels-tab"
+                        data-bs-toggle="pill"
+                        data-bs-target="#panels"
+                        type="button"
+                        role="tab"
+                        aria-controls="panels"
+                        aria-selected="false">
+                    <i class="bi bi-grid-3x3-gap me-2"></i>生成パネル素材
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link rounded-pill px-4 fw-bold" id="raw-tab" data-bs-toggle="pill" data-bs-target="#raw" type="button" role="tab">
-                    <i class="bi bi-file-earmark-code me-1"></i>原文プロット
+                <button class="nav-link rounded-pill px-5 py-2 fw-bold"
+                        id="plot-tab"
+                        data-bs-toggle="pill"
+                        data-bs-target="#plot-content"
+                        type="button"
+                        role="tab"
+                        aria-controls="plot-content"
+                        aria-selected="false">
+                    <i class="bi bi-file-text me-2"></i>ストーリープロット
                 </button>
             </li>
         </ul>
     </div>
 
     <div class="tab-content" id="mangaTabContent">
-        <div class="tab-pane fade show active" id="pages" role="tabpanel">
+        <div class="tab-pane fade show active" id="pages" role="tabpanel" aria-labelledby="pages-tab">
             <div class="manga-gallery d-flex flex-column align-items-center gap-5">
                 {{range $index, $url := .Data.PageURLs}}
                 <div class="manga-page-wrapper text-center">
-                    <span class="badge rounded-pill mb-3 px-3 py-2 shadow-sm" style="background-color: var(--zunda-green);">PAGE {{add $index 1}}</span>
+                    <span class="badge rounded-pill mb-3 px-3 py-2 shadow-sm" style="background-color: var(--zunda-green);">
+                        PAGE {{add $index 1}}
+                    </span>
                     <div class="shadow-lg rounded overflow-hidden border border-4 border-white bg-white">
-                        <img src="{{$url}}" class="img-fluid d-block mx-auto" loading="lazy" alt="Page {{add $index 1}}">
+                        <img src="{{$url}}" class="img-fluid d-block mx-auto" {{if ne $index 0}}loading="lazy"{{end}} alt="Manga Page {{add $index 1}}">
                     </div>
                 </div>
                 {{end}}
             </div>
         </div>
 
-        <div class="tab-pane fade" id="panels" role="tabpanel">
+        <div class="tab-pane fade" id="panels" role="tabpanel" aria-labelledby="panels-tab">
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 {{range $index, $panel := .Data.Manga.Panels}}
                 <div class="col">
                     <div class="card h-100 border-0 shadow-sm panel-card overflow-hidden">
                         <div class="position-relative overflow-hidden bg-light" style="aspect-ratio: 1/1;">
-                            <img src="{{$panel.ReferenceURL}}" class="card-img-top w-100 h-100 object-fit-contain" loading="lazy">
-                            <span class="badge bg-dark opacity-75 position-absolute top-0 start-0 m-2">#{{add $index 1}}</span>
+                            <img src="{{$panel.ReferenceURL}}" class="card-img-top w-100 h-100 object-fit-contain" alt="Panel {{$index}}" loading="lazy">
+                            <div class="position-absolute top-0 start-0 m-2">
+                                <span class="badge bg-dark opacity-75">Panel #{{add $index 1}}</span>
+                            </div>
                         </div>
                         <div class="card-body py-2 bg-light text-center border-top">
                             <small class="text-muted fw-bold">{{if $panel.SpeakerID}}{{$panel.SpeakerID}}{{else}}背景/演出{{end}}</small>
+                            <div class="mt-1 small text-muted" style="font-size: 0.7rem; line-height: 1.2;">{{$panel.VisualAnchor}}</div>
                         </div>
                     </div>
                 </div>
@@ -77,21 +98,18 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="storyboard" role="tabpanel">
+        <div class="tab-pane fade" id="plot-content" role="tabpanel" aria-labelledby="plot-tab">
             <div class="row justify-content-center">
-                <div class="col-lg-9" id="storyboard-container">
-                    <div class="text-center py-5 text-muted">
-                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>プロットを解析中なのだ...
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="raw" role="tabpanel">
-            <div class="row justify-content-center">
-                <div class="col-lg-10">
-                    <div class="p-4 p-md-5 bg-white rounded shadow-sm border">
-                        <div id="markdown-raw" class="manga-content prose">{{.Data.PlotContent}}</div>
+                <div class="col-lg-9">
+                    <div class="card shadow-sm border-0 mb-5">
+                        <div class="card-header bg-dark text-white py-3 text-center">
+                            <h5 class="mb-0 fw-bold"><i class="bi bi-file-text-fill me-2 text-warning"></i>Plot: {{.Data.OriginalTitle}}</h5>
+                        </div>
+                        <div class="card-body p-4 p-md-5 bg-white text-center">
+                            <div id="markdown-viewer" class="manga-content prose">
+                                {{.Data.PlotContent}}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -104,98 +122,64 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const rawElement = document.getElementById('markdown-raw');
-        const rawContent = rawElement.textContent;
-        const storyboardContainer = document.getElementById('storyboard-container');
-
-        // 1. 原文Markdownのレンダリング
-        rawElement.innerHTML = DOMPurify.sanitize(marked.parse(rawContent));
-
-        // 2. 絵コンテの動的生成
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = marked.parse(rawContent);
-
-        storyboardContainer.innerHTML = '';
-        const headers = tempDiv.querySelectorAll('h3');
-
-        headers.forEach(header => {
-            if (header.textContent.toUpperCase().includes('PANEL')) {
-                const item = document.createElement('div');
-                item.className = 'storyboard-item mb-4 shadow-sm border-start border-4';
-
-                const h_div = document.createElement('div');
-                h_div.className = 'sb-header bg-dark text-white p-2 px-3 fw-bold d-flex justify-content-between align-items-center';
-                h_div.innerHTML = `<span><i class="bi bi-pencils me-2"></i>${header.textContent}</span>`;
-                item.appendChild(h_div);
-
-                const body = document.createElement('div');
-                body.className = 'p-3 bg-white';
-
-                let next = header.nextElementSibling;
-                if (next && next.tagName === 'UL') {
-                    next.querySelectorAll('li').forEach(li => {
-                        const row = document.createElement('div');
-                        row.className = 'mb-2 d-flex align-items-start';
-                        const text = li.textContent;
-
-                        if (text.includes('SPEECH:')) {
-                            row.innerHTML = `<span class="sb-label-wrap"><span class="badge bg-zunda">セリフ</span></span>
-                                             <span class="fw-bold ms-2 text-dark">${text.replace('SPEECH:', '').trim()}</span>`;
-                        } else if (text.includes('ACTION:')) {
-                            row.innerHTML = `<span class="sb-label-wrap"><span class="badge bg-secondary">演出</span></span>
-                                             <span class="italic ms-2 text-muted">${text.replace('ACTION:', '').trim()}</span>`;
-                        } else {
-                            row.innerHTML = `<span class="sb-label-wrap"><span class="badge bg-light text-dark border">情報</span></span>
-                                             <span class="small ms-2 text-secondary">${text}</span>`;
-                        }
-                        body.appendChild(row);
-                    });
-                }
-                item.appendChild(body);
-                storyboardContainer.appendChild(item);
-            }
-        });
+        const viewer = document.getElementById('markdown-viewer');
+        if (viewer && viewer.textContent.trim() !== "") {
+            marked.setOptions({ breaks: true });
+            const rawHtml = marked.parse(viewer.textContent);
+            const cleanHtml = DOMPurify.sanitize(rawHtml);
+            viewer.innerHTML = cleanHtml;
+        }
     });
 </script>
 
 <style>
-    :root {
-        --zunda-green: #76bc21;
-        --zunda-dark: #2d4b12;
+    /* タブデザイン */
+    #mangaTab .nav-link {
+        color: #6c757d !important;
+        background-color: #f1f3f5 !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    #mangaTab .nav-link.active {
+        background-color: var(--zunda-green) !important;
+        color: white !important;
+        border-color: var(--zunda-green) !important;
     }
 
-    .bg-zunda { background-color: var(--zunda-green) !important; color: white; }
+    /* 漫画ページ */
+    .manga-page-wrapper { width: 100%; max-width: 850px; }
+    .manga-page-wrapper img { cursor: zoom-in; }
 
-    /* タブデザイン */
-    .nav-pills .nav-link { color: #6c757d; transition: 0.3s; }
-    .nav-pills .nav-link.active { background-color: var(--zunda-green) !important; box-shadow: 0 4px 12px rgba(118,188,33,0.3); }
+    /* プロット（センター寄せスタイル） */
+    .manga-content {
+        line-height: 1.8;
+        color: #333;
+        display: inline-block;
+        text-align: center;
+        width: 100%;
+    }
+    .manga-content h1, .manga-content h2, .manga-content h3 {
+        color: var(--zunda-dark);
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+    .manga-content ul {
+        display: inline-block;
+        text-align: left; /* リスト項目自体は読みやすく左揃え */
+        margin: 0 auto;
+    }
+    .manga-content p {
+        margin-bottom: 1.5rem;
+    }
 
     /* パネル素材 */
-    .panel-card { transition: transform 0.3s ease; }
-    .panel-card:hover { transform: translateY(-5px); }
-    .object-fit-contain { object-fit: contain; background-color: #f8f9fa; }
-
-    /* 絵コンテ (storyboard-item) */
-    .storyboard-item {
-        border-radius: 8px;
-        overflow: hidden;
-        border-left-color: var(--zunda-green) !important;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    .object-fit-contain {
+        object-fit: contain;
+        background-color: #f8f9fa;
     }
-    .storyboard-item:hover {
-        transform: translateX(5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
-    }
-    .sb-header { font-size: 0.9rem; letter-spacing: 0.05rem; }
-    .sb-label-wrap { min-width: 65px; display: inline-block; text-align: center; }
-    .italic { font-style: italic; }
+    .panel-card { transition: transform 0.2s; }
+    .panel-card:hover { transform: translateY(-3px); }
 
-    /* Markdownプロット */
-    .manga-content { line-height: 1.8; color: #333; }
-    .manga-content h1, .manga-content h2 { color: var(--zunda-dark); border-bottom: 2px solid #eee; margin-bottom: 1rem; padding-bottom: 0.5rem; }
-
-    /* 共通ボタン */
-    .action-btn { background-color: var(--zunda-green) !important; border: none !important; transition: 0.2s; }
-    .action-btn:hover { background-color: var(--zunda-dark) !important; transform: translateY(-1px); }
+    .action-btn { background-color: var(--zunda-green) !important; border: none !important; }
 </style>
 {{end}}
