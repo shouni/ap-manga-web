@@ -3,6 +3,7 @@ package builder
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 
 	"ap-manga-web/internal/adapters"
@@ -19,7 +20,20 @@ import (
 )
 
 // BuildContainer は外部サービスとの接続を確立し、依存関係を組み立てた app.Container を返します。
-func BuildContainer(ctx context.Context, cfg *config.Config) (*app.Container, error) {
+// 名前付き戻り値 (err error) を利用して、初期化失敗時のみ確保済みリソースを defer で解放します。
+func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Container, err error) {
+	// クリーンアップ対象のリソースを管理するスライス
+	var resources []io.Closer
+	defer func() {
+		if err != nil {
+			for _, r := range resources {
+				if r != nil {
+					_ = r.Close()
+				}
+			}
+		}
+	}()
+
 	// 1. HttpClient (全アダプターの基盤)
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
 
@@ -28,12 +42,14 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (*app.Container, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize IO components: %w", err)
 	}
+	resources = append(resources, rio.Factory)
 
 	// 3. Task Enqueuer
 	enqueuer, err := buildTaskEnqueuer(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize task enqueuer: %w", err)
 	}
+	resources = append(resources, enqueuer)
 
 	// 4. Workflow (Core Logic)
 	wf, err := buildWorkflow(ctx, cfg, httpClient, rio)
@@ -57,7 +73,7 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (*app.Container, er
 	}, nil
 }
 
-// buildRemoteIO は、読み取り、書き込み、URL 署名用の GCS ベースの I/O コンポーネントを初期化します。
+// buildRemoteIO は、GCS ベースの I/O コンポーネントを初期化します。
 func buildRemoteIO(ctx context.Context) (*app.RemoteIO, error) {
 	factory, err := gcsfactory.New(ctx)
 	if err != nil {
@@ -75,7 +91,12 @@ func buildRemoteIO(ctx context.Context) (*app.RemoteIO, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create URL signer: %w", err)
 	}
-	return &app.RemoteIO{Factory: factory, Reader: r, Writer: w, Signer: s}, nil
+	return &app.RemoteIO{
+		Factory: factory,
+		Reader:  r,
+		Writer:  w,
+		Signer:  s,
+	}, nil
 }
 
 // buildTaskEnqueuer は、Cloud Tasks エンキューアを初期化します。
@@ -123,7 +144,7 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		return nil, fmt.Errorf("failed to create workflow manager: %w", err)
 	}
 
-	// Runner をビルドし、個別にエラーチェックを行う
+	// 各 Runner を個別にビルドし、Fail Fast を実現する
 	dr, err := mgr.BuildDesignRunner()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build DesignRunner: %w", err)
