@@ -71,7 +71,7 @@
                             <h5 class="mb-0 fw-bold">Plot: {{.Data.OriginalTitle}}</h5>
                         </div>
                         <div class="card-body p-4 p-md-5 bg-white">
-                            <div id="markdown-viewer" class="manga-content prose">
+                            <div id="markdown-viewer" class="manga-content prose" style="visibility: hidden;">
                                 {{.Data.PlotContent}}
                             </div>
                         </div>
@@ -90,7 +90,24 @@
         const viewer = document.getElementById('markdown-viewer');
         if (viewer && viewer.textContent.trim() !== "") {
             marked.setOptions({ breaks: true });
-            viewer.innerHTML = DOMPurify.sanitize(marked.parse(viewer.textContent));
+
+            // Markdownをパース
+            const rawHtml = marked.parse(viewer.textContent);
+            const cleanHtml = DOMPurify.sanitize(rawHtml);
+
+            // 一時的なコンテナでDOM操作
+            const container = document.createElement('div');
+            container.innerHTML = cleanHtml;
+
+            // 最初のH1（タイトル）を削除するのだ！
+            const firstH1 = container.querySelector('h1');
+            if (firstH1) {
+                firstH1.remove();
+            }
+
+            // 最終的なHTMLを戻して表示
+            viewer.innerHTML = container.innerHTML;
+            viewer.style.visibility = 'visible';
         }
     });
 </script>
@@ -100,50 +117,59 @@
     #mangaTab .nav-link { color: #6c757d !important; background-color: #f1f3f5 !important; border: 1px solid #dee2e6 !important; }
     #mangaTab .nav-link.active { background-color: var(--zunda-green) !important; color: white !important; border-color: var(--zunda-green) !important; }
 
-    /* 漫画ページ：1000px制限と歪み防止 */
-    .manga-page-wrapper {
-        width: 100%;
-        max-width: 1000px;
-        margin: 0 auto;
-    }
+    /* 漫画ページ：歪み防止と1000px制限 */
+    .manga-page-wrapper { width: 100%; max-width: 1000px; margin: 0 auto; }
     .manga-actual-img {
         display: block;
         width: 100%;
-        height: auto !important; /* アスペクト比維持 */
+        height: auto !important;
         aspect-ratio: auto !important;
         object-fit: contain;
     }
 
-    /* プロット：センター寄せ */
-    .manga-content { color: #333; font-size: 1.1rem; line-height: 2.2; }
-
-    /* 二重タイトル防止：プロット内の最初のH1だけ消すのだ */
-    .manga-content h1:first-child { display: none !important; }
-
-    .manga-content p, .manga-content h1, .manga-content h2, .manga-content h3 {
-        text-align: center;
-        margin-left: auto;
-        margin-right: auto;
-        margin-bottom: 1.5rem;
+    /* ストーリープロット：テキストは左寄せ、画像は中央 */
+    .manga-content {
+        color: #333;
+        font-size: 1.1rem;
+        line-height: 2.1;
+        text-align: left; /* 基本は左寄せ */
+        word-wrap: break-word;
     }
 
-    /* プロット内画像の歪み対策 */
+    .manga-content h2, .manga-content h3 {
+        text-align: left;
+        margin-top: 2.5rem;
+        margin-bottom: 1.2rem;
+        border-left: 5px solid var(--zunda-green);
+        padding-left: 15px;
+        color: var(--zunda-dark);
+        font-weight: bold;
+    }
+
+    .manga-content p { margin-bottom: 1.5rem; }
+
+    /* プロット内の画像：ここをセンター寄せにするのだ */
     .manga-content img {
         display: block;
         max-width: 100%;
         height: auto !important;
         aspect-ratio: auto !important;
-        margin: 2rem auto;
+        margin: 2.5rem auto; /* 左右autoで中央配置なのだ */
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
 
-    .manga-content ul, .manga-content ol {
-        display: table;
-        text-align: left;
-        margin: 0 auto 2rem auto;
+    .manga-content ul, .manga-content ol { margin-bottom: 2rem; padding-left: 2rem; }
+    .manga-content blockquote {
+        border-left: 4px solid #ced4da;
+        padding-left: 1rem;
+        color: #6c757d;
+        font-style: italic;
+        margin: 1.5rem 0;
     }
+    .manga-content hr { margin: 3rem 0; border: 0; border-top: 2px dashed #eee; }
 
+    /* 素材パネル */
     .object-fit-contain { object-fit: contain; background-color: #f8f9fa; }
     .panel-card { transition: transform 0.2s; }
     .panel-card:hover { transform: translateY(-3px); }
