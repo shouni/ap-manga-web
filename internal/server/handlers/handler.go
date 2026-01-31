@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"ap-manga-web/internal/app"
 	"fmt"
 	"html/template"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"ap-manga-web/internal/domain"
 
 	"github.com/shouni/gcp-kit/tasks"
-	"github.com/shouni/go-manga-kit/pkg/workflow"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
@@ -22,7 +22,7 @@ type Handler struct {
 	taskEnqueuer  *tasks.Enqueuer[domain.GenerateTaskPayload]
 	reader        remoteio.InputReader
 	signer        remoteio.URLSigner
-	workflow      workflow.Workflow
+	workflow      *app.Workflow
 }
 
 // NewHandler は指定された構成に基づいて新しいハンドラーを初期化します。
@@ -32,7 +32,7 @@ func NewHandler(
 	taskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload],
 	reader remoteio.InputReader,
 	signer remoteio.URLSigner,
-	workflow workflow.Workflow,
+	workflow *app.Workflow,
 ) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")

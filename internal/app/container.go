@@ -24,7 +24,7 @@ type Container struct {
 	TaskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload]
 
 	// Business Logic
-	Workflow workflow.Workflow
+	Workflow *Workflow
 
 	// External Adapters
 	HTTPClient    httpkit.ClientInterface
@@ -36,6 +36,14 @@ type RemoteIO struct {
 	Reader  remoteio.InputReader
 	Writer  remoteio.OutputWriter
 	Signer  remoteio.URLSigner
+}
+
+type Workflow struct {
+	DesignRunner     workflow.DesignRunner
+	ScriptRunner     workflow.ScriptRunner
+	PanelImageRunner workflow.PanelImageRunner
+	PageImageRunner  workflow.PageImageRunner
+	PublishRunner    workflow.PublishRunner
 }
 
 // Close は、Context が保持するすべての外部接続リソースを安全に解放します。

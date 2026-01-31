@@ -88,13 +88,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4. 置換後の構造体から Markdown を構築する
-	pubRunner, err := h.workflow.BuildPublishRunner()
-	if err != nil {
-		slog.ErrorContext(ctx, "PublishRunnerの生成に失敗しました", "error", err)
-		http.Error(w, "内部エラーが発生しました", http.StatusInternalServerError)
-		return
-	}
-	plotMarkdown := pubRunner.BuildMarkdown(&manga)
+	plotMarkdown := h.workflow.PublishRunner.BuildMarkdown(&manga)
 	// 署名付きURLの有効期限に同期させる
 	cacheAgeSec := int64(config.SignedURLExpiration.Seconds())
 	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", cacheAgeSec))

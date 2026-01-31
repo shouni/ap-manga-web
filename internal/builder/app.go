@@ -97,11 +97,11 @@ func buildTaskEnqueuer(ctx context.Context, cfg *config.Config) (*tasks.Enqueuer
 	return tasks.NewEnqueuer[domain.GenerateTaskPayload](ctx, taskCfg)
 }
 
-// buildWorkflow は、漫画制作のコアロジックを管理する workflow.Workflow インターフェースを構築します。
-func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, reader remoteio.InputReader, writer remoteio.OutputWriter) (workflow.Workflow, error) {
+// buildWorkflow は、各 Runner を事前にビルドし、app.Workflow 構造体に詰め込んで返します。
+func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, reader remoteio.InputReader, writer remoteio.OutputWriter) (*app.Workflow, error) {
 	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, reader, cfg.CharacterConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load character map (path: %s): %w", cfg.CharacterConfig, err)
+		return nil, fmt.Errorf("failed to load character map: %w", err)
 	}
 
 	args := workflow.ManagerArgs{
@@ -119,5 +119,23 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		CharactersMap: charsMap,
 	}
 
-	return workflow.New(ctx, args)
+	mgr, err := workflow.New(ctx, args)
+	if err != nil {
+		return nil, err
+	}
+
+	// Runner をビルド
+	dr, _ := mgr.BuildDesignRunner()
+	sr, _ := mgr.BuildScriptRunner()
+	panR, _ := mgr.BuildPanelImageRunner()
+	pagR, _ := mgr.BuildPageImageRunner()
+	pubR, _ := mgr.BuildPublishRunner()
+
+	return &app.Workflow{
+		DesignRunner:     dr,
+		ScriptRunner:     sr,
+		PanelImageRunner: panR,
+		PageImageRunner:  pagR,
+		PublishRunner:    pubR,
+	}, nil
 }
