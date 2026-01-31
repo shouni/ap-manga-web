@@ -30,7 +30,7 @@ func NewHandler(
 	cfg *config.Config,
 	taskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload],
 	remoteIO *app.RemoteIO,
-	workflow *workflow.Runners,
+	runners *workflow.Runners,
 ) (*Handler, error) {
 	cache := make(map[string]*template.Template)
 	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
@@ -67,6 +67,6 @@ func NewHandler(
 		templateCache: cache,
 		taskEnqueuer:  taskEnqueuer,
 		remoteIO:      remoteIO,
-		workflow:      workflow,
+		workflow:      runners,
 	}, nil
 }
