@@ -25,7 +25,7 @@ type AppHandlers struct {
 
 // BuildHandlers は各ハンドラーの依存関係をすべて組み立て、AppHandlers 構造体を返します。
 func BuildHandlers(
-	appCtx *app.AppContext,
+	appCtx *app.Context,
 ) (*AppHandlers, error) {
 	if appCtx.Config.ServiceURL == "" {
 		return nil, fmt.Errorf("認証リダイレクトのために ServiceURL の設定が必要です")
@@ -38,7 +38,7 @@ func BuildHandlers(
 	}
 
 	// 2. Web UI 用Handlerの初期化
-	webHandler, err := handlers.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.Reader, appCtx.Signer, appCtx.Workflow)
+	webHandler, err := handlers.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.RemoteIO.Reader, appCtx.RemoteIO.Signer, appCtx.Workflow)
 	if err != nil {
 		return nil, fmt.Errorf("WebHandlerの初期化に失敗しました: %w", err)
 	}
@@ -55,7 +55,7 @@ func BuildHandlers(
 }
 
 // createAuthHandler は AppContext から認証ライブラリ用の設定を構築し、ハンドラーを生成します。
-func createAuthHandler(appCtx *app.AppContext) (*auth.Handler, error) {
+func createAuthHandler(appCtx *app.Context) (*auth.Handler, error) {
 	cfg := appCtx.Config
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {

@@ -1,11 +1,11 @@
 package app
 
 import (
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/domain"
 	"log/slog"
 
+	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
 
 	"github.com/shouni/gcp-kit/tasks"
 	"github.com/shouni/go-http-kit/pkg/httpkit"
@@ -13,15 +13,12 @@ import (
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// AppContext はアプリケーションの依存関係を保持します。
-type AppContext struct {
+// Context はアプリケーションの依存関係（DIコンテナ）を保持します。
+type Context struct {
 	Config *config.Config
 
 	// I/O and Storage
-	IOFactory remoteio.IOFactory
-	Reader    remoteio.InputReader
-	Writer    remoteio.OutputWriter
-	Signer    remoteio.URLSigner
+	RemoteIO RemoteIO
 
 	// Asynchronous Task
 	TaskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload]
@@ -34,15 +31,22 @@ type AppContext struct {
 	SlackNotifier adapters.SlackNotifier
 }
 
-// Close は、AppContextが保持するすべてのリソースを解放します。
-func (a *AppContext) Close() {
-	if a.IOFactory != nil {
-		if err := a.IOFactory.Close(); err != nil {
+type RemoteIO struct {
+	Factory remoteio.IOFactory
+	Reader  remoteio.InputReader
+	Writer  remoteio.OutputWriter
+	Signer  remoteio.URLSigner
+}
+
+// Close は、Context が保持するすべての外部接続リソースを安全に解放します。
+func (c *Context) Close() {
+	if c.RemoteIO.Factory != nil {
+		if err := c.RemoteIO.Factory.Close(); err != nil {
 			slog.Error("failed to close IOFactory", "error", err)
 		}
 	}
-	if a.TaskEnqueuer != nil {
-		if err := a.TaskEnqueuer.Close(); err != nil {
+	if c.TaskEnqueuer != nil {
+		if err := c.TaskEnqueuer.Close(); err != nil {
 			slog.Error("failed to close task enqueuer", "error", err)
 		}
 	}

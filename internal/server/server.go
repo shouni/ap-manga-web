@@ -17,7 +17,7 @@ const defaultShutdownTimeout = 30 * time.Second
 
 // Run はサーバーの構築、起動、およびライフサイクル管理を行います。
 func Run(ctx context.Context, cfg *config.Config) error {
-	appCtx, err := builder.BuildAppContext(ctx, cfg)
+	appCtx, err := builder.BuildContext(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to build application context: %w", err)
 	}

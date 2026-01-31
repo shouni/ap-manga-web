@@ -19,13 +19,13 @@ import (
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// BuildAppContext は外部サービスとの接続を確立し、依存関係を組み立てます。
-func BuildAppContext(ctx context.Context, cfg *config.Config) (*app.AppContext, error) {
+// BuildContext は外部サービスとの接続を確立し、依存関係を組み立てた app.Context を返します。
+func BuildContext(ctx context.Context, cfg *config.Config) (*app.Context, error) {
 	// 1. HttpClient (全アダプターの基盤)
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
 
 	// 2. I/O Infrastructure (GCS)
-	io, err := buildIO(ctx)
+	io, err := buildRemoteIO(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize IO components: %w", err)
 	}
@@ -37,9 +37,9 @@ func BuildAppContext(ctx context.Context, cfg *config.Config) (*app.AppContext, 
 	}
 
 	// 4. Workflow (Core Logic)
-	wf, err := buildWorkflow(ctx, cfg, httpClient, io.reader, io.writer)
+	wf, err := buildWorkflow(ctx, cfg, httpClient, io.Reader, io.Writer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create workflow builder: %w", err)
+		return nil, fmt.Errorf("failed to create workflow manager: %w", err)
 	}
 
 	// 5. Slack Adapter
@@ -48,12 +48,9 @@ func BuildAppContext(ctx context.Context, cfg *config.Config) (*app.AppContext, 
 		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
 	}
 
-	return &app.AppContext{
+	return &app.Context{
 		Config:        cfg,
-		IOFactory:     io.factory,
-		Reader:        io.reader,
-		Writer:        io.writer,
-		Signer:        io.signer,
+		RemoteIO:      *io,
 		TaskEnqueuer:  enqueuer,
 		Workflow:      wf,
 		HTTPClient:    httpClient,
@@ -61,17 +58,8 @@ func BuildAppContext(ctx context.Context, cfg *config.Config) (*app.AppContext, 
 	}, nil
 }
 
-// --- Helpers ---
-
-type ioComponents struct {
-	factory remoteio.IOFactory
-	reader  remoteio.InputReader
-	writer  remoteio.OutputWriter
-	signer  remoteio.URLSigner
-}
-
-// buildIO は、リモート I/O 操作を処理するための ioComponents インスタンスを初期化して返します
-func buildIO(ctx context.Context) (*ioComponents, error) {
+// buildRemoteIO は、読み取り、書き込み、URL 署名用の GCS ベースの I/O コンポーネントを初期化し、ioComponents として返します。
+func buildRemoteIO(ctx context.Context) (*app.RemoteIO, error) {
 	factory, err := gcsfactory.New(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GCS factory: %w", err)
@@ -88,10 +76,10 @@ func buildIO(ctx context.Context) (*ioComponents, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create URL signer: %w", err)
 	}
-	return &ioComponents{factory: factory, reader: r, writer: w, signer: s}, nil
+	return &app.RemoteIO{Factory: factory, Reader: r, Writer: w, Signer: s}, nil
 }
 
-// buildTaskEnqueuer は、Cloud Tasks エンキューアを初期化して返します。
+// buildTaskEnqueuer は、提供された構成でタスク生成を処理するための Cloud Tasks エンキューアを初期化して返します。
 func buildTaskEnqueuer(ctx context.Context, cfg *config.Config) (*tasks.Enqueuer[domain.GenerateTaskPayload], error) {
 	workerURL, err := url.JoinPath(cfg.ServiceURL, "/tasks/generate")
 	if err != nil {
@@ -109,7 +97,7 @@ func buildTaskEnqueuer(ctx context.Context, cfg *config.Config) (*tasks.Enqueuer
 	return tasks.NewEnqueuer[domain.GenerateTaskPayload](ctx, taskCfg)
 }
 
-// buildWorkflow は、ワークフローを初期化および構築します。
+// buildWorkflow は、漫画制作のコアロジックを管理する workflow.Workflow インターフェースを構築します。
 func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, reader remoteio.InputReader, writer remoteio.OutputWriter) (workflow.Workflow, error) {
 	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, reader, cfg.CharacterConfig)
 	if err != nil {
@@ -130,5 +118,6 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		Writer:        writer,
 		CharactersMap: charsMap,
 	}
+
 	return workflow.New(ctx, args)
 }

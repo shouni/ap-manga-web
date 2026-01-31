@@ -28,7 +28,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution)
 		return nil, "", fmt.Errorf("failed to marshal manga script to JSON: %w", err)
 	}
 
-	if err := p.appCtx.Writer.Write(ctx, plotFile, bytes.NewReader(data), "application/json"); err != nil {
+	if err := p.appCtx.RemoteIO.Writer.Write(ctx, plotFile, bytes.NewReader(data), "application/json"); err != nil {
 		return manga, "", err
 	}
 	return manga, plotFile, nil
