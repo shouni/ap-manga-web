@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"path/filepath"
+	"path"
 	"regexp"
 	"sort"
+	"strings"
 
 	"ap-manga-web/internal/config"
 
@@ -21,18 +21,16 @@ import (
 // mangaViewData はテンプレート「manga_view.html」に渡すためのデータ構造体
 type mangaViewData struct {
 	Title         string
-	OriginalTitle string // ユーザー向けの本来のタイトル
-	PlotContent   string
-	PageURLs      []string
-	PanelURLs     []string
+	OriginalTitle string
+	Manga         mangadom.MangaResponse // JSONからデコードしURL置換済みのデータ
+	PlotContent   string                 // URL置換済みのMarkdown
+	PageURLs      []string               // ページ全体画像の署名付きURL
 }
 
-// ServeOutput は指定されたタイトルの漫画成果物（プロットおよび画像）を取得し、ビューアー画面を表示する。
+// ServeOutput は指定されたタイトルの漫画成果物を取得し、ビューアー画面を表示する。
 func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	title := chi.URLParam(r, "title")
-	// JSONプロットから本来のタイトルを読み取るヘルパーを呼び出す
-	originalTitle := h.loadOriginalTitle(r, title)
 
 	handleImageLoadError := func(err error, imageType string) bool {
 		if err == nil {
@@ -48,20 +46,15 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return true
 	}
 
-	// 1. プロットの取得
-	plotContent, err := h.loadPlotContent(r, title)
+	// 1. JSONプロットの取得（これが正となるデータ源なのだ）
+	manga, err := h.loadMangaJSON(r, title)
 	if err != nil {
-		if errors.Is(err, ErrInvalidPath) {
-			slog.WarnContext(ctx, "プロットのリクエストパスが不正です", "title", title, "error", err)
-			http.Error(w, "不正なタイトルパスです", http.StatusBadRequest)
-		} else {
-			slog.ErrorContext(ctx, "プロット内容の読み込みに失敗しました", "title", title, "error", err)
-			http.Error(w, "プロットの読み込みに失敗しました", http.StatusInternalServerError)
-		}
+		slog.ErrorContext(ctx, "プロットJSONの読み込みに失敗しました", "title", title, "error", err)
+		http.Error(w, "データの読み込みに失敗しました", http.StatusInternalServerError)
 		return
 	}
 
-	// 2. 署名付き画像URLリストの取得（ページとパネル、それぞれを独立して取得する）
+	// 2. 署名付き画像URLリストの取得（Page用とPanel用）
 	signedPageURLs, err := h.loadSignedImageURLs(r, title, asset.PageFileRegex)
 	if handleImageLoadError(err, "page") {
 		return
@@ -72,43 +65,63 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 3. マッピング処理：構造体内の相対パスを署名付きURLに置き換える
+	panelMap := make(map[string]string)
+	for _, u := range signedPanelURLs {
+		// 署名付きURLのクエリパラメータを除去してファイル名を取得
+		cleanPath := strings.Split(u, "?")[0]
+		panelMap[path.Base(cleanPath)] = u
+	}
+
+	for i := range manga.Panels {
+		p := &manga.Panels[i]
+		// 元の ReferenceURL (gs://... や相対パス) からファイル名を特定
+		fileName := path.Base(p.ReferenceURL)
+		if signed, ok := panelMap[fileName]; ok {
+			p.ReferenceURL = signed
+		}
+	}
+
+	// 4. 置換後の構造体から Markdown を構築する（ビューアーのフォールバック用）
+	// Workflow からパブリッシュ用の Runner を取得して実行します。
+	pubRunner, _ := h.appCtx.Workflow.BuildPublishRunner()
+	plotMarkdown := pubRunner.BuildMarkdown(&manga)
 	// 署名付きURLの有効期限に同期させる
 	cacheAgeSec := int64(config.SignedURLExpiration.Seconds())
 	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", cacheAgeSec))
 
-	// 3. テンプレートのレンダリング
+	// 5. テンプレートのレンダリング
 	h.render(w, http.StatusOK, "manga_view.html", title, mangaViewData{
 		Title:         title,
-		OriginalTitle: originalTitle,
-		PlotContent:   plotContent,
+		OriginalTitle: manga.Title,
+		Manga:         manga,
+		PlotContent:   plotMarkdown,
 		PageURLs:      signedPageURLs,
-		PanelURLs:     signedPanelURLs,
 	})
 }
 
-// loadPlotContent は指定されたタイトルのプロットファイルを読み込み、その内容を文字列として返す。
-func (h *Handler) loadPlotContent(r *http.Request, title string) (string, error) {
-	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotName)
+// loadMangaJSON は GCS から manga_plot.json を読み込み、ドメインモデルにデコードします。
+func (h *Handler) loadMangaJSON(r *http.Request, title string) (mangadom.MangaResponse, error) {
+	var manga mangadom.MangaResponse
+	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotJson)
 	if err != nil {
-		return "", err
+		return manga, err
 	}
 
-	plotPath := h.cfg.GetGCSObjectURL(relPath)
-	rc, err := h.reader.Open(r.Context(), plotPath)
+	plotPath := h.appCtx.Config.GetGCSObjectURL(relPath)
+	rc, err := h.appCtx.Reader.Open(r.Context(), plotPath)
 	if err != nil {
-		slog.WarnContext(r.Context(), "プロットファイルが見つからないため、レンダリングをスキップします", "path", plotPath)
-		return "", nil
+		return manga, fmt.Errorf("JSONファイルが見つかりません: %w", err)
 	}
 	defer rc.Close()
 
-	data, err := io.ReadAll(rc)
-	if err != nil {
-		return "", fmt.Errorf("プロットファイルの読み込みに失敗しました: %w", err)
+	if err := json.NewDecoder(rc).Decode(&manga); err != nil {
+		return manga, fmt.Errorf("JSONの解析に失敗しました: %w", err)
 	}
-	return string(data), nil
+	return manga, nil
 }
 
-// loadSignedImageURLs は指定されたタイトルの画像をリストし、一時的な署名付きURLのスライスを生成する
+// loadSignedImageURLs は指定されたタイトルの画像をリストし、一時的な署名付きURLを生成します。
 func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *regexp.Regexp) ([]string, error) {
 	ctx := r.Context()
 	prefix, err := h.validateAndCleanPath(title, asset.DefaultImageDir)
@@ -116,62 +129,31 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *rege
 		return nil, err
 	}
 
-	gcsPrefix := h.cfg.GetGCSObjectURL(prefix)
+	gcsPrefix := h.appCtx.Config.GetGCSObjectURL(prefix)
 	var filePaths []string
 
-	// 指定された正規表現（Page用かPanel用か）にマッチするファイルのみを抽出
-	err = h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
-		if regex.MatchString(filepath.Base(gcsPath)) {
+	// path.Base を使い、OSに依存せずスラッシュ区切りでファイル名を判定
+	err = h.appCtx.Reader.List(ctx, gcsPrefix, func(gcsPath string) error {
+		if regex.MatchString(path.Base(gcsPath)) {
 			filePaths = append(filePaths, gcsPath)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("ストレージからの画像リスト取得に失敗しました: %w", err)
+		return nil, fmt.Errorf("ストレージのリスト取得に失敗: %w", err)
 	}
 
-	// ページ順・パネル順を正しく表示するため、ファイル名でソートする
 	sort.Strings(filePaths)
 
 	var signedURLs []string
 	for _, gcsPath := range filePaths {
-		u, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, config.SignedURLExpiration)
+		u, err := h.appCtx.Signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, config.SignedURLExpiration)
 		if err != nil {
-			slog.ErrorContext(ctx, "署名付きURLの生成に失敗しました", "path", gcsPath, "error", err)
+			slog.ErrorContext(ctx, "署名付きURL生成失敗", "path", gcsPath, "error", err)
 			continue
 		}
 		signedURLs = append(signedURLs, u)
 	}
 
-	if len(filePaths) > 0 && len(signedURLs) == 0 {
-		return nil, errors.New("利用可能な画像アセットに対して署名付きURLを生成できませんでした")
-	}
-
 	return signedURLs, nil
-}
-
-// loadOriginalTitle は JSON プロットを読み込み、本来のタイトルを抽出します。
-// 失敗した場合は、フォールバックとして safeTitle を返します。
-func (h *Handler) loadOriginalTitle(r *http.Request, safeTitle string) string {
-	relPath, err := h.validateAndCleanPath(safeTitle, asset.DefaultMangaPlotJson)
-	if err != nil {
-		return safeTitle
-	}
-
-	plotPath := h.cfg.GetGCSObjectURL(relPath)
-	rc, err := h.reader.Open(r.Context(), plotPath)
-	if err != nil {
-		return safeTitle
-	}
-	defer rc.Close()
-
-	var manga mangadom.MangaResponse
-	if err := json.NewDecoder(rc).Decode(&manga); err != nil {
-		return safeTitle
-	}
-
-	if manga.Title == "" {
-		return safeTitle
-	}
-	return manga.Title
 }

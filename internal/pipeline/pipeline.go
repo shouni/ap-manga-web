@@ -4,17 +4,17 @@ import (
 	"context"
 	"time"
 
-	"ap-manga-web/internal/builder"
+	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/domain"
 )
 
 // MangaPipeline はパイプラインの実行に必要な外部依存関係を保持するサービス構造体です。
 type MangaPipeline struct {
-	appCtx *builder.AppContext
+	appCtx *app.AppContext
 }
 
 // NewMangaPipeline は MangaPipeline の新しいインスタンスを生成します。
-func NewMangaPipeline(appCtx *builder.AppContext) *MangaPipeline {
+func NewMangaPipeline(appCtx *app.AppContext) *MangaPipeline {
 	return &MangaPipeline{appCtx: appCtx}
 }
 

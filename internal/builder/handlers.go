@@ -1,9 +1,11 @@
 package builder
 
 import (
+	"ap-manga-web/internal/pipeline"
 	"fmt"
 	"net/url"
 
+	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/domain"
 	"ap-manga-web/internal/server/handlers"
 
@@ -23,8 +25,7 @@ type AppHandlers struct {
 
 // BuildHandlers は各ハンドラーの依存関係をすべて組み立て、AppHandlers 構造体を返します。
 func BuildHandlers(
-	appCtx *AppContext,
-	executor worker.TaskExecutor[domain.GenerateTaskPayload],
+	appCtx *app.AppContext,
 ) (*AppHandlers, error) {
 	if appCtx.Config.ServiceURL == "" {
 		return nil, fmt.Errorf("認証リダイレクトのために ServiceURL の設定が必要です")
@@ -37,12 +38,13 @@ func BuildHandlers(
 	}
 
 	// 2. Web UI 用Handlerの初期化
-	webHandler, err := handlers.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.Reader, appCtx.Signer)
+	webHandler, err := handlers.NewHandler(appCtx)
 	if err != nil {
 		return nil, fmt.Errorf("WebHandlerの初期化に失敗しました: %w", err)
 	}
 
 	// 3. 非同期ワーカー用Handlerの初期化
+	executor := pipeline.NewMangaPipeline(appCtx)
 	workerHandler := worker.NewHandler[domain.GenerateTaskPayload](executor)
 
 	return &AppHandlers{
@@ -53,7 +55,7 @@ func BuildHandlers(
 }
 
 // createAuthHandler は AppContext から認証ライブラリ用の設定を構築し、ハンドラーを生成します。
-func createAuthHandler(appCtx *AppContext) (*auth.Handler, error) {
+func createAuthHandler(appCtx *app.AppContext) (*auth.Handler, error) {
 	cfg := appCtx.Config
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {

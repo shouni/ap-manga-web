@@ -10,7 +10,6 @@ import (
 
 	"ap-manga-web/internal/builder"
 	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/pipeline"
 )
 
 // デフォルトのシャットダウン猶予時間
@@ -27,8 +26,7 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		appCtx.Close()
 	}()
 
-	mangaPipeline := pipeline.NewMangaPipeline(appCtx)
-	h, err := builder.BuildHandlers(appCtx, mangaPipeline)
+	h, err := builder.BuildHandlers(appCtx)
 	if err != nil {
 		return fmt.Errorf("failed to build handlers: %w", err)
 	}

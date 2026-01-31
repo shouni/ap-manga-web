@@ -3,10 +3,10 @@ package builder
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/url"
 
 	"ap-manga-web/internal/adapters"
+	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 
@@ -19,29 +19,8 @@ import (
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// AppContext はアプリケーションの依存関係を保持します。
-type AppContext struct {
-	Config *config.Config
-
-	// I/O and Storage
-	IOFactory remoteio.IOFactory
-	Reader    remoteio.InputReader
-	Writer    remoteio.OutputWriter
-	Signer    remoteio.URLSigner
-
-	// Asynchronous Task
-	TaskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload]
-
-	// Business Logic
-	Workflow workflow.Workflow
-
-	// External Adapters
-	HTTPClient    httpkit.ClientInterface
-	SlackNotifier adapters.SlackNotifier
-}
-
 // BuildAppContext は外部サービスとの接続を確立し、依存関係を組み立てます。
-func BuildAppContext(ctx context.Context, cfg *config.Config) (*AppContext, error) {
+func BuildAppContext(ctx context.Context, cfg *config.Config) (*app.AppContext, error) {
 	// 1. HttpClient (全アダプターの基盤)
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
 
@@ -69,7 +48,7 @@ func BuildAppContext(ctx context.Context, cfg *config.Config) (*AppContext, erro
 		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
 	}
 
-	return &AppContext{
+	return &app.AppContext{
 		Config:        cfg,
 		IOFactory:     io.factory,
 		Reader:        io.reader,
@@ -152,18 +131,4 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		CharactersMap: charsMap,
 	}
 	return workflow.New(ctx, args)
-}
-
-// Close は、AppContextが保持するすべてのリソースを解放します。
-func (a *AppContext) Close() {
-	if a.IOFactory != nil {
-		if err := a.IOFactory.Close(); err != nil {
-			slog.Error("failed to close IOFactory", "error", err)
-		}
-	}
-	if a.TaskEnqueuer != nil {
-		if err := a.TaskEnqueuer.Close(); err != nil {
-			slog.Error("failed to close task enqueuer", "error", err)
-		}
-	}
 }

@@ -6,39 +6,37 @@ import (
 	"os"
 	"path/filepath"
 
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
-
-	"github.com/shouni/gcp-kit/tasks"
-	"github.com/shouni/go-remote-io/pkg/remoteio"
+	"ap-manga-web/internal/app"
 )
 
 const titleSuffix = " - AP Manga Web"
 
 type Handler struct {
-	cfg           *config.Config
+	appCtx *app.AppContext
+	//cfg           *config.Config
 	templateCache map[string]*template.Template
-	taskEnqueuer  *tasks.Enqueuer[domain.GenerateTaskPayload]
-	reader        remoteio.InputReader
-	signer        remoteio.URLSigner
+	//taskEnqueuer  *tasks.Enqueuer[domain.GenerateTaskPayload]
+	//reader        remoteio.InputReader
+	//signer        remoteio.URLSigner
 }
 
 // NewHandler は指定された構成に基づいて新しいハンドラーを初期化します。
 // テンプレートをコンパイルし、レイアウトファイルが存在することを確認します。
 func NewHandler(
-	cfg *config.Config,
-	taskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload],
-	reader remoteio.InputReader,
-	signer remoteio.URLSigner,
+	appCtx *app.AppContext,
+	//	cfg *config.Config,
+	//	taskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload],
+	//
+	// reader remoteio.InputReader,
+	// signer remoteio.URLSigner,
 ) (*Handler, error) {
 	cache := make(map[string]*template.Template)
-	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
-
+	layoutPath := filepath.Join(appCtx.Config.TemplateDir, "layout.html")
 	if _, err := os.Stat(layoutPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("レイアウトテンプレートが見つかりません: %s", layoutPath)
 	}
 
-	pagePaths, err := filepath.Glob(filepath.Join(cfg.TemplateDir, "*.html"))
+	pagePaths, err := filepath.Glob(filepath.Join(appCtx.Config.TemplateDir, "*.html"))
 	if err != nil {
 		return nil, fmt.Errorf("ページテンプレートの検索に失敗しました: %w", err)
 	}
@@ -62,10 +60,6 @@ func NewHandler(
 	}
 
 	return &Handler{
-		cfg:           cfg,
-		templateCache: cache,
-		taskEnqueuer:  taskEnqueuer,
-		reader:        reader,
-		signer:        signer,
+		appCtx: appCtx,
 	}, nil
 }
