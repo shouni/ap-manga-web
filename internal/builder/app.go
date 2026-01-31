@@ -16,16 +16,15 @@ import (
 	mangaKitDom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/workflow"
 	"github.com/shouni/go-remote-io/pkg/gcsfactory"
-	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-// BuildContext は外部サービスとの接続を確立し、依存関係を組み立てた app.Context を返します。
-func BuildContext(ctx context.Context, cfg *config.Config) (*app.Container, error) {
+// BuildContainer は外部サービスとの接続を確立し、依存関係を組み立てた app.Container を返します。
+func BuildContainer(ctx context.Context, cfg *config.Config) (*app.Container, error) {
 	// 1. HttpClient (全アダプターの基盤)
 	httpClient := httpkit.New(config.DefaultHTTPTimeout)
 
 	// 2. I/O Infrastructure (GCS)
-	io, err := buildRemoteIO(ctx)
+	rio, err := buildRemoteIO(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize IO components: %w", err)
 	}
@@ -37,9 +36,9 @@ func BuildContext(ctx context.Context, cfg *config.Config) (*app.Container, erro
 	}
 
 	// 4. Workflow (Core Logic)
-	wf, err := buildWorkflow(ctx, cfg, httpClient, io.Reader, io.Writer)
+	wf, err := buildWorkflow(ctx, cfg, httpClient, rio)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create workflow manager: %w", err)
+		return nil, fmt.Errorf("failed to create workflow: %w", err)
 	}
 
 	// 5. Slack Adapter
@@ -50,7 +49,7 @@ func BuildContext(ctx context.Context, cfg *config.Config) (*app.Container, erro
 
 	return &app.Container{
 		Config:        cfg,
-		RemoteIO:      *io,
+		RemoteIO:      rio,
 		TaskEnqueuer:  enqueuer,
 		Workflow:      wf,
 		HTTPClient:    httpClient,
@@ -58,7 +57,7 @@ func BuildContext(ctx context.Context, cfg *config.Config) (*app.Container, erro
 	}, nil
 }
 
-// buildRemoteIO は、読み取り、書き込み、URL 署名用の GCS ベースの I/O コンポーネントを初期化し、ioComponents として返します。
+// buildRemoteIO は、読み取り、書き込み、URL 署名用の GCS ベースの I/O コンポーネントを初期化します。
 func buildRemoteIO(ctx context.Context) (*app.RemoteIO, error) {
 	factory, err := gcsfactory.New(ctx)
 	if err != nil {
@@ -79,7 +78,7 @@ func buildRemoteIO(ctx context.Context) (*app.RemoteIO, error) {
 	return &app.RemoteIO{Factory: factory, Reader: r, Writer: w, Signer: s}, nil
 }
 
-// buildTaskEnqueuer は、提供された構成でタスク生成を処理するための Cloud Tasks エンキューアを初期化して返します。
+// buildTaskEnqueuer は、Cloud Tasks エンキューアを初期化します。
 func buildTaskEnqueuer(ctx context.Context, cfg *config.Config) (*tasks.Enqueuer[domain.GenerateTaskPayload], error) {
 	workerURL, err := url.JoinPath(cfg.ServiceURL, "/tasks/generate")
 	if err != nil {
@@ -97,9 +96,9 @@ func buildTaskEnqueuer(ctx context.Context, cfg *config.Config) (*tasks.Enqueuer
 	return tasks.NewEnqueuer[domain.GenerateTaskPayload](ctx, taskCfg)
 }
 
-// buildWorkflow は、各 Runner を事前にビルドし、app.Workflow 構造体に詰め込んで返します。
-func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, reader remoteio.InputReader, writer remoteio.OutputWriter) (*app.Workflow, error) {
-	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, reader, cfg.CharacterConfig)
+// buildWorkflow は、各 Runner を事前にビルドし、エラーチェックを行った上で app.Workflow を返します。
+func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, rio *app.RemoteIO) (*app.Workflow, error) {
+	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, rio.Reader, cfg.CharacterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load character map: %w", err)
 	}
@@ -114,22 +113,37 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 			MaxPanelsPerPage: config.DefaultMaxPanelsPerPage,
 		},
 		HTTPClient:    httpClient,
-		Reader:        reader,
-		Writer:        writer,
+		Reader:        rio.Reader,
+		Writer:        rio.Writer,
 		CharactersMap: charsMap,
 	}
 
 	mgr, err := workflow.New(ctx, args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create workflow manager: %w", err)
 	}
 
-	// Runner をビルド
-	dr, _ := mgr.BuildDesignRunner()
-	sr, _ := mgr.BuildScriptRunner()
-	panR, _ := mgr.BuildPanelImageRunner()
-	pagR, _ := mgr.BuildPageImageRunner()
-	pubR, _ := mgr.BuildPublishRunner()
+	// Runner をビルドし、個別にエラーチェックを行う
+	dr, err := mgr.BuildDesignRunner()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build DesignRunner: %w", err)
+	}
+	sr, err := mgr.BuildScriptRunner()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build ScriptRunner: %w", err)
+	}
+	panR, err := mgr.BuildPanelImageRunner()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build PanelImageRunner: %w", err)
+	}
+	pagR, err := mgr.BuildPageImageRunner()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build PageImageRunner: %w", err)
+	}
+	pubR, err := mgr.BuildPublishRunner()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build PublishRunner: %w", err)
+	}
 
 	return &app.Workflow{
 		DesignRunner:     dr,

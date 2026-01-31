@@ -11,7 +11,6 @@ import (
 	"ap-manga-web/internal/domain"
 
 	"github.com/shouni/gcp-kit/tasks"
-	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
 const titleSuffix = " - AP Manga Web"
@@ -20,8 +19,7 @@ type Handler struct {
 	cfg           *config.Config
 	templateCache map[string]*template.Template
 	taskEnqueuer  *tasks.Enqueuer[domain.GenerateTaskPayload]
-	reader        remoteio.InputReader
-	signer        remoteio.URLSigner
+	rio           *app.RemoteIO
 	workflow      *app.Workflow
 }
 
@@ -30,8 +28,7 @@ type Handler struct {
 func NewHandler(
 	cfg *config.Config,
 	taskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload],
-	reader remoteio.InputReader,
-	signer remoteio.URLSigner,
+	rio *app.RemoteIO,
 	workflow *app.Workflow,
 ) (*Handler, error) {
 	cache := make(map[string]*template.Template)
@@ -67,8 +64,7 @@ func NewHandler(
 		cfg,
 		cache,
 		taskEnqueuer,
-		reader,
-		signer,
+		rio,
 		workflow,
 	}, nil
 }

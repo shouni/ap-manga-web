@@ -18,7 +18,7 @@ type Container struct {
 	Config *config.Config
 
 	// I/O and Storage
-	RemoteIO RemoteIO
+	RemoteIO *RemoteIO
 
 	// Asynchronous Task
 	TaskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload]

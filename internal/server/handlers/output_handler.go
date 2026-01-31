@@ -112,7 +112,7 @@ func (h *Handler) loadMangaJSON(r *http.Request, title string) (mangadom.MangaRe
 	}
 
 	plotPath := h.cfg.GetGCSObjectURL(relPath)
-	rc, err := h.reader.Open(r.Context(), plotPath)
+	rc, err := h.rio.Reader.Open(r.Context(), plotPath)
 	if err != nil {
 		return manga, fmt.Errorf("JSONファイルが見つかりません: %w", err)
 	}
@@ -136,7 +136,7 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *rege
 	var filePaths []string
 
 	// path.Base を使い、OSに依存せずスラッシュ区切りでファイル名を判定
-	err = h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
+	err = h.rio.Reader.List(ctx, gcsPrefix, func(gcsPath string) error {
 		if regex.MatchString(path.Base(gcsPath)) {
 			filePaths = append(filePaths, gcsPath)
 		}
@@ -150,7 +150,7 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *rege
 
 	var signedURLs []string
 	for _, gcsPath := range filePaths {
-		u, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, config.SignedURLExpiration)
+		u, err := h.rio.Signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, config.SignedURLExpiration)
 		if err != nil {
 			slog.ErrorContext(ctx, "署名付きURL生成失敗", "path", gcsPath, "error", err)
 			continue
