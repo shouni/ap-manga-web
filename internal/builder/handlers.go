@@ -38,7 +38,7 @@ func BuildHandlers(
 	}
 
 	// 2. Web UI 用Handlerの初期化
-	webHandler, err := handlers.NewHandler(appCtx)
+	webHandler, err := handlers.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.Reader, appCtx.Signer, appCtx.Workflow)
 	if err != nil {
 		return nil, fmt.Errorf("WebHandlerの初期化に失敗しました: %w", err)
 	}

@@ -82,9 +82,13 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 4. 置換後の構造体から Markdown を構築する（ビューアーのフォールバック用）
-	// Workflow からパブリッシュ用の Runner を取得して実行します。
-	pubRunner, _ := h.appCtx.Workflow.BuildPublishRunner()
+	// 4. 置換後の構造体から Markdown を構築する
+	pubRunner, err := h.workflow.BuildPublishRunner()
+	if err != nil {
+		slog.ErrorContext(ctx, "PublishRunnerの生成に失敗しました", "error", err)
+		http.Error(w, "内部エラーが発生しました", http.StatusInternalServerError)
+		return
+	}
 	plotMarkdown := pubRunner.BuildMarkdown(&manga)
 	// 署名付きURLの有効期限に同期させる
 	cacheAgeSec := int64(config.SignedURLExpiration.Seconds())
@@ -108,8 +112,8 @@ func (h *Handler) loadMangaJSON(r *http.Request, title string) (mangadom.MangaRe
 		return manga, err
 	}
 
-	plotPath := h.appCtx.Config.GetGCSObjectURL(relPath)
-	rc, err := h.appCtx.Reader.Open(r.Context(), plotPath)
+	plotPath := h.cfg.GetGCSObjectURL(relPath)
+	rc, err := h.reader.Open(r.Context(), plotPath)
 	if err != nil {
 		return manga, fmt.Errorf("JSONファイルが見つかりません: %w", err)
 	}
@@ -129,11 +133,11 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *rege
 		return nil, err
 	}
 
-	gcsPrefix := h.appCtx.Config.GetGCSObjectURL(prefix)
+	gcsPrefix := h.cfg.GetGCSObjectURL(prefix)
 	var filePaths []string
 
 	// path.Base を使い、OSに依存せずスラッシュ区切りでファイル名を判定
-	err = h.appCtx.Reader.List(ctx, gcsPrefix, func(gcsPath string) error {
+	err = h.reader.List(ctx, gcsPrefix, func(gcsPath string) error {
 		if regex.MatchString(path.Base(gcsPath)) {
 			filePaths = append(filePaths, gcsPath)
 		}
@@ -147,7 +151,7 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *rege
 
 	var signedURLs []string
 	for _, gcsPath := range filePaths {
-		u, err := h.appCtx.Signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, config.SignedURLExpiration)
+		u, err := h.signer.GenerateSignedURL(ctx, gcsPath, http.MethodGet, config.SignedURLExpiration)
 		if err != nil {
 			slog.ErrorContext(ctx, "署名付きURL生成失敗", "path", gcsPath, "error", err)
 			continue

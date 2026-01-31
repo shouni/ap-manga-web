@@ -50,7 +50,7 @@ func (h *Handler) validateAndCleanPath(title, file string) (string, error) {
 		return "", fmt.Errorf("invalid title: %s", title)
 	}
 
-	baseDir := h.appCtx.Config.GetWorkDir(title)
+	baseDir := h.cfg.GetWorkDir(title)
 	cleaned := path.Clean(path.Join(baseDir, file))
 
 	if !strings.HasPrefix(cleaned, baseDir) {

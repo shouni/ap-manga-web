@@ -38,7 +38,7 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.appCtx.TaskEnqueuer.Enqueue(r.Context(), payload); err != nil {
+	if err := h.taskEnqueuer.Enqueue(r.Context(), payload); err != nil {
 		slog.Error("タスクのエンキューに失敗しました", "error", err)
 		http.Error(w, "タスクのスケジュールに失敗しました。管理者にお問い合わせください。", http.StatusInternalServerError)
 		return
