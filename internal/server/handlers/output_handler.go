@@ -46,7 +46,7 @@ func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
 		return true
 	}
 
-	// 1. JSONプロットの取得（これが正となるデータ源なのだ）
+	// 1. JSONプロットの取得
 	manga, err := h.loadMangaJSON(r, title)
 	if err != nil {
 		slog.ErrorContext(ctx, "プロットJSONの読み込みに失敗しました", "title", title, "error", err)
