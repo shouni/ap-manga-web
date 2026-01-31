@@ -50,7 +50,6 @@
     </div>
 
     <div class="tab-content" id="mangaTabContent">
-
         <div class="tab-pane fade show active" id="pages" role="tabpanel" aria-labelledby="pages-tab">
             <div class="manga-gallery d-flex flex-column align-items-center gap-5">
                 {{range $index, $url := .Data.PageURLs}}
@@ -71,29 +70,19 @@
         </div>
 
         <div class="tab-pane fade" id="panels" role="tabpanel" aria-labelledby="panels-tab">
-            <div class="d-flex flex-column align-items-center gap-4">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 {{range $index, $panel := .Data.Manga.Panels}}
-                <div class="panel-material-wrapper w-100" style="max-width: 900px;">
-                    <div class="card border-0 shadow-sm panel-card overflow-hidden">
-                        <div class="card-header bg-white border-0 py-2 d-flex justify-content-between align-items-center">
-                            <span class="badge bg-dark opacity-75">Panel #{{add $index 1}}</span>
-                            <small class="text-muted fw-bold">
-                                <i class="bi bi-person-badge me-1"></i>
-                                {{if $panel.SpeakerID}}{{$panel.SpeakerID}}{{else}}背景/演出{{end}}
-                            </small>
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm panel-card overflow-hidden">
+                        <div class="position-relative overflow-hidden bg-light" style="aspect-ratio: 1/1;">
+                            <img src="{{$panel.ReferenceURL}}" class="card-img-top w-100 h-100 object-fit-contain" alt="Panel {{$index}}" loading="lazy">
+                            <div class="position-absolute top-0 start-0 m-2">
+                                <span class="badge bg-dark opacity-75">Panel #{{add $index 1}}</span>
+                            </div>
                         </div>
-
-                        <div class="bg-light position-relative" style="aspect-ratio: 16/9; overflow: hidden;">
-                            <img src="{{$panel.ReferenceURL}}" class="w-100 h-100 object-fit-contain" alt="Panel {{$index}}" loading="lazy">
+                        <div class="card-body py-2 bg-light text-center border-top">
+                            <small class="text-muted fw-bold">{{if $panel.SpeakerID}}{{$panel.SpeakerID}}{{else}}背景/演出{{end}}</small>
                         </div>
-
-                        {{if $panel.Dialogue}}
-                        <div class="card-body bg-white border-top border-light">
-                            <p class="card-text small mb-0 text-dark">
-                                <i class="bi bi-chat-dots-fill me-2" style="color: var(--zunda-green);"></i>{{$panel.Dialogue}}
-                            </p>
-                        </div>
-                        {{end}}
                     </div>
                 </div>
                 {{else}}
@@ -110,9 +99,9 @@
             <div class="card shadow-sm border-0 mb-5">
                 <div class="card-header bg-dark text-white d-flex align-items-center py-3">
                     <i class="bi bi-file-text-fill me-2 text-warning"></i>
-                    <h5 class="mb-0 fw-bold">ストーリープロット ({{.Data.OriginalTitle}})</h5>
+                    <h5 class="mb-0 fw-bold">ストーリープロット・絵コンテ ({{.Data.OriginalTitle}})</h5>
                 </div>
-                <div class="card-body p-4 p-md-5" style="background-color: #fafafa;">
+                <div class="card-body p-4 p-md-5" style="background-color: #ffffff;">
                     <div id="markdown-viewer" class="manga-content prose">{{.Data.PlotContent}}</div>
                 </div>
             </div>
@@ -127,94 +116,70 @@
     document.addEventListener('DOMContentLoaded', () => {
         const viewer = document.getElementById('markdown-viewer');
         if (viewer && viewer.textContent.trim() !== "") {
+            marked.setOptions({ breaks: true, gfm: true });
             const rawHtml = marked.parse(viewer.textContent);
             const cleanHtml = DOMPurify.sanitize(rawHtml);
             viewer.innerHTML = cleanHtml;
+
+            // プロットを絵コンテ風に装飾するロジック
+            const headers = viewer.querySelectorAll('h3');
+            headers.forEach(header => {
+                if (header.textContent.toUpperCase().includes('PANEL')) {
+                    header.classList.add('storyboard-header');
+                    let next = header.nextElementSibling;
+                    if (next && next.tagName === 'UL') {
+                        next.classList.add('storyboard-card');
+                        next.querySelectorAll('li').forEach(li => {
+                            const text = li.innerHTML;
+                            if (text.includes('SPEECH:')) {
+                                li.classList.add('sb-speech');
+                                li.innerHTML = text.replace('SPEECH:', '<span class="sb-label">セリフ</span>');
+                            } else if (text.includes('ACTION:')) {
+                                li.classList.add('sb-action');
+                                li.innerHTML = text.replace('ACTION:', '<span class="sb-label">演出</span>');
+                            } else if (text.includes('POSITION:')) {
+                                li.classList.add('sb-meta');
+                            }
+                        });
+                    }
+                }
+            });
         }
     });
 </script>
 
 <style>
-    /* タブのデザイン */
-    #mangaTab .nav-link {
-        color: #6c757d !important;
-        background-color: #f1f3f5 !important;
-        border: 1px solid #dee2e6 !important;
-        transition: all 0.2s ease-in-out;
-        opacity: 0.9;
-    }
-    #mangaTab .nav-link.active {
-        background-color: var(--zunda-green) !important;
-        color: white !important;
-        border-color: var(--zunda-green) !important;
-        box-shadow: 0 4px 12px rgba(118, 188, 33, 0.4) !important;
-        opacity: 1;
-    }
-    #mangaTab .nav-link:hover:not(.active) {
-        background-color: #e9ecef !important;
-        color: var(--zunda-dark) !important;
-        border-color: #adb5bd !important;
-        transform: translateY(-1px);
-        opacity: 1;
-    }
+    /* 基本レイアウト・タブ */
+    .manga-viewer-container { max-width: 1200px; margin: auto; }
+    #mangaTab .nav-link { color: #6c757d; background-color: #f1f3f5; transition: all 0.2s ease; opacity: 0.9; }
+    #mangaTab .nav-link.active { background-color: var(--zunda-green) !important; color: white !important; box-shadow: 0 4px 12px rgba(118, 188, 33, 0.4); }
 
-    /* 漫画ページのデザイン */
+    /* 漫画ページ */
     .manga-page-wrapper { width: 100%; max-width: 850px; }
-    .manga-page-wrapper img {
-        transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        cursor: zoom-in;
-    }
-    .manga-page-wrapper img:hover {
-        transform: scale(1.015);
-    }
+    .manga-page-wrapper img { transition: transform 0.4s ease; cursor: zoom-in; }
+    .manga-page-wrapper img:hover { transform: scale(1.015); }
 
-    /* パネル素材（横長）のデザイン */
-    .panel-material-wrapper {
-        transition: transform 0.3s ease;
-    }
-    .panel-material-wrapper:hover {
-        transform: translateY(-5px);
-    }
-    .panel-card {
-        border-radius: 12px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.05) !important;
-    }
-    .object-fit-contain {
-        object-fit: contain;
-        background-color: #1a1a1a; /* 横長素材の余白をダークにして映画風に */
-    }
+    /* 元に戻したパネルタイル表示(3カラム)のデザイン */
+    .panel-card { transition: transform 0.3s ease; }
+    .panel-card:hover { transform: translateY(-5px); }
+    .object-fit-contain { object-fit: contain; background-color: #f8f9fa; }
 
-    /* Markdownプロットのデザイン */
-    .manga-content {
-        font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-        font-size: 1.05rem;
-        line-height: 1.8;
-        color: #333;
+    /* 絵コンテ風プロットのスタイル */
+    .storyboard-header {
+        background: linear-gradient(90deg, #343a40, transparent);
+        color: #fff !important; padding: 8px 16px; border-radius: 4px; font-size: 1.1rem; margin-top: 2rem !important;
     }
-    .manga-content h1, .manga-content h2 {
-        color: var(--zunda-dark);
-        border-bottom: 2px solid #eee;
-        margin-top: 2.5rem;
-        padding-bottom: 0.5rem;
-        font-weight: bold;
+    .storyboard-card {
+        list-style: none !important; padding: 1.5rem !important; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; margin-bottom: 2.5rem;
     }
-    .manga-content blockquote {
-        border-left: 5px solid var(--zunda-green);
-        padding: 0.5rem 1rem;
-        background-color: #f8f9fa;
-        color: #666;
-        margin: 1.5rem 0;
-    }
+    .sb-label { font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; margin-right: 8px; vertical-align: middle; }
+    .sb-speech { font-size: 1.1rem; font-weight: 600; color: #1a1a1a; margin-bottom: 12px; padding: 8px; border-left: 4px solid var(--zunda-green); background: #fff; }
+    .sb-speech .sb-label { background-color: var(--zunda-green); color: white; }
+    .sb-action { font-style: italic; color: #555; padding: 8px; background: rgba(255,255,255,0.5); border-radius: 4px; }
+    .sb-action .sb-label { background-color: #6c757d; color: white; }
+    .sb-meta { font-size: 0.85rem; color: #888; border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px; }
 
-    /* 共通アクションボタン */
-    .action-btn {
-        background-color: var(--zunda-green) !important;
-        border: none !important;
-        transition: 0.2s;
-    }
-    .action-btn:hover {
-        background-color: var(--zunda-dark) !important;
-        transform: translateY(-1px);
-    }
+    .action-btn { background-color: var(--zunda-green) !important; border: none !important; transition: 0.2s; }
+    .action-btn:hover { background-color: var(--zunda-dark) !important; transform: translateY(-1px); }
 </style>
 {{end}}
