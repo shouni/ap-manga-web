@@ -115,8 +115,8 @@ func buildTaskEnqueuer(ctx context.Context, cfg *config.Config) (*tasks.Enqueuer
 	return tasks.NewEnqueuer[domain.GenerateTaskPayload](ctx, taskCfg)
 }
 
-// buildWorkflow は、各 Runner を事前にビルドし、エラーチェックを行った上で app.Workflow を返します。
-func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, rio *app.RemoteIO) (*app.Workflow, error) {
+// buildWorkflow は、各 Runner を事前にビルドします。
+func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, rio *app.RemoteIO) (*workflow.Runners, error) {
 	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, rio.Reader, cfg.CharacterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load character map: %w", err)
@@ -142,33 +142,5 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		return nil, fmt.Errorf("failed to create workflow manager: %w", err)
 	}
 
-	// 各 Runner をビルド
-	dr, err := mgr.BuildDesignRunner()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build DesignRunner: %w", err)
-	}
-	sr, err := mgr.BuildScriptRunner()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build ScriptRunner: %w", err)
-	}
-	panR, err := mgr.BuildPanelImageRunner()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build PanelImageRunner: %w", err)
-	}
-	pagR, err := mgr.BuildPageImageRunner()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build PageImageRunner: %w", err)
-	}
-	pubR, err := mgr.BuildPublishRunner()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build PublishRunner: %w", err)
-	}
-
-	return &app.Workflow{
-		DesignRunner:     dr,
-		ScriptRunner:     sr,
-		PanelImageRunner: panR,
-		PageImageRunner:  pagR,
-		PublishRunner:    pubR,
-	}, nil
+	return mgr.BuildRunners()
 }
