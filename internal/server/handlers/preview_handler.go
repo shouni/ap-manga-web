@@ -26,77 +26,75 @@ type mangaViewData struct {
 	PageURLs      []string             // ページ全体画像の署名付きURL
 }
 
-// ServeOutput は指定されたタイトルの漫画成果物を取得し、ビューアー画面を表示する。
-func (h *Handler) ServeOutput(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+// ServePreview は指定されたタイトルの漫画成果物を取得し、プレビュー画面を表示します。
+func (h *Handler) ServePreview(w http.ResponseWriter, r *http.Request) {
 	title := chi.URLParam(r, "title")
-
-	handleImageLoadError := func(err error, imageType string) bool {
-		if err == nil {
-			return false
-		}
-		if errors.Is(err, ErrInvalidPath) {
-			slog.WarnContext(ctx, "画像のリクエストパスが不正です", "title", title, "type", imageType, "error", err)
-			http.Error(w, "不正なタイトルパスです", http.StatusBadRequest)
-		} else {
-			slog.ErrorContext(ctx, "画像URLの生成に失敗しました", "title", title, "type", imageType, "error", err)
-			http.Error(w, "漫画画像の取得に失敗しました", http.StatusInternalServerError)
-		}
-		return true
-	}
 
 	// 1. JSONプロットの取得
 	manga, err := h.loadMangaJSON(r, title)
 	if err != nil {
-		slog.ErrorContext(ctx, "プロットJSONの読み込みに失敗しました", "title", title, "error", err)
-		http.Error(w, "データの読み込みに失敗しました", http.StatusInternalServerError)
+		h.handleError(w, r, "プロットJSONの読み込みに失敗しました", title, err, http.StatusInternalServerError)
 		return
 	}
 
-	// 2. 署名付き画像URLリストの取得（Page用とPanel用）
+	// 2. 署名付き画像URLリストの取得（Page用）
 	signedPageURLs, err := h.loadSignedImageURLs(r, title, asset.PageFileRegex)
-	if handleImageLoadError(err, "page") {
+	if err != nil {
+		h.handleError(w, r, "ページ画像の取得に失敗しました", title, err, http.StatusInternalServerError)
 		return
 	}
 
+	// 3. 署名付き画像URLリストの取得（Panel用）
 	signedPanelURLs, err := h.loadSignedImageURLs(r, title, asset.PanelFileRegex)
-	if handleImageLoadError(err, "panel") {
+	if err != nil {
+		h.handleError(w, r, "パネル画像の取得に失敗しました", title, err, http.StatusInternalServerError)
 		return
 	}
 
-	// 3. マッピング処理：構造体内の相対パスを署名付きURLに置き換える
-	panelMap := make(map[string]string)
-	for _, u := range signedPanelURLs {
-		cleanPath := strings.Split(u, "?")[0]
-		fileName := path.Base(cleanPath)
+	// 4. マッピング処理：パネル内の相対パスを署名付きURLに置換
+	h.resolvePanelURLs(&manga, signedPanelURLs)
 
-		if existing, ok := panelMap[fileName]; ok {
-			slog.WarnContext(ctx, "ファイル名の衝突を検知しました。画像が正しく表示されない可能性があります",
-				"filename", fileName, "existing", existing, "new", u)
-		}
-		panelMap[fileName] = u
-	}
-
-	for i := range manga.Panels {
-		p := &manga.Panels[i]
-		// 元の ReferenceURL (gs://... や相対パス) からファイル名を特定
-		fileName := path.Base(p.ReferenceURL)
-		if signed, ok := panelMap[fileName]; ok {
-			p.ReferenceURL = signed
-		}
-	}
-
-	// 署名付きURLの有効期限に同期させる
+	// 5. キャッシュ制御（署名付きURLの有効期限に同期）
 	cacheAgeSec := int64(config.SignedURLExpiration.Seconds())
 	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", cacheAgeSec))
 
-	// 5. テンプレートのレンダリング
+	// 6. テンプレートのレンダリング
 	h.render(w, http.StatusOK, "manga_view.html", title, mangaViewData{
 		Title:         title,
 		OriginalTitle: manga.Title,
 		Manga:         manga,
 		PageURLs:      signedPageURLs,
 	})
+}
+
+// resolvePanelURLs は取得した署名付きURLを使って、MangaResponse内のReferenceURLを更新します。
+func (h *Handler) resolvePanelURLs(manga *domain.MangaResponse, signedURLs []string) {
+	panelMap := make(map[string]string)
+	for _, u := range signedURLs {
+		// クエリパラメータを除去してファイル名を取得
+		cleanPath := strings.Split(u, "?")[0]
+		fileName := path.Base(cleanPath)
+		panelMap[fileName] = u
+	}
+
+	for i := range manga.Panels {
+		p := &manga.Panels[i]
+		fileName := path.Base(p.ReferenceURL)
+		if signed, ok := panelMap[fileName]; ok {
+			p.ReferenceURL = signed
+		}
+	}
+}
+
+// handleError は一貫したロギングとエラーレスポンスを提供します。
+func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, msg, title string, err error, code int) {
+	if errors.Is(err, ErrInvalidPath) {
+		slog.WarnContext(r.Context(), "不正なパスリクエスト", "title", title, "error", err)
+		http.Error(w, "リクエストされたパスが不正です", http.StatusBadRequest)
+		return
+	}
+	slog.ErrorContext(r.Context(), msg, "title", title, "error", err)
+	http.Error(w, msg, code)
 }
 
 // loadMangaJSON は GCS から manga_plot.json を読み込み、ドメインモデルにデコードします。
@@ -131,7 +129,6 @@ func (h *Handler) loadSignedImageURLs(r *http.Request, title string, regex *rege
 	gcsPrefix := h.cfg.GetGCSObjectURL(prefix)
 	var filePaths []string
 
-	// path.Base を使い、OSに依存せずスラッシュ区切りでファイル名を判定
 	err = h.remoteIO.Reader.List(ctx, gcsPrefix, func(gcsPath string) error {
 		if regex.MatchString(path.Base(gcsPath)) {
 			filePaths = append(filePaths, gcsPath)

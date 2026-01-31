@@ -76,7 +76,7 @@ func setupOutputRoutes(r chi.Router, baseDir string, webHandler *handlers.Handle
 	}
 
 	r.Route(prefix, func(r chi.Router) {
-		r.Get("/{title}", webHandler.ServeOutput)
+		r.Get("/{title}", webHandler.ServePreview)
 		r.Get("/{title}/", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, strings.TrimSuffix(r.URL.Path, "/"), http.StatusMovedPermanently)
 		})
