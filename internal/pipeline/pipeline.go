@@ -4,10 +4,13 @@ import (
 	"context"
 	"time"
 
+	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/app"
+	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 
 	"github.com/shouni/go-manga-kit/pkg/workflow"
+	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
 // Pipeline  は、デコードされたペイロードを受け取って実際の処理を行うインターフェースです。
@@ -17,15 +20,19 @@ type Pipeline interface {
 
 // MangaPipeline はパイプラインの実行に必要な外部依存関係を保持するサービス構造体です。
 type MangaPipeline struct {
-	appCtx  *app.Container
+	config  *config.Config
 	runners *workflow.Runners
+	writer  remoteio.OutputWriter
+	slack   adapters.SlackNotifier
 }
 
-// NewMangaPipeline は MangaPipeline の新しいインスタンスを生成します。
+// NewMangaPipeline は、Container から必要な依存関係のみを抽出して MangaPipeline を生成します。
 func NewMangaPipeline(appCtx *app.Container) *MangaPipeline {
 	return &MangaPipeline{
-		appCtx:  appCtx,
+		config:  appCtx.Config,
 		runners: appCtx.Workflow.Runners,
+		writer:  appCtx.RemoteIO.Writer,
+		slack:   appCtx.SlackNotifier,
 	}
 }
 

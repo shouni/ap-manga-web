@@ -125,7 +125,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 
 	// 成功時の共通通知処理を行います。
 	if notificationReq != nil {
-		if notifyErr := e.pipeline.appCtx.SlackNotifier.Notify(ctx, publicURL, storageURI, *notificationReq); notifyErr != nil {
+		if notifyErr := e.pipeline.slack.Notify(ctx, publicURL, storageURI, *notificationReq); notifyErr != nil {
 			slog.ErrorContext(ctx, "Notification failed", "error", notifyErr)
 			// 通知処理自体の失敗は、パイプライン全体の成否には影響させません。
 		}

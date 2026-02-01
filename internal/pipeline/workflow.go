@@ -23,7 +23,7 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution)
 		return nil, "", fmt.Errorf("failed to marshal manga script to JSON: %w", err)
 	}
 
-	if err := p.appCtx.RemoteIO.Writer.Write(ctx, plotFile, bytes.NewReader(data), "application/json"); err != nil {
+	if err := p.writer.Write(ctx, plotFile, bytes.NewReader(data), "application/json"); err != nil {
 		return manga, "", err
 	}
 	return manga, plotFile, nil
@@ -78,7 +78,7 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution)
 		return "", 0, fmt.Errorf("キャラクターIDが必要です")
 	}
 
-	outputDir := p.appCtx.Config.GetGCSObjectURL(p.appCtx.Config.BaseOutputDir)
+	outputDir := p.config.GetGCSObjectURL(p.config.BaseOutputDir)
 
 	return p.runners.Design.Run(ctx, charIDs, exec.payload.Seed, outputDir)
 }
