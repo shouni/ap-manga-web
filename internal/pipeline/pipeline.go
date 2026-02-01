@@ -40,6 +40,10 @@ func NewMangaPipeline(config *config.Config, runners *workflow.Runners, writer r
 		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 漫画生成ワークフロー (Workflow.Runners) が初期化されていません")
 	}
 
+	if notifier == nil {
+		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 通知コンポーネント (Notifier) が設定されていません")
+	}
+
 	return &MangaPipeline{
 		config:   config,
 		runners:  runners,
