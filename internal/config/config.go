@@ -4,9 +4,6 @@ import (
 	"os"
 	"path"
 	"time"
-
-	"github.com/shouni/go-utils/envutil"
-	"github.com/shouni/go-utils/text"
 )
 
 const (
@@ -59,9 +56,9 @@ type Config struct {
 
 // LoadConfig は環境変数から設定を読み込み、Config 構造体を生成します。
 func LoadConfig() *Config {
-	serviceURL := envutil.GetEnv("SERVICE_URL", "http://localhost:8080")
-	allowedEmails := envutil.GetEnv("ALLOWED_EMAILS", "")
-	allowedDomains := envutil.GetEnv("ALLOWED_DOMAINS", "")
+	serviceURL := getEnv("SERVICE_URL", "http://localhost:8080")
+	allowedEmails := getEnv("ALLOWED_EMAILS", "")
+	allowedDomains := getEnv("ALLOWED_DOMAINS", "")
 
 	// 実行環境（Cloud Run, ko）に応じたパスの解決
 	baseDir := "."
@@ -74,30 +71,30 @@ func LoadConfig() *Config {
 
 	return &Config{
 		ServiceURL:          serviceURL,
-		Port:                envutil.GetEnv("PORT", "8080"),
-		ProjectID:           envutil.GetEnv("GCP_PROJECT_ID", "your-gcp-project"),
-		LocationID:          envutil.GetEnv("GCP_LOCATION_ID", "asia-northeast1"),
-		QueueID:             envutil.GetEnv("CLOUD_TASKS_QUEUE_ID", "manga-queue"),
-		TaskAudienceURL:     envutil.GetEnv("TASK_AUDIENCE_URL", serviceURL),
-		ServiceAccountEmail: envutil.GetEnv("SERVICE_ACCOUNT_EMAIL", ""),
-		GCSBucket:           envutil.GetEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
-		BaseOutputDir:       envutil.GetEnv("BASE_OUTPUT_DIR", "output"),
+		Port:                getEnv("PORT", "8080"),
+		ProjectID:           getEnv("GCP_PROJECT_ID", "your-gcp-project"),
+		LocationID:          getEnv("GCP_LOCATION_ID", "asia-northeast1"),
+		QueueID:             getEnv("CLOUD_TASKS_QUEUE_ID", "manga-queue"),
+		TaskAudienceURL:     getEnv("TASK_AUDIENCE_URL", serviceURL),
+		ServiceAccountEmail: getEnv("SERVICE_ACCOUNT_EMAIL", ""),
+		GCSBucket:           getEnv("GCS_MANGA_BUCKET", "your-manga-archive-bucket"),
+		BaseOutputDir:       getEnv("BASE_OUTPUT_DIR", "output"),
 		SignedURLExpiration: SignedURLExpiration,
-		SlackWebhookURL:     envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
-		GeminiAPIKey:        envutil.GetEnv("GEMINI_API_KEY", ""),
-		GeminiModel:         envutil.GetEnv("GEMINI_MODEL", DefaultModel),
-		ImageModel:          envutil.GetEnv("IMAGE_MODEL", DefaultImageModel),
+		SlackWebhookURL:     getEnv("SLACK_WEBHOOK_URL", ""),
+		GeminiAPIKey:        getEnv("GEMINI_API_KEY", ""),
+		GeminiModel:         getEnv("GEMINI_MODEL", DefaultModel),
+		ImageModel:          getEnv("IMAGE_MODEL", DefaultImageModel),
 		TemplateDir:         templateDir,
 		ShutdownTimeout:     15 * time.Second,
 
 		// OAuth & Session
-		GoogleClientID:     envutil.GetEnv("GOOGLE_CLIENT_ID", ""),
-		GoogleClientSecret: envutil.GetEnv("GOOGLE_CLIENT_SECRET", ""),
-		SessionSecret:      envutil.GetEnv("SESSION_SECRET", ""),
-		SessionEncryptKey:  envutil.GetEnv("SESSION_ENCRYPT_KEY", ""),
+		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+		SessionSecret:      getEnv("SESSION_SECRET", ""),
+		SessionEncryptKey:  getEnv("SESSION_ENCRYPT_KEY", ""),
 
-		AllowedEmails:  text.ParseCommaSeparatedList(allowedEmails),
-		AllowedDomains: text.ParseCommaSeparatedList(allowedDomains),
+		AllowedEmails:  parseCommaSeparatedList(allowedEmails),
+		AllowedDomains: parseCommaSeparatedList(allowedDomains),
 
 		CharacterConfig: charConfig,
 		StyleSuffix:     DefaultStyleSuffix,
