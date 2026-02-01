@@ -15,7 +15,7 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/workflow"
 )
 
-// buildPipeline は、ワークフローを作成し、新しいパイプラインを初期化して返します。
+// buildPipeline は、提供されたランナーを使用して新しいパイプラインを初期化して返します。
 func buildPipeline(cfg *config.Config, runners *workflow.Runners, rio *app.RemoteIO, slack adapters.SlackNotifier) (pipeline.Pipeline, error) {
 	p, err := pipeline.NewMangaPipeline(cfg, runners, rio.Writer, slack)
 	if err != nil {
