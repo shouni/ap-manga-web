@@ -40,12 +40,19 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 
 ---
 
-## 🏗 システムアーキテクチャ (Internal Structure)
+## 🏗 システムアーキテクチャ (System Architecture)
 
-本プロジェクトは、拡張性を高めるために以下の3層構造で設計されています。
+本プロジェクトは、**ヘキサゴナル・アーキテクチャ**と**サーバーレス・オーケストレーション**を組み合わせた設計を採用しているのだ。
 
-1. **Server 層**: Web/Worker ハンドラーが外部との窓口となる。
-2. **Pipeline 層**: `MangaPipeline` が全体の指揮官となり、台本・画像生成・公開・Slack通知を制御。内部で個別のタスク実行コンポーネント（Runner）を呼び出す。
+1. **Server 層 (Entry Points)**:
+    - **Web Handler**: ユーザーからの設定入力を受け付け、Cloud Tasks へジョブを投入する役割なのだ。
+    - **Worker Handler**: Cloud Tasks からのキックを受け取り、後述の Pipeline を起動する「実行窓口」なのだ。
+2. **Pipeline 層 (Core Logic / Orchestrator)**:
+    - アプリケーションの「指揮官」。特定のインフラに依存せず、抽象化されたインターフェースを介して台本生成・画像生成・通知のフローを制御するのだ。
+3. **Adapters 層 (Infrastructure)**:
+    - GCS、Slack、Gemini API、Cloud Tasks、 といった外部サービスとの実接続を担当。
+4. **Builder 層 (Dependency Injection)**:
+    - 起動時に「Web用」または「Worker用」に必要な依存関係をガッチャンコして Container を組み立てる工場なのだよ。
 
 ---
 
