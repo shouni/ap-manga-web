@@ -26,11 +26,12 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		appCtx.Close()
 	}()
 
-	executor, err := builder.BuildPipeline(appCtx)
-	if err != nil {
-		return fmt.Errorf("failed to build executor: %w", err)
-	}
-	h, err := builder.BuildHandlers(appCtx, executor)
+	//executor, err := builder.BuildPipeline(appCtx)
+	//if err != nil {
+	//	return fmt.Errorf("failed to build executor: %w", err)
+	//}
+	//	h, err := builder.BuildHandlers(appCtx, executor)
+	h, err := builder.BuildHandlers(appCtx)
 	if err != nil {
 		return fmt.Errorf("failed to build handlers: %w", err)
 	}

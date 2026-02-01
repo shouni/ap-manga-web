@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 
@@ -32,20 +31,20 @@ type MangaPipeline struct {
 }
 
 // NewMangaPipeline は、Container から必要な依存関係のみを抽出して MangaPipeline を生成します。
-func NewMangaPipeline(appCtx *app.Container) (*MangaPipeline, error) {
-	if appCtx.RemoteIO == nil || appCtx.RemoteIO.Writer == nil {
+func NewMangaPipeline(config *config.Config, runners *workflow.Runners, writer remoteio.OutputWriter, notifier Notifier) (*MangaPipeline, error) {
+	if writer == nil {
 		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 成果物の保存に必要な OutputWriter が Container 内に設定されていません")
 	}
 
-	if appCtx.Workflow == nil || appCtx.Workflow.Runners == nil {
+	if runners == nil {
 		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 漫画生成ワークフロー (Workflow.Runners) が初期化されていません")
 	}
 
 	return &MangaPipeline{
-		config:   appCtx.Config,
-		runners:  appCtx.Workflow.Runners,
-		writer:   appCtx.RemoteIO.Writer,
-		notifier: appCtx.SlackNotifier,
+		config:   config,
+		runners:  runners,
+		writer:   writer,
+		notifier: notifier,
 	}, nil
 }
 
