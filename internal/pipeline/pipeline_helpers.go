@@ -28,7 +28,7 @@ func (p *MangaPipeline) notifyError(ctx context.Context, payload domain.Generate
 		ExecutionMode:  payload.Command,
 	}
 
-	if err := p.slack.NotifyError(ctx, opErr, req); err != nil {
+	if err := p.notifier.NotifyError(ctx, opErr, req); err != nil {
 		slog.ErrorContext(ctx, "Failed to send error notification", "error", err)
 	}
 }

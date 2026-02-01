@@ -6,6 +6,6 @@ import (
 )
 
 // BuildPipeline は MangaPipeline の新しいインスタンスを生成します。
-func BuildPipeline(appCtx *app.Container) pipeline.Pipeline {
+func BuildPipeline(appCtx *app.Container) (pipeline.Pipeline, error) {
 	return pipeline.NewMangaPipeline(appCtx)
 }
