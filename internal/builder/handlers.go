@@ -10,6 +10,7 @@ import (
 
 	"github.com/shouni/gcp-kit/auth"
 	"github.com/shouni/gcp-kit/worker"
+	"github.com/shouni/netarmor/securenet"
 )
 
 const defaultSessionName = "ap-manga-session"
@@ -67,7 +68,7 @@ func createAuthHandler(appCtx *app.Container) (*auth.Handler, error) {
 		SessionAuthKey:    cfg.SessionSecret,
 		SessionEncryptKey: cfg.SessionEncryptKey,
 		SessionName:       defaultSessionName,
-		IsSecureCookie:    appCtx.HTTPClient.IsSecureServiceURL(cfg.ServiceURL),
+		IsSecureCookie:    securenet.IsSecureServiceURL(cfg.ServiceURL),
 		AllowedEmails:     cfg.AllowedEmails,
 		AllowedDomains:    cfg.AllowedDomains,
 		TaskAudienceURL:   cfg.ServiceURL, // 必要に応じて audience 調整
