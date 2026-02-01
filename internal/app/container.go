@@ -3,11 +3,13 @@ package app
 import (
 	"log/slog"
 
+	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 	"ap-manga-web/internal/pipeline"
 
 	"github.com/shouni/gcp-kit/tasks"
+	"github.com/shouni/go-http-kit/pkg/httpkit"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
@@ -20,6 +22,9 @@ type Container struct {
 	TaskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload]
 	// Business Logic
 	Pipeline pipeline.Pipeline
+	// External Adapters
+	HTTPClient    httpkit.ClientInterface
+	SlackNotifier adapters.SlackNotifier
 }
 
 // RemoteIO は外部ストレージ操作に関するコンポーネントをまとめます。
