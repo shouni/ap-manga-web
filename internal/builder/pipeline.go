@@ -52,9 +52,5 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		return nil, fmt.Errorf("failed to create workflow manager: %w", err)
 	}
 
-	if mgr.Runners == nil {
-		return nil, fmt.Errorf("workflow manager created but runners are nil")
-	}
-
 	return mgr, nil
 }
