@@ -182,7 +182,7 @@ sequenceDiagram
 
 ---
 
-## 💡 Tips: キャラクタービジュアルの固定方法
+### 💡 Tips: キャラクタービジュアルの固定方法
 
 生成されるキャラクターの見た目を一貫させるためには、以下の手順でSeed値を特定・利用します。
 
@@ -192,13 +192,13 @@ sequenceDiagram
 
 ---
 
-## 🤝 依存関係 (Dependencies)
+### 🤝 依存関係 (Dependencies)
 
 * [shouni/gcp-kit](https://github.com/shouni/gcp-kit) - GCP上でのWebツールキット
 * [shouni/go-remote-io](https://github.com/shouni/go-remote-io) - I/O操作を統一化ライブラリ
 * [shouni/go-manga-kit](https://github.com/shouni/go-manga-kit) - 自動ページ分割に対応した作画制作ワークフロー
 
-## 📜 ライセンス (License)
+### 📜 ライセンス (License)
 
 このプロジェクトは [MIT License](https://opensource.org/licenses/MIT) の下で公開されています。
 
