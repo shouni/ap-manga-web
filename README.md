@@ -106,21 +106,6 @@ Cloud Tasks がワーカーを呼び出す際に使用する ID（`ServiceAccoun
 
 ---
 
-### ローカルでの実行方法
-
-```bash
-# 必要な環境変数を設定（direnv推奨）
-export SERVICE_URL="http://localhost:8080"
-export GEMINI_API_KEY="your-api-key"
-# ...その他の変数
-
-# サーバー起動
-go run main.go
-
-```
-
----
-
 ## 🏗 プロジェクトレイアウト (Project Layout)
 
 ```text
