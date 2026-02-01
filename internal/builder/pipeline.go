@@ -16,13 +16,8 @@ import (
 )
 
 // buildPipeline は、ワークフローを作成し、新しいパイプラインを初期化して返します。
-func buildPipeline(ctx context.Context, cfg *config.Config, rio *app.RemoteIO, httpClient httpkit.ClientInterface, slack adapters.SlackNotifier) (pipeline.Pipeline, error) {
-	wf, err := buildWorkflow(ctx, cfg, httpClient, rio)
-	if err != nil {
-		return nil, err
-	}
-
-	p, err := pipeline.NewMangaPipeline(cfg, wf.Runners, rio.Writer, slack)
+func buildPipeline(cfg *config.Config, runners *workflow.Runners, rio *app.RemoteIO, slack adapters.SlackNotifier) (pipeline.Pipeline, error) {
+	p, err := pipeline.NewMangaPipeline(cfg, runners, rio.Writer, slack)
 	if err != nil {
 		return nil, err
 	}
