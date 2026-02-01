@@ -6,11 +6,11 @@ import (
 
 	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/domain"
-	"ap-manga-web/internal/pipeline"
 	"ap-manga-web/internal/server/handlers"
 
 	"github.com/shouni/gcp-kit/auth"
 	"github.com/shouni/gcp-kit/worker"
+	"github.com/shouni/netarmor/securenet"
 )
 
 const defaultSessionName = "ap-manga-session"
@@ -26,7 +26,6 @@ type AppHandlers struct {
 // BuildHandlers は各ハンドラーの依存関係をすべて組み立て、AppHandlers 構造体を返します。
 func BuildHandlers(
 	appCtx *app.Container,
-	executor pipeline.Pipeline,
 ) (*AppHandlers, error) {
 	if appCtx.Config.ServiceURL == "" {
 		return nil, fmt.Errorf("認証リダイレクトのために ServiceURL の設定が必要です")
@@ -39,13 +38,13 @@ func BuildHandlers(
 	}
 
 	// 2. Web UI 用Handlerの初期化
-	webHandler, err := handlers.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.RemoteIO, appCtx.Workflow.Runners)
+	webHandler, err := handlers.NewHandler(appCtx.Config, appCtx.TaskEnqueuer, appCtx.RemoteIO)
 	if err != nil {
 		return nil, fmt.Errorf("WebHandlerの初期化に失敗しました: %w", err)
 	}
 
 	// 3. 非同期ワーカー用Handlerの初期化
-	workerHandler := worker.NewHandler[domain.GenerateTaskPayload](executor)
+	workerHandler := worker.NewHandler[domain.GenerateTaskPayload](appCtx.Pipeline)
 
 	return &AppHandlers{
 		Auth:   authHandler,
@@ -62,9 +61,6 @@ func createAuthHandler(appCtx *app.Container) (*auth.Handler, error) {
 		return nil, fmt.Errorf("リダイレクトURLの構築に失敗しました: %w", err)
 	}
 
-	// HttpClient の判定メソッドを使用して Secure 属性を決定
-	isSecure := appCtx.HTTPClient.IsSecureServiceURL(cfg.ServiceURL)
-
 	return auth.NewHandler(auth.Config{
 		ClientID:          cfg.GoogleClientID,
 		ClientSecret:      cfg.GoogleClientSecret,
@@ -72,7 +68,7 @@ func createAuthHandler(appCtx *app.Container) (*auth.Handler, error) {
 		SessionAuthKey:    cfg.SessionSecret,
 		SessionEncryptKey: cfg.SessionEncryptKey,
 		SessionName:       defaultSessionName,
-		IsSecureCookie:    isSecure,
+		IsSecureCookie:    securenet.IsSecureServiceURL(cfg.ServiceURL),
 		AllowedEmails:     cfg.AllowedEmails,
 		AllowedDomains:    cfg.AllowedDomains,
 		TaskAudienceURL:   cfg.ServiceURL, // 必要に応じて audience 調整

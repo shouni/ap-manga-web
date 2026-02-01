@@ -3,33 +3,23 @@ package app
 import (
 	"log/slog"
 
-	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
+	"ap-manga-web/internal/pipeline"
 
 	"github.com/shouni/gcp-kit/tasks"
-	"github.com/shouni/go-http-kit/pkg/httpkit"
-	"github.com/shouni/go-manga-kit/pkg/workflow"
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
 // Container はアプリケーションの依存関係（DIコンテナ）を保持します。
 type Container struct {
 	Config *config.Config
-
 	// I/O and Storage
 	RemoteIO *RemoteIO
-
 	// Asynchronous Task
 	TaskEnqueuer *tasks.Enqueuer[domain.GenerateTaskPayload]
-
 	// Business Logic
-	// Workflow holds the collection of runners provided by the manga-kit.
-	Workflow *workflow.Manager
-
-	// External Adapters
-	HTTPClient    httpkit.ClientInterface
-	SlackNotifier adapters.SlackNotifier
+	Pipeline pipeline.Pipeline
 }
 
 // RemoteIO は外部ストレージ操作に関するコンポーネントをまとめます。

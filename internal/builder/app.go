@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"ap-manga-web/internal/pipeline"
 	"context"
 	"fmt"
 	"io"
@@ -32,43 +33,34 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 		}
 	}()
 
-	// 1. HttpClient (全アダプターの基盤)
-	httpClient := httpkit.New(config.DefaultHTTPTimeout)
-
-	// 2. I/O Infrastructure (GCS)
+	// 1. I/O Infrastructure (GCS)
 	rio, err := buildRemoteIO(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize IO components: %w", err)
 	}
 	resources = append(resources, rio)
 
-	// 3. Task Enqueuer
+	// 2. Task Enqueuer
 	enqueuer, err := buildTaskEnqueuer(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize task enqueuer: %w", err)
 	}
 	resources = append(resources, enqueuer)
 
-	// 4. Workflow (Core Logic)
-	wf, err := buildWorkflow(ctx, cfg, httpClient, rio)
+	// 3. Pipeline (Core Logic)
+	mangaPipeline, err := buildPipeline(ctx, cfg, rio)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create workflow: %w", err)
+		return nil, fmt.Errorf("failed to initialize MangaPipeline: %w", err)
 	}
 
-	// 5. Slack Adapter
-	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
+	appCtx := &app.Container{
+		Config:       cfg,
+		RemoteIO:     rio,
+		TaskEnqueuer: enqueuer,
+		Pipeline:     mangaPipeline,
 	}
 
-	return &app.Container{
-		Config:        cfg,
-		RemoteIO:      rio,
-		TaskEnqueuer:  enqueuer,
-		Workflow:      wf,
-		HTTPClient:    httpClient,
-		SlackNotifier: slack,
-	}, nil
+	return appCtx, nil
 }
 
 // buildRemoteIO は、GCS ベースの I/O コンポーネントを初期化します。
@@ -113,6 +105,28 @@ func buildTaskEnqueuer(ctx context.Context, cfg *config.Config) (*tasks.Enqueuer
 		Audience:            cfg.TaskAudienceURL,
 	}
 	return tasks.NewEnqueuer[domain.GenerateTaskPayload](ctx, taskCfg)
+}
+
+// buildPipeline は、ワークフローを作成し、コンポーネントをリンクして、新しいパイプラインを初期化して返します。
+func buildPipeline(ctx context.Context, cfg *config.Config, rio *app.RemoteIO) (pipeline.Pipeline, error) {
+	httpClient := httpkit.New(config.DefaultHTTPTimeout)
+
+	wf, err := buildWorkflow(ctx, cfg, httpClient, rio)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create workflow: %w", err)
+	}
+
+	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
+	}
+
+	mangaPipeline, err := pipeline.NewMangaPipeline(cfg, wf.Runners, rio.Writer, slack)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize MangaPipeline: %w", err)
+	}
+
+	return mangaPipeline, nil
 }
 
 // buildWorkflow は、各 Runner を事前にビルドします。
