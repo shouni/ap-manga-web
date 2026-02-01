@@ -44,15 +44,18 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 
 本プロジェクトは、**ヘキサゴナル・アーキテクチャ**と**サーバーレス・オーケストレーション**を組み合わせた設計を採用しているのだ。
 
-1. **Server 層 (Entry Points)**:
-    - **Web Handler**: ユーザーからの設定入力を受け付け、Cloud Tasks へジョブを投入する役割なのだ。
-    - **Worker Handler**: Cloud Tasks からのキックを受け取り、後述の Pipeline を起動する「実行窓口」なのだ。
-2. **Pipeline 層 (Core Logic / Orchestrator)**:
-    - アプリケーションの「指揮官」。特定のインフラに依存せず、抽象化されたインターフェースを介して台本生成・画像生成・通知のフローを制御するのだ。
-3. **Adapters 層 (Infrastructure)**:
-    - GCS、Slack、Gemini API、Cloud Tasks、 といった外部サービスとの実接続を担当。
-4. **Builder 層 (Dependency Injection)**:
-    - 起動時に「Web用」または「Worker用」に必要な依存関係をガッチャンコして Container を組み立てる工場なのだよ。
+1. **Domain 層 (The Core)**
+    * **システムの魂**。`Task` や `Notification` など、特定の技術（GCPやWeb）に依存しない純粋なデータ構造とビジネスルールを定義するのだ。すべての層がこの共通言語で会話する、アーキテクチャの真の中心なのだよ。
+2. **Pipeline 層 (Orchestrator)**
+    * **現場の指揮官**。Domain モデルを使い、台本生成・画像生成・通知といった一連のワークフローを制御するのだ。具体的な保存先や通知手段は知らず、抽象化されたインターフェース（Port）を介して命令を下すのだよ。
+3. **Server 層 (Entry Points)**
+   * **外部との窓口**。用途に応じて2つの顔を持つのだ。
+       * **Web Handler**: ユーザーの入力を Domain モデルへ変換し、Cloud Tasks へジョブを投入する役割なのだ。
+       * **Worker Handler**: Cloud Tasks からのキックを受け取り、Pipeline を起動する実行トリガーなのだ。
+4. **Adapters 層 (Infrastructure)**
+   * **実務を担う手足**。GCS、Slack、Gemini API、Cloud Tasks といった具体的な外部サービスと接続し、Pipeline からの抽象的な命令を現実の処理に翻訳する役割なのだ。
+5. **Builder 層 (Dependency Injection)**
+   * **生命を吹き込む工場**。起動時に「Web用」または「Worker用」に必要なパーツ（Adapters）を Domain のルールに従ってガッチャンコし、動くシステム（Container）として組み立てるのだよ。
 
 ---
 
