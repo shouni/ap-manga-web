@@ -116,7 +116,7 @@ func buildTaskEnqueuer(ctx context.Context, cfg *config.Config) (*tasks.Enqueuer
 }
 
 // buildWorkflow は、各 Runner を事前にビルドします。
-func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, rio *app.RemoteIO) (*workflow.Runners, error) {
+func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, rio *app.RemoteIO) (*workflow.Manager, error) {
 	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, rio.Reader, cfg.CharacterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load character map: %w", err)
@@ -142,9 +142,9 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		return nil, fmt.Errorf("failed to create workflow manager: %w", err)
 	}
 
-	runners, err := mgr.BuildRunners()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build workflow runners: %w", err)
+	if mgr.Runners == nil {
+		return nil, fmt.Errorf("workflow manager created but runners are nil")
 	}
-	return runners, nil
+
+	return mgr, nil
 }

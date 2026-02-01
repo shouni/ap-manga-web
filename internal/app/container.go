@@ -25,7 +25,7 @@ type Container struct {
 
 	// Business Logic
 	// Workflow holds the collection of runners provided by the manga-kit.
-	Workflow *workflow.Runners
+	Workflow *workflow.Manager
 
 	// External Adapters
 	HTTPClient    httpkit.ClientInterface

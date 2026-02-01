@@ -6,6 +6,8 @@ import (
 
 	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/domain"
+
+	"github.com/shouni/go-manga-kit/pkg/workflow"
 )
 
 // Pipeline  は、デコードされたペイロードを受け取って実際の処理を行うインターフェースです。
@@ -15,12 +17,16 @@ type Pipeline interface {
 
 // MangaPipeline はパイプラインの実行に必要な外部依存関係を保持するサービス構造体です。
 type MangaPipeline struct {
-	appCtx *app.Container
+	appCtx  *app.Container
+	runners *workflow.Runners
 }
 
 // NewMangaPipeline は MangaPipeline の新しいインスタンスを生成します。
 func NewMangaPipeline(appCtx *app.Container) *MangaPipeline {
-	return &MangaPipeline{appCtx: appCtx}
+	return &MangaPipeline{
+		appCtx:  appCtx,
+		runners: appCtx.Workflow.Runners,
+	}
 }
 
 // Execute は名前付き戻り値 `err` を使用し、リクエストごとに独立した実行コンテキストを生成して処理を開始します。
