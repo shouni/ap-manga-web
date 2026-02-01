@@ -20,13 +20,13 @@ import (
 // 共通化により保守性を向上させ、パス解決のルールを一元化するのだ。
 func (e *mangaExecution) resolveWorkDir(manga *mangadom.MangaResponse) string {
 	safeTitle := e.resolveSafeTitle(manga.Title)
-	return e.pipeline.appCtx.Config.GetWorkDir(safeTitle)
+	return e.pipeline.config.GetWorkDir(safeTitle)
 }
 
 // resolveOutputURL は、出力先ディレクトリのURLを取得します。
 func (e *mangaExecution) resolveOutputURL(manga *mangadom.MangaResponse) string {
 	workDir := e.resolveWorkDir(manga)
-	return e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
+	return e.pipeline.config.GetGCSObjectURL(workDir)
 }
 
 // resolvePlotFileURL は、指定されたプロットファイルのフルパス（GCS URLなど）を解決します。
@@ -34,7 +34,7 @@ func (e *mangaExecution) resolvePlotFileURL(manga *mangadom.MangaResponse) strin
 	workDir := e.resolveWorkDir(manga)
 	filePath := path.Join(workDir, asset.DefaultMangaPlotJson)
 	// パスを GCS オブジェクト URL (例: gs://bucket/path) に変換して返します。
-	return e.pipeline.appCtx.Config.GetGCSObjectURL(filePath)
+	return e.pipeline.config.GetGCSObjectURL(filePath)
 }
 
 // resolveSafeTitle は、衝突を避けるための一意で安全なタイトル文字列を生成します。
@@ -77,8 +77,8 @@ func (e *mangaExecution) buildMangaNotification(
 ) (*domain.NotificationRequest, string, string) {
 	safeTitle := e.resolveSafeTitle(manga.Title)
 	publicURL, err := url.JoinPath(
-		e.pipeline.appCtx.Config.ServiceURL,
-		e.pipeline.appCtx.Config.BaseOutputDir,
+		e.pipeline.config.ServiceURL,
+		e.pipeline.config.BaseOutputDir,
 		safeTitle,
 	)
 	if err != nil {
@@ -87,7 +87,7 @@ func (e *mangaExecution) buildMangaNotification(
 	}
 
 	workDir := e.resolveWorkDir(manga)
-	storageURI := e.pipeline.appCtx.Config.GetGCSObjectURL(workDir)
+	storageURI := e.pipeline.config.GetGCSObjectURL(workDir)
 
 	return &domain.NotificationRequest{
 		SourceURL:      e.payload.ScriptURL,

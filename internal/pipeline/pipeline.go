@@ -2,13 +2,21 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"ap-manga-web/internal/app"
+	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 
 	"github.com/shouni/go-manga-kit/pkg/workflow"
+	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
+
+type Notifier interface {
+	Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error
+	NotifyError(ctx context.Context, err error, req domain.NotificationRequest) error
+}
 
 // Pipeline  は、デコードされたペイロードを受け取って実際の処理を行うインターフェースです。
 type Pipeline interface {
@@ -17,16 +25,28 @@ type Pipeline interface {
 
 // MangaPipeline はパイプラインの実行に必要な外部依存関係を保持するサービス構造体です。
 type MangaPipeline struct {
-	appCtx  *app.Container
-	runners *workflow.Runners
+	config   *config.Config
+	runners  *workflow.Runners
+	writer   remoteio.OutputWriter
+	notifier Notifier
 }
 
-// NewMangaPipeline は MangaPipeline の新しいインスタンスを生成します。
-func NewMangaPipeline(appCtx *app.Container) *MangaPipeline {
-	return &MangaPipeline{
-		appCtx:  appCtx,
-		runners: appCtx.Workflow.Runners,
+// NewMangaPipeline は、Container から必要な依存関係のみを抽出して MangaPipeline を生成します。
+func NewMangaPipeline(appCtx *app.Container) (*MangaPipeline, error) {
+	if appCtx.RemoteIO == nil || appCtx.RemoteIO.Writer == nil {
+		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 成果物の保存に必要な OutputWriter が Container 内に設定されていません")
 	}
+
+	if appCtx.Workflow == nil || appCtx.Workflow.Runners == nil {
+		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 漫画生成ワークフロー (Workflow.Runners) が初期化されていません")
+	}
+
+	return &MangaPipeline{
+		config:   appCtx.Config,
+		runners:  appCtx.Workflow.Runners,
+		writer:   appCtx.RemoteIO.Writer,
+		notifier: appCtx.SlackNotifier,
+	}, nil
 }
 
 // Execute は名前付き戻り値 `err` を使用し、リクエストごとに独立した実行コンテキストを生成して処理を開始します。
