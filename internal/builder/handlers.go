@@ -5,12 +5,12 @@ import (
 	"net/url"
 
 	"ap-manga-web/internal/app"
+	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 	"ap-manga-web/internal/server/handlers"
 
 	"github.com/shouni/gcp-kit/auth"
 	"github.com/shouni/gcp-kit/worker"
-	"github.com/shouni/netarmor/securenet"
 )
 
 const defaultSessionName = "ap-manga-session"
@@ -32,7 +32,7 @@ func BuildHandlers(
 	}
 
 	// 1. 認証Handlerの初期化
-	authHandler, err := createAuthHandler(appCtx)
+	authHandler, err := createAuthHandler(appCtx.Config)
 	if err != nil {
 		return nil, fmt.Errorf("認証Handlerの初期化に失敗しました: %w", err)
 	}
@@ -53,9 +53,8 @@ func BuildHandlers(
 	}, nil
 }
 
-// createAuthHandler は AppContext から認証ライブラリ用の設定を構築し、ハンドラーを生成します。
-func createAuthHandler(appCtx *app.Container) (*auth.Handler, error) {
-	cfg := appCtx.Config
+// createAuthHandler は、認証ハンドラーを初期化して返します。
+func createAuthHandler(cfg *config.Config) (*auth.Handler, error) {
 	redirectURL, err := url.JoinPath(cfg.ServiceURL, "/auth/callback")
 	if err != nil {
 		return nil, fmt.Errorf("リダイレクトURLの構築に失敗しました: %w", err)
@@ -68,9 +67,9 @@ func createAuthHandler(appCtx *app.Container) (*auth.Handler, error) {
 		SessionAuthKey:    cfg.SessionSecret,
 		SessionEncryptKey: cfg.SessionEncryptKey,
 		SessionName:       defaultSessionName,
-		IsSecureCookie:    securenet.IsSecureServiceURL(cfg.ServiceURL),
+		IsSecureCookie:    cfg.IsSecureServiceURL(),
 		AllowedEmails:     cfg.AllowedEmails,
 		AllowedDomains:    cfg.AllowedDomains,
-		TaskAudienceURL:   cfg.ServiceURL, // 必要に応じて audience 調整
+		TaskAudienceURL:   cfg.ServiceURL,
 	})
 }
