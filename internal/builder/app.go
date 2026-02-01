@@ -52,10 +52,12 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 	}
 
 	appCtx := &app.Container{
-		Config:       cfg,
-		RemoteIO:     rio,
-		TaskEnqueuer: enqueuer,
-		Pipeline:     mangaPipeline,
+		Config:        cfg,
+		RemoteIO:      rio,
+		TaskEnqueuer:  enqueuer,
+		Pipeline:      mangaPipeline,
+		HTTPClient:    httpClient,
+		SlackNotifier: slack,
 	}
 
 	return appCtx, nil
