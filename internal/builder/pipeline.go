@@ -34,12 +34,13 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 
 	args := workflow.ManagerArgs{
 		Config: mangaKitCfg.Config{
-			GeminiAPIKey:     cfg.GeminiAPIKey,
-			GeminiModel:      cfg.GeminiModel,
-			ImageModel:       cfg.ImageModel,
-			StyleSuffix:      cfg.StyleSuffix,
-			RateInterval:     config.DefaultRateLimit,
-			MaxPanelsPerPage: config.DefaultMaxPanelsPerPage,
+			GeminiAPIKey:       cfg.GeminiAPIKey,
+			GeminiModel:        cfg.GeminiModel,
+			ImageStandardModel: cfg.ImageStandardModel,
+			ImageQualityModel:  cfg.ImageQualityModel,
+			StyleSuffix:        cfg.StyleSuffix,
+			RateInterval:       config.DefaultRateLimit,
+			MaxPanelsPerPage:   config.DefaultMaxPanelsPerPage,
 		},
 		HTTPClient:    httpClient,
 		Reader:        rio.Reader,

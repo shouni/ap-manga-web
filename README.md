@@ -74,7 +74,8 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `GCS_MANGA_BUCKET` | 画像とHTMLを保存するバケット名 | - |
 | `GEMINI_API_KEY` | Google Gemini APIキー | - |
 | `GEMINI_MODEL` | 台本構成に使用するモデル名 | `gemini-3-flash-preview` |
-| `IMAGE_MODEL` | 画像生成に使用するモデル名 | `gemini-3-pro-image-preview` |
+| `IMAGE_MODEL` | 画像生成に使用するモデル名 | `gemini-2.5-flash-image` |
+| `IMAGE_PRO_MODEL` | 画像生成に使用するモデル名 | `gemini-3-pro-image-preview` |
 | `GOOGLE_CLIENT_ID` | OAuthクライアントID | - |
 | `GOOGLE_CLIENT_SECRET` | OAuthクライアントシークレット | - |
 | `SESSION_SECRET` | セッションデータのHMAC署名用シークレット | - |
