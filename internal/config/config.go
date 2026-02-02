@@ -8,9 +8,10 @@ import (
 
 const (
 	// SignedURLExpiration 生成された漫画を確認する時間を考慮した有効期限
-	SignedURLExpiration = 5 * time.Minute
-	DefaultModel        = "gemini-3-flash-preview"
-	DefaultImageModel   = "gemini-3-pro-image-preview"
+	SignedURLExpiration       = 5 * time.Minute
+	DefaultModel              = "gemini-3-flash-preview"
+	DefaultImageStandardModel = "gemini-2.5-flash-image"
+	DefaultImageQualityModel  = "gemini-3-pro-image-preview"
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
 	DefaultHTTPTimeout      = 60 * time.Second
 	DefaultRateLimit        = 5 * time.Second
@@ -34,7 +35,8 @@ type Config struct {
 	SlackWebhookURL     string
 	GeminiAPIKey        string
 	GeminiModel         string // 台本生成用モデル
-	ImageModel          string // 画像生成用モデル
+	ImageStandardModel  string // 標準・高速（パネル用）
+	ImageQualityModel   string // 高品質・高知能（ページ用）
 	TemplateDir         string // HTMLテンプレートの格納ディレクトリ
 	ShutdownTimeout     time.Duration
 
@@ -83,7 +85,8 @@ func LoadConfig() *Config {
 		SlackWebhookURL:     getEnv("SLACK_WEBHOOK_URL", ""),
 		GeminiAPIKey:        getEnv("GEMINI_API_KEY", ""),
 		GeminiModel:         getEnv("GEMINI_MODEL", DefaultModel),
-		ImageModel:          getEnv("IMAGE_MODEL", DefaultImageModel),
+		ImageStandardModel:  getEnv("IMAGE_MODEL", DefaultImageStandardModel),
+		ImageQualityModel:   getEnv("IMAGE_PRO_MODEL", DefaultImageQualityModel),
 		TemplateDir:         templateDir,
 		ShutdownTimeout:     15 * time.Second,
 
