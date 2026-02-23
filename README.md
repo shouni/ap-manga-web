@@ -71,6 +71,7 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `GCP_LOCATION_ID` | 使用するリージョン（例: `asia-northeast1`） | `asia-northeast1` |
 | `CLOUD_TASKS_QUEUE_ID` | 使用する Cloud Tasks のキュー名 | `manga-queue` |
 | `SERVICE_ACCOUNT_EMAIL` | タスク発行に使用するサービスアカウント | - |
+| `TASK_AUDIENCE_URL` | OIDCトークンの検証用URL | `SERVICE_URL` と同じ |
 | `GCS_MANGA_BUCKET` | 画像とHTMLを保存するバケット名 | - |
 | `GEMINI_API_KEY` | Google AI Studio 用のAPIキー（Vertex AI不使用時） | - |
 | `GEMINI_MODEL` | 台本構成に使用するモデル名 | `gemini-3-flash-preview` |
