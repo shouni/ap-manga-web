@@ -4,7 +4,7 @@
     "name": "Zundamon and Metan",
     "is_default": true,
     "seed": 1000,
-    "reference_url": "https://storage.googleapis.com/sh-test-pub/character/design_zundamon_metan.jpg",
+    "reference_url": "gs://ap-manga/character/design_zundamon_metan.jpg",
     "visual_cues": [
       "two girls standing side by side",
       "girl 1 (Zundamon): vibrant emerald green hair, soybean earmuffs",
@@ -16,7 +16,7 @@
     "id": "zundamon",
     "name": "Zundamon",
     "seed": 10001,
-    "reference_url": "https://storage.googleapis.com/sh-test-pub/character/design_zundamon.jpg",
+    "reference_url": "gs://ap-manga/character/design_zundamon.jpg",
     "visual_cues": [
       "vibrant emerald green hair",
       "soybean earmuffs",
@@ -27,7 +27,7 @@
     "id": "metan",
     "name": "Metan",
     "seed": 20001,
-    "reference_url": "https://storage.googleapis.com/sh-test-pub/character/design_metan.jpg",
+    "reference_url": "gs://ap-manga/character/design_metan.jpg",
     "visual_cues": [
       "vibrant lavender hair",
       "massive twin-tails with spiral curls",
