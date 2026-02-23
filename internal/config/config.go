@@ -86,7 +86,7 @@ func LoadConfig() *Config {
 		GeminiAPIKey:        getEnv("GEMINI_API_KEY", ""),
 		GeminiModel:         getEnv("GEMINI_MODEL", DefaultModel),
 		ImageStandardModel:  getEnv("IMAGE_MODEL", DefaultImageStandardModel),
-		ImageQualityModel:   getEnv("IMAGE_PRO_MODEL", DefaultImageQualityModel),
+		ImageQualityModel:   getEnv("IMAGE_QUALITY_MODEL", DefaultImageQualityModel),
 		TemplateDir:         templateDir,
 		ShutdownTimeout:     15 * time.Second,
 

@@ -35,8 +35,9 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | **認証・セッション** | **`x/oauth2`** / **`gorilla/sessions`** | **Google OAuth 2.0** フローとセッション管理。 |
 | **Webフレームワーク** | **go-chi/chi/v5** | 軽量なルーティング処理。 |
 | **非同期実行** | **Google Cloud Tasks** | 重い画像生成処理をキューイング。 |
+| **AIプラットフォーム** | **Vertex AI / Gemini API** | マルチモーダル生成。**GCSからの直接参照**をサポート。 |
 | **結果保存** | **Google Cloud Storage (GCS)** | 生成物（HTML/画像）の永続化。 |
-| **通知** | **Slack Webhook** | **SlackAdapter** による生成完了および Seed 値の報告。 |
+| **通知** | **Slack Webhook** | 生成完了および Seed 値の報告。 |
 
 ---
 
@@ -66,16 +67,15 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | 環境変数 | 説明 | デフォルト値 |
 | --- | --- | --- |
 | `SERVICE_URL` | アプリのルートURL（例: `https://myapp.run.app`） | `http://localhost:8080` |
-| `GCP_PROJECT_ID` | GCPのプロジェクトID | - |
-| `GCP_LOCATION_ID` | GCPのリージョン（Cloud Tasks用） | `asia-northeast1` |
+| `GCP_PROJECT_ID` | Vertex AI / Cloud Tasks 等で使用するプロジェクトID | - |
+| `GCP_LOCATION_ID` | 使用するリージョン（例: `asia-northeast1`） | `asia-northeast1` |
 | `CLOUD_TASKS_QUEUE_ID` | 使用する Cloud Tasks のキュー名 | `manga-queue` |
 | `SERVICE_ACCOUNT_EMAIL` | タスク発行に使用するサービスアカウント | - |
-| `TASK_AUDIENCE_URL` | OIDCトークンの検証用URL | `SERVICE_URL` と同じ |
 | `GCS_MANGA_BUCKET` | 画像とHTMLを保存するバケット名 | - |
-| `GEMINI_API_KEY` | Google Gemini APIキー | - |
+| `GEMINI_API_KEY` | Google AI Studio 用のAPIキー（Vertex AI不使用時） | - |
 | `GEMINI_MODEL` | 台本構成に使用するモデル名 | `gemini-3-flash-preview` |
-| `IMAGE_MODEL` | 画像生成に使用するモデル名 | `gemini-2.5-flash-image` |
-| `IMAGE_PRO_MODEL` | 画像生成に使用するモデル名 | `gemini-3-pro-image-preview` |
+| `IMAGE_MODEL` | 標準画像生成モデル（パネル用） | `gemini-3-pro-image-preview` |
+| `IMAGE_QUALITY_MODEL` | 高品質画像生成モデル（ページ用） | `gemini-3-pro-image-preview` |
 | `GOOGLE_CLIENT_ID` | OAuthクライアントID | - |
 | `GOOGLE_CLIENT_SECRET` | OAuthクライアントシークレット | - |
 | `SESSION_SECRET` | セッションデータのHMAC署名用シークレット | - |
@@ -99,6 +99,7 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | **Cloud Tasks エンキューア** (`roles/cloudtasks.enqueuer`) | Webフォーム受付時に、タスクを Cloud Tasks キューに**追加**するために必要です。 |
 | **サービス アカウント ユーザー** (`roles/iam.serviceAccountUser`) | **最重要:** Cloud Tasks にタスクを託す際、指定した SA として振る舞う（ActAs）ために必要です。**SA自身に対してこの権限を付与**する必要があります。 |
 | **サービス アカウント トークン作成者** (`roles/iam.serviceAccountTokenCreator`) | OIDCトークンを生成し、安全なシステム間認証を行うために必要です。 |
+| **Vertex AI ユーザー** (`roles/aiplatform.user`) | Vertex AI モデル（Gemini/Imagen）を呼び出すために必要です。 |
 | **Cloud Run 起動元** (`roles/run.invoker`) | Cloud Tasks が自分自身（ワーカーエンドポイント）を認証付きで呼び出すことを許可するために必要です。 |
 | **Storage オブジェクト管理者** (`roles/storage.objectAdmin`) | 生成された画像やHTMLファイルを **GCS** バケットに保存するために必要です。 |
 | **Secret Manager のシークレット アクセサー** (`roles/secretmanager.secretAccessor`) | `GEMINI_API_KEY` や OAuth 情報を Secret Manager から安全に取得するために必要です。 |
@@ -123,13 +124,13 @@ Cloud Tasks がワーカーを呼び出す際に使用する ID（`ServiceAccoun
 ap-manga-web/
 ├── main.go        # エントリーポイント
 ├── internal/
-│   ├── app/       # DIコンテナ定義。アプリ全体の依存関係を保持・管理
-│   ├── adapters/  # Slack等の外部システム・サードパーティ連携の実装
-│   ├── builder/   # Factory層。Containerの構築や依存関係の注入（DI）を担当
-│   ├── config/    # 環境変数、定数、キャラクター定義（JSON）などの管理
-│   ├── domain/    # ビジネスドメインの型定義（Task, Payload, Response等）
-│   ├── pipeline/  # 実行フロー制御（指揮官）。Workflowを組み合わせて一連の処理を実行
-│   └── server/    # HTTP サーバー層。ルーティングおよび各画面/APIのハンドラー
+│   ├── app/       # DIコンテナ定義。
+│   ├── adapters/  # Slack, Gemini(Vertex AI/Google AI) 連携の実装
+│   ├── builder/   # Factory層。Containerの構築を担当
+│   ├── config/    # 環境変数、キャラクター定義等の管理
+│   ├── domain/    # ビジネスドメインの型定義
+│   ├── pipeline/  # 実行フロー制御。Workflowを組み合わせて一連の処理を実行
+│   └── server/    # HTTP サーバー層。ルーティングおよびハンドラー
 └── templates/     # UIテンプレート (HTML/Bootstrap 5)
 
 ```
@@ -138,14 +139,14 @@ ap-manga-web/
 
 ## 💻 ワークフロー (Workflow)
 
-1. **Request**: ユーザーが Web フォームから Markdown プロット等を送信。
-2. **Enqueue**: `server.Handler` が `CloudTasksAdapter` を介してジョブを投入。
-3. **Worker**: `worker.Handler` がリクエストを受け、`MangaPipeline` を起動。
+1. **Request**: ユーザーが Web フォームからプロット等を送信。
+2. **Enqueue**: `CloudTasksAdapter` を介してジョブを非同期投入。
+3. **Worker**: `MangaPipeline` が起動。
 4. **Pipeline**:
-    * **Phase 1: Script/Page**: プロットのパースと物語構成。
-    * **Phase 2: Panel/Design**: 画像生成。**特定インデックスの部分生成**にも対応。
-    * **Phase 3: Publish**: 生成された成果物をGCSに保存し、一意なURLでアクセス可能にする。
-    * **Phase 4: Notification**: Slack への完了報告。**Designモードの場合は Seed 値を明記。**
+    * **Phase 1: Script/Page**: プロットのパースと構成。
+    * **Phase 2: Panel/Design**: **Vertex AI + GCS 直接参照** による高速な画像生成。
+    * **Phase 3: Publish**: 成果物をGCSに保存。
+    * **Phase 4: Notification**: Slack への完了報告。
 
 ---
 
@@ -154,11 +155,11 @@ ap-manga-web/
 ```mermaid
 sequenceDiagram
     participant User as User (Web UI)
-    participant Web as Web
+    participant Web as Web (Cloud Run)
     participant Queue as Cloud Tasks
-    participant Worker as Worker
+    participant Worker as Worker (Cloud Run)
     participant Pipeline as Manga Pipeline
-    participant Gemini as Gemini API
+    participant VertexAI as Vertex AI (Imagen/Gemini)
     participant GCS as Cloud Storage
     participant Slack as Slack Notification
 
@@ -170,15 +171,14 @@ sequenceDiagram
     Worker->>Pipeline: Execute() 起動
     
     rect rgb(240, 240, 240)
-        Note over Pipeline, Gemini: 生成フェーズ
-        Pipeline->>Gemini: 台本生成 / 画像生成リクエスト
-        Gemini-->>Pipeline: 生成データ返却
+        Note over Pipeline, VertexAI: 生成フェーズ (GCS直接参照)
+        Pipeline->>VertexAI: 画像生成リクエスト (gs:// 参照)
+        VertexAI-->>Pipeline: 生成画像データ
     end
     
-    Pipeline->>GCS: 画像・HTML・JSONを保存
+    Pipeline->>GCS: 成果物保存
     Pipeline->>Slack: 完了通知 (閲覧URL & Seed値)
-    
-    Note over User, Slack: User confirms the result via Slack notification
+
 ```
 
 ---
