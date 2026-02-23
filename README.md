@@ -178,7 +178,6 @@ sequenceDiagram
     
     Pipeline->>GCS: 成果物保存
     Pipeline->>Slack: 完了通知 (閲覧URL & Seed値)
-
 ```
 
 ---
