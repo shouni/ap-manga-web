@@ -35,6 +35,7 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 	args := workflow.ManagerArgs{
 		Config: mangaKitCfg.Config{
 			ProjectID:          cfg.ProjectID,
+			LocationID:         cfg.LocationID,
 			GeminiModel:        cfg.GeminiModel,
 			ImageStandardModel: cfg.ImageStandardModel,
 			ImageQualityModel:  cfg.ImageQualityModel,

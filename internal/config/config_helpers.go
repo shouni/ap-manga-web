@@ -57,8 +57,11 @@ func ValidateEssentialConfig(cfg *Config) error {
 		return fmt.Errorf("configuration error: authorization lists are empty")
 	}
 
-	if cfg.GeminiAPIKey == "" {
-		return fmt.Errorf("configuration error: GEMINI_API_KEY is not set")
+	if cfg.ProjectID == "" {
+		return fmt.Errorf("configuration error: GCP_PROJECT_ID が設定されていません (Vertex AI 運用に必須)")
+	}
+	if cfg.LocationID == "" {
+		return fmt.Errorf("configuration error: GCP_LOCATION_ID が設定されていません (デフォルト: asia-northeast1)")
 	}
 
 	if cfg.SessionEncryptKey == "" {
