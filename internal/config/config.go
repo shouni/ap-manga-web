@@ -33,7 +33,6 @@ type Config struct {
 	BaseOutputDir       string // GCS内のベースルート (例: "output")
 	SignedURLExpiration time.Duration
 	SlackWebhookURL     string
-	GeminiAPIKey        string
 	GeminiModel         string // 台本生成用モデル
 	ImageStandardModel  string // 標準・高速（パネル用）
 	ImageQualityModel   string // 高品質・高知能（ページ用）
@@ -83,7 +82,6 @@ func LoadConfig() *Config {
 		BaseOutputDir:       getEnv("BASE_OUTPUT_DIR", "output"),
 		SignedURLExpiration: SignedURLExpiration,
 		SlackWebhookURL:     getEnv("SLACK_WEBHOOK_URL", ""),
-		GeminiAPIKey:        getEnv("GEMINI_API_KEY", ""),
 		GeminiModel:         getEnv("GEMINI_MODEL", DefaultModel),
 		ImageStandardModel:  getEnv("IMAGE_MODEL", DefaultImageStandardModel),
 		ImageQualityModel:   getEnv("IMAGE_QUALITY_MODEL", DefaultImageQualityModel),
