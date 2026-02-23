@@ -36,6 +36,7 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		Config: mangaKitCfg.Config{
 			ProjectID:          cfg.ProjectID,
 			LocationID:         cfg.LocationID,
+			GeminiModel:        cfg.GeminiModel,
 			ImageStandardModel: cfg.ImageStandardModel,
 			ImageQualityModel:  cfg.ImageQualityModel,
 			StyleSuffix:        cfg.StyleSuffix,
