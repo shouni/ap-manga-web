@@ -6,7 +6,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/shouni/gcp-kit v1.0.3
 	github.com/shouni/go-http-kit v1.2.1
-	github.com/shouni/go-manga-kit v1.6.2
+	github.com/shouni/go-manga-kit v1.6.3
 	github.com/shouni/go-notifier v1.1.4
 	github.com/shouni/go-remote-io v1.2.1
 	github.com/shouni/go-utils v1.0.18
