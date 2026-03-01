@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"ap-manga-web/internal/domain"
 )
@@ -18,6 +19,14 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// --- Seed値のパース ---
+	seedStr := r.FormValue("seed")
+	seed, err := strconv.ParseInt(seedStr, 10, 64)
+	if err != nil {
+		slog.Info("Seed値が不正または未入力のため、デフォルト値を使用します", "input", seedStr)
+		seed = 10000
+	}
+
 	targetPanels := r.FormValue("target_panels")
 	if !validTargetPanels.MatchString(targetPanels) {
 		slog.WarnContext(r.Context(), "target_panels に不正な文字が含まれています", "input", targetPanels)
@@ -30,6 +39,7 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		ScriptURL:    r.FormValue("script_url"),
 		InputText:    r.FormValue("input_text"),
 		Mode:         r.FormValue("mode"),
+		Seed:         seed,
 		TargetPanels: targetPanels,
 	}
 
