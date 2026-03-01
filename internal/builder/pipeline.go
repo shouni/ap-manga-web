@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
 	"ap-manga-web/internal/pipeline"
 
 	"github.com/shouni/go-http-kit/pkg/httpkit"
@@ -16,7 +16,7 @@ import (
 )
 
 // buildPipeline は、提供されたランナーを使用して新しいパイプラインを初期化して返します。
-func buildPipeline(cfg *config.Config, runners *workflow.Runners, rio *app.RemoteIO, slack adapters.SlackNotifier) (pipeline.Pipeline, error) {
+func buildPipeline(cfg *config.Config, runners *workflow.Runners, rio *app.RemoteIO, slack domain.Notifier) (domain.Pipeline, error) {
 	p, err := pipeline.NewMangaPipeline(cfg, runners, rio.Writer, slack)
 	if err != nil {
 		return nil, err

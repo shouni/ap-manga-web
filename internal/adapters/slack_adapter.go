@@ -19,15 +19,6 @@ const (
 	slackErrorContentHeader = "*エラー内容:*\n"
 )
 
-// --- インターフェース定義 ---
-
-type SlackNotifier interface {
-	Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error
-	NotifyError(ctx context.Context, errDetail error, req domain.NotificationRequest) error
-}
-
-// --- 具象アダプター ---
-
 type SlackAdapter struct {
 	webhookURL  string
 	slackClient *slack.Client
