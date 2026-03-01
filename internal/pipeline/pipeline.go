@@ -12,26 +12,16 @@ import (
 	"github.com/shouni/go-remote-io/pkg/remoteio"
 )
 
-type Notifier interface {
-	Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error
-	NotifyError(ctx context.Context, err error, req domain.NotificationRequest) error
-}
-
-// Pipeline  は、デコードされたペイロードを受け取って実際の処理を行うインターフェースです。
-type Pipeline interface {
-	Execute(ctx context.Context, payload domain.GenerateTaskPayload) (err error)
-}
-
 // MangaPipeline はパイプラインの実行に必要な外部依存関係を保持するサービス構造体です。
 type MangaPipeline struct {
 	config   *config.Config
 	runners  *workflow.Runners
 	writer   remoteio.OutputWriter
-	notifier Notifier
+	notifier domain.Notifier
 }
 
 // NewMangaPipeline は、Container から必要な依存関係のみを抽出して MangaPipeline を生成します。
-func NewMangaPipeline(config *config.Config, runners *workflow.Runners, writer remoteio.OutputWriter, notifier Notifier) (*MangaPipeline, error) {
+func NewMangaPipeline(config *config.Config, runners *workflow.Runners, writer remoteio.OutputWriter, notifier domain.Notifier) (*MangaPipeline, error) {
 	if writer == nil {
 		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 成果物の保存に必要な OutputWriter が Container 内に設定されていません")
 	}
