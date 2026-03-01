@@ -23,7 +23,7 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | **Generate** | 一括生成。台本解析から全パネルのパブリッシュまで一気通貫。 | URL・プロット / HTML, Images, MD |
 | **Script** | 台本生成。URLやテキストからAIが物語構成案（JSON）を生成。 | URL・テキスト / JSON (Script) |
 | **Panel** | パネル作画。既存の台本JSONから画像とHTMLを生成。 | 台本JSON / Images |
-| **Page** | 生成済みのパネル画像を、Markdown形式に基づきページ単位にレイアウトし、ページ画像を生成 | Images |
+| **Page** | 生成済みのパネル画像を、JSON形式に基づきページ単位にレイアウトし、ページ画像を生成 | Images |
 
 ---
 
@@ -74,7 +74,7 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | `TASK_AUDIENCE_URL` | OIDCトークンの検証用URL | `SERVICE_URL` と同じ |
 | `GCS_MANGA_BUCKET` | 画像とHTMLを保存するバケット名 | - |
 | `GEMINI_MODEL` | 台本構成に使用するモデル名 | `gemini-3-flash-preview` |
-| `IMAGE_MODEL` | 標準画像生成モデル（パネル用） | `gemini-3-pro-image-preview` |
+| `IMAGE_MODEL` | 標準画像生成モデル（パネル用） | `gemini-3.1-flash-image-preview` |
 | `IMAGE_QUALITY_MODEL` | 高品質画像生成モデル（ページ用） | `gemini-3-pro-image-preview` |
 | `GOOGLE_CLIENT_ID` | OAuthクライアントID | - |
 | `GOOGLE_CLIENT_SECRET` | OAuthクライアントシークレット | - |
