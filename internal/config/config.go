@@ -10,11 +10,11 @@ const (
 	// SignedURLExpiration 生成された漫画を確認する時間を考慮した有効期限
 	SignedURLExpiration       = 5 * time.Minute
 	DefaultModel              = "gemini-3-flash-preview"
-	DefaultImageStandardModel = "gemini-2.5-flash-image"
+	DefaultImageStandardModel = "gemini-3.1-flash-image-preview"
 	DefaultImageQualityModel  = "gemini-3-pro-image-preview"
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
 	DefaultHTTPTimeout      = 60 * time.Second
-	DefaultRateLimit        = 60 * time.Second
+	DefaultRateLimit        = 20 * time.Second
 	DefaultMaxPanelsPerPage = 6
 	DefaultCharactersFile   = "internal/config/characters.json"
 	DefaultStyleSuffix      = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
