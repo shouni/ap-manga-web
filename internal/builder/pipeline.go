@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
@@ -32,20 +33,25 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.C
 		return nil, fmt.Errorf("failed to load character map: %w", err)
 	}
 
+	aiClient, err := adapters.NewAIAdapter(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create aiClient: %w", err)
+	}
+
 	args := workflow.ManagerArgs{
 		Config: mangaKitCfg.Config{
-			ProjectID:          cfg.ProjectID,
-			LocationID:         "global",
 			GeminiModel:        cfg.GeminiModel,
 			ImageStandardModel: cfg.ImageStandardModel,
 			ImageQualityModel:  cfg.ImageQualityModel,
-			StyleSuffix:        cfg.StyleSuffix,
-			RateInterval:       config.DefaultRateLimit,
-			MaxPanelsPerPage:   config.DefaultMaxPanelsPerPage,
+
+			StyleSuffix:      cfg.StyleSuffix,
+			RateInterval:     config.DefaultRateLimit,
+			MaxPanelsPerPage: config.DefaultMaxPanelsPerPage,
 		},
 		HTTPClient:    httpClient,
 		Reader:        rio.Reader,
 		Writer:        rio.Writer,
+		AIClient:      aiClient,
 		CharactersMap: charsMap,
 	}
 
