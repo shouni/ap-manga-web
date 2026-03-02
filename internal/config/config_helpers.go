@@ -44,39 +44,34 @@ func (c *Config) GetGCSObjectURL(path string) string {
 // --- バリデーション ---
 
 // ValidateEssentialConfig はアプリケーション実行に不可欠な設定を検証します。
-func ValidateEssentialConfig(cfg *Config) error {
-	if !securenet.IsSecureServiceURL(cfg.ServiceURL) {
-		return fmt.Errorf("security error: SERVICE_URL ('%s') must be HTTPS in production", cfg.ServiceURL)
+func (c *Config) ValidateEssentialConfig() error {
+	if !c.IsSecureServiceURL() {
+		return fmt.Errorf("本番環境では SERVICE_URL ('%s') は HTTPS である必要があります", c.ServiceURL)
 	}
 
-	if cfg.GoogleClientID == "" || cfg.GoogleClientSecret == "" || cfg.SessionSecret == "" {
-		return fmt.Errorf("configuration error: OAuth settings are missing")
+	if c.GoogleClientID == "" || c.GoogleClientSecret == "" || c.SessionSecret == "" {
+		return fmt.Errorf("Google OAuth 関連の設定（ClientID, ClientSecret, SessionSecret）が不足しています")
 	}
 
-	if len(cfg.AllowedEmails) == 0 && len(cfg.AllowedDomains) == 0 {
-		return fmt.Errorf("configuration error: authorization lists are empty")
+	if len(c.AllowedEmails) == 0 && len(c.AllowedDomains) == 0 {
+		return fmt.Errorf("許可されたメールアドレスまたはドメインが一つも設定されていません（認可リストが空です）")
 	}
 
-	if cfg.ProjectID == "" {
-		return fmt.Errorf("configuration error: GCP_PROJECT_ID が設定されていません (Vertex AI 運用に必須)")
+	if c.ProjectID == "" {
+		return fmt.Errorf("GCP_PROJECT_ID が設定されていません (Vertex AI 運用に必須)")
 	}
-	if cfg.LocationID == "" {
-		return fmt.Errorf("configuration error: GCP_LOCATION_ID が設定されていません (デフォルト: asia-northeast1)")
+	if c.LocationID == "" {
+		return fmt.Errorf("GCP_LOCATION_ID が設定されていません (デフォルト: asia-northeast1)")
 	}
 
-	if cfg.SessionEncryptKey == "" {
+	if c.SessionEncryptKey == "" {
 		return fmt.Errorf("SESSION_ENCRYPT_KEY が設定されていません。セキュアな運用のために必須です")
 	}
 
 	// SessionEncryptKey の長さチェック (AES要件: 16, 24, 32 bytes)
-	keyLen := len([]byte(cfg.SessionEncryptKey))
+	keyLen := len(c.SessionEncryptKey)
 	if keyLen != 16 && keyLen != 24 && keyLen != 32 {
 		return fmt.Errorf("SESSION_ENCRYPT_KEY の長さが不正です (%d バイト)。16, 24, 32 バイトのいずれかにしてください", keyLen)
-	}
-
-	// SessionSecret の空チェック
-	if cfg.SessionSecret == "" {
-		return fmt.Errorf("SESSION_SECRET が設定されていません")
 	}
 
 	return nil
