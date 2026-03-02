@@ -22,7 +22,7 @@ func main() {
 
 	// 3. 設定のロードとバリデーション
 	cfg := config.LoadConfig()
-	if err := config.ValidateEssentialConfig(cfg); err != nil {
+	if err := cfg.ValidateEssentialConfig(); err != nil {
 		slog.Error("Config validation failed", "error", err)
 		os.Exit(1)
 	}
