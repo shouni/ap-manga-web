@@ -30,6 +30,8 @@ func NewAIAdapter(ctx context.Context, cfg *config.Config) (gemini.GenerativeMod
 		InitialDelay: defaultInitialDelay,
 	}
 
+	// GeminiAPIKeyが設定されている場合は優先して使用し、
+	// 設定されていない場合はGCPのProjectIDを使用したVertex AI経由の認証を試みる。
 	if cfg.GeminiAPIKey != "" {
 		clientConfig.APIKey = cfg.GeminiAPIKey
 	} else if cfg.ProjectID != "" {
