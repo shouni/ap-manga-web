@@ -72,7 +72,7 @@ func LoadConfig() *Config {
 
 	templateDir := path.Join(baseDir, "templates")
 	charConfig := path.Join(baseDir, DefaultCharactersFile)
-	interValSec := getEnvAsInt("RATE_INTERVAL_SEC", DefaultRateIntervalSec)
+	intervalSec := getEnvAsInt("RATE_INTERVAL_SEC", DefaultRateIntervalSec)
 
 	return &Config{
 		ServiceURL:          serviceURL,
@@ -104,7 +104,7 @@ func LoadConfig() *Config {
 
 		CharacterConfig:  charConfig,
 		MaxPanelsPerPage: getEnvAsInt("MAX_PANELS_PER_PAGE", DefaultMaxPanelsPerPage),
-		RateInterval:     time.Duration(interValSec) * time.Second,
+		RateInterval:     time.Duration(intervalSec) * time.Second,
 		StyleSuffix:      DefaultStyleSuffix,
 	}
 }
