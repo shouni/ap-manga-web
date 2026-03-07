@@ -45,8 +45,8 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 			ImageQualityModel:  cfg.ImageQualityModel,
 
 			StyleSuffix:      cfg.StyleSuffix,
-			RateInterval:     config.DefaultRateLimit,
-			MaxPanelsPerPage: config.DefaultMaxPanelsPerPage,
+			RateInterval:     cfg.RateInterval,
+			MaxPanelsPerPage: cfg.MaxPanelsPerPage,
 		},
 		HTTPClient:    httpClient,
 		Reader:        rio.Reader,
