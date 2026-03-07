@@ -14,9 +14,9 @@ const (
 	DefaultImageQualityModel  = "gemini-3-pro-image-preview"
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
 	DefaultHTTPTimeout      = 60 * time.Second
-	DefaultRateLimit        = 60 * time.Second
-	DefaultMaxPanelsPerPage = 6
 	DefaultCharactersFile   = "internal/config/characters.json"
+	DefaultRateInterval     = 60 * time.Second
+	DefaultMaxPanelsPerPage = 6
 	DefaultStyleSuffix      = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
 )
 
@@ -52,8 +52,10 @@ type Config struct {
 	AllowedEmails  []string
 	AllowedDomains []string
 
-	CharacterConfig string
-	StyleSuffix     string
+	CharacterConfig  string
+	MaxPanelsPerPage int
+	RateInterval     time.Duration
+	StyleSuffix      string
 }
 
 // LoadConfig は環境変数から設定を読み込み、Config 構造体を生成します。
@@ -99,7 +101,9 @@ func LoadConfig() *Config {
 		AllowedEmails:  parseCommaSeparatedList(allowedEmails),
 		AllowedDomains: parseCommaSeparatedList(allowedDomains),
 
-		CharacterConfig: charConfig,
-		StyleSuffix:     DefaultStyleSuffix,
+		CharacterConfig:  charConfig,
+		MaxPanelsPerPage: DefaultMaxPanelsPerPage,
+		RateInterval:     DefaultRateInterval,
+		StyleSuffix:      DefaultStyleSuffix,
 	}
 }
