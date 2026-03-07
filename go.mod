@@ -7,7 +7,7 @@ require (
 	github.com/shouni/gcp-kit v1.0.3
 	github.com/shouni/go-gemini-client v1.1.1
 	github.com/shouni/go-http-kit v1.3.2
-	github.com/shouni/go-manga-kit v1.6.13
+	github.com/shouni/go-manga-kit v1.6.14
 	github.com/shouni/go-notifier v1.1.5
 	github.com/shouni/go-remote-io v1.2.1
 	github.com/shouni/go-utils v1.0.19
