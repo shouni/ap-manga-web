@@ -27,7 +27,7 @@ func buildPipeline(cfg *config.Config, runners *workflow.Runners, rio *app.Remot
 }
 
 // buildWorkflow は、各 Runner を事前にビルドします。
-func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.ClientInterface, rio *app.RemoteIO) (*workflow.Manager, error) {
+func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.HTTPClient, rio *app.RemoteIO) (*workflow.Manager, error) {
 	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, rio.Reader, cfg.CharacterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load character map: %w", err)
