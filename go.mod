@@ -10,7 +10,7 @@ require (
 	github.com/shouni/go-manga-kit v1.6.11
 	github.com/shouni/go-notifier v1.1.5
 	github.com/shouni/go-remote-io v1.2.1
-	github.com/shouni/go-utils v1.0.18
+	github.com/shouni/go-utils v1.0.19
 	github.com/shouni/netarmor v1.0.0
 	google.golang.org/genai v1.49.0
 )

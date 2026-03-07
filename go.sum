@@ -134,8 +134,8 @@ github.com/shouni/go-remote-io v1.2.1 h1:Gjm9ejiibZGfLDQQHfQylVTdGUdBmbuIcv+1qXe
 github.com/shouni/go-remote-io v1.2.1/go.mod h1:BITGCVXTFmvXENcnO6WnWM3U8iQHFuJ6OiTUMRYTkAM=
 github.com/shouni/go-text-format v1.2.0 h1:2DuODFbn29IFjCK5vsFawOCoWjBsPsdu1kEymKF1eXA=
 github.com/shouni/go-text-format v1.2.0/go.mod h1:/bc0KRTBZTn4JoBmdK0HfqRoeZRNY5duvz4ibaiH42c=
-github.com/shouni/go-utils v1.0.18 h1:N9EjUUUipxs2W1xykjmb9rwyiqhzsUPrTsAE/RH1ODA=
-github.com/shouni/go-utils v1.0.18/go.mod h1:GSGOzlAcHeKf6RSp5tV3sZ+iC/2ot63rdMKVWM6tly0=
+github.com/shouni/go-utils v1.0.19 h1:s8CDW4fP4Xhr+7WCceJQHjppjfRjpvyWFCIz7pHXU1g=
+github.com/shouni/go-utils v1.0.19/go.mod h1:GSGOzlAcHeKf6RSp5tV3sZ+iC/2ot63rdMKVWM6tly0=
 github.com/shouni/go-web-exact/v2 v2.0.13 h1:GMwj/0tP96B8VGBQ0yhe8+dYI4lD6ImIC4Kdra1xptM=
 github.com/shouni/go-web-exact/v2 v2.0.13/go.mod h1:j5jU6uCI/AwchJA00nZpY7LnIJ1Vg+KylXCNXknuWdw=
 github.com/shouni/netarmor v1.0.0 h1:9SF6m88oyZoL77BLz2JZhHuyLWM39gSKyzFx1yD8JhU=

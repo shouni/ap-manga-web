@@ -4,6 +4,8 @@ import (
 	"os"
 	"path"
 	"time"
+
+	"github.com/shouni/go-utils/envutil"
 )
 
 const (
@@ -15,7 +17,7 @@ const (
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
 	DefaultHTTPTimeout      = 60 * time.Second
 	DefaultCharactersFile   = "internal/config/characters.json"
-	DefaultRateInterval     = 60 * time.Second
+	DefaultRateIntervalSec  = 60
 	DefaultMaxPanelsPerPage = 6
 	DefaultStyleSuffix      = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
 )
@@ -72,6 +74,7 @@ func LoadConfig() *Config {
 
 	templateDir := path.Join(baseDir, "templates")
 	charConfig := path.Join(baseDir, DefaultCharactersFile)
+	interValSec := envutil.GetEnvAsInt("RATE_INTERVAL_SEC", DefaultRateIntervalSec)
 
 	return &Config{
 		ServiceURL:          serviceURL,
@@ -102,8 +105,8 @@ func LoadConfig() *Config {
 		AllowedDomains: parseCommaSeparatedList(allowedDomains),
 
 		CharacterConfig:  charConfig,
-		MaxPanelsPerPage: DefaultMaxPanelsPerPage,
-		RateInterval:     DefaultRateInterval,
+		MaxPanelsPerPage: GetEnvAsInt("MAX_PANELS_PER_PAGE", DefaultMaxPanelsPerPage),
+		RateInterval:     time.Duration(interValSec) * time.Second,
 		StyleSuffix:      DefaultStyleSuffix,
 	}
 }
