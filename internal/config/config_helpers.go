@@ -82,8 +82,8 @@ func getEnv(key string, defaultValue string) string {
 	return envutil.GetEnv(key, defaultValue)
 }
 
-// GetEnvAsInt は環境変数を整数として取得し、存在しないか変換に失敗した場合はデフォルト値を返します。
-func GetEnvAsInt(key string, defaultValue int) int {
+// getEnvAsInt は環境変数を整数として取得し、存在しないか変換に失敗した場合はデフォルト値を返します。
+func getEnvAsInt(key string, defaultValue int) int {
 	return envutil.GetEnvAsInt(key, defaultValue)
 }
 

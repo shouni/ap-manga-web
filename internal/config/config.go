@@ -4,8 +4,6 @@ import (
 	"os"
 	"path"
 	"time"
-
-	"github.com/shouni/go-utils/envutil"
 )
 
 const (
@@ -74,7 +72,7 @@ func LoadConfig() *Config {
 
 	templateDir := path.Join(baseDir, "templates")
 	charConfig := path.Join(baseDir, DefaultCharactersFile)
-	interValSec := envutil.GetEnvAsInt("RATE_INTERVAL_SEC", DefaultRateIntervalSec)
+	interValSec := getEnvAsInt("RATE_INTERVAL_SEC", DefaultRateIntervalSec)
 
 	return &Config{
 		ServiceURL:          serviceURL,
@@ -105,7 +103,7 @@ func LoadConfig() *Config {
 		AllowedDomains: parseCommaSeparatedList(allowedDomains),
 
 		CharacterConfig:  charConfig,
-		MaxPanelsPerPage: GetEnvAsInt("MAX_PANELS_PER_PAGE", DefaultMaxPanelsPerPage),
+		MaxPanelsPerPage: getEnvAsInt("MAX_PANELS_PER_PAGE", DefaultMaxPanelsPerPage),
 		RateInterval:     time.Duration(interValSec) * time.Second,
 		StyleSuffix:      DefaultStyleSuffix,
 	}
