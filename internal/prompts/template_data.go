@@ -16,7 +16,7 @@ var (
 	DialoguePrompt string
 )
 
-// modeTemplates はモードとテンプレート文字列を紐づけるマップなのだ。
+// allTemplates はモードとテンプレート文字列を紐づけるマップです。
 var allTemplates = map[string]string{
 	ModeDuet:     DuetPrompt,
 	ModeDialogue: DialoguePrompt,

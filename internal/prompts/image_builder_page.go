@@ -185,7 +185,7 @@ func (pb *ImagePromptBuilder) writePanelBreakdown(w *strings.Builder, panels []d
 			layoutDesc := "traditional Japanese manga style layout"
 
 			// 10文字以下の短いセリフや、感嘆符(!?)が多い場合は横書きも検討する指示
-			if len([]rune(panel.Dialogue)) <= 10 && (strings.Contains(panel.Dialogue, "!") || strings.Contains(panel.Dialogue, "?")) {
+			if len([]rune(panel.Dialogue)) <= 10 && strings.ContainsAny(panel.Dialogue, "!?！？") {
 				// 短い叫びなどはインパクト重視で「横書き」を許可する指示を混ぜる
 				direction = "Horizontal (Yokogaki) or Vertical"
 				layoutDesc = "bold and high impact placement"
