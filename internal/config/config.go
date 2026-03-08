@@ -15,6 +15,7 @@ const (
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
 	DefaultHTTPTimeout      = 60 * time.Second
 	DefaultCharactersFile   = "internal/config/characters.json"
+	DefaultMaxConcurrency   = 2
 	DefaultRateIntervalSec  = 60
 	DefaultMaxPanelsPerPage = 6
 	DefaultStyleSuffix      = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
@@ -52,8 +53,10 @@ type Config struct {
 	AllowedEmails  []string
 	AllowedDomains []string
 
+	// Generation Settings
 	CharacterConfig  string
 	MaxPanelsPerPage int
+	MaxConcurrency   int64
 	RateInterval     time.Duration
 	StyleSuffix      string
 }
@@ -72,6 +75,7 @@ func LoadConfig() *Config {
 
 	templateDir := path.Join(baseDir, "templates")
 	charConfig := path.Join(baseDir, DefaultCharactersFile)
+	maxConcurrency := getEnvAsInt("MAX_CONCURRENCY", DefaultMaxConcurrency)
 	intervalSec := getEnvAsInt("RATE_INTERVAL_SEC", DefaultRateIntervalSec)
 
 	return &Config{
@@ -102,8 +106,10 @@ func LoadConfig() *Config {
 		AllowedEmails:  parseCommaSeparatedList(allowedEmails),
 		AllowedDomains: parseCommaSeparatedList(allowedDomains),
 
+		// Generation Settings
 		CharacterConfig:  charConfig,
 		MaxPanelsPerPage: getEnvAsInt("MAX_PANELS_PER_PAGE", DefaultMaxPanelsPerPage),
+		MaxConcurrency:   int64(maxConcurrency),
 		RateInterval:     time.Duration(intervalSec) * time.Second,
 		StyleSuffix:      DefaultStyleSuffix,
 	}

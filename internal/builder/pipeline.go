@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"ap-manga-web/internal/prompts"
 	"context"
 	"fmt"
 
@@ -38,21 +39,29 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 		return nil, fmt.Errorf("failed to create aiClient: %w", err)
 	}
 
+	scriptPrompt, err := initializeScriptPrompt()
+	if err != nil {
+		return nil, err
+	}
+	imagePrompt := initializeImagePrompt(charsMap, cfg.StyleSuffix)
+
 	args := workflow.ManagerArgs{
 		Config: mangaKitCfg.Config{
 			GeminiModel:        cfg.GeminiModel,
 			ImageStandardModel: cfg.ImageStandardModel,
 			ImageQualityModel:  cfg.ImageQualityModel,
-
-			StyleSuffix:      cfg.StyleSuffix,
-			RateInterval:     cfg.RateInterval,
-			MaxPanelsPerPage: cfg.MaxPanelsPerPage,
+			StyleSuffix:        cfg.StyleSuffix,
+			MaxConcurrency:     cfg.MaxConcurrency,
+			RateInterval:       cfg.RateInterval,
+			MaxPanelsPerPage:   cfg.MaxPanelsPerPage,
 		},
 		HTTPClient:    httpClient,
 		Reader:        rio.Reader,
 		Writer:        rio.Writer,
 		AIClient:      aiClient,
 		CharactersMap: charsMap,
+		ScriptPrompt:  scriptPrompt,
+		ImagePrompt:   imagePrompt,
 	}
 
 	mgr, err := workflow.New(ctx, args)
@@ -61,4 +70,19 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 	}
 
 	return mgr, nil
+}
+
+// initializeScriptPrompt は ScriptPrompt ビルダーを初期化します。
+func initializeScriptPrompt() (mangaKitDom.ScriptPrompt, error) {
+	pb, err := prompts.NewTextPromptBuilder()
+	if err != nil {
+		return nil, fmt.Errorf("TextPromptBuilder の新規作成に失敗しました: %w", err)
+	}
+
+	return pb, nil
+}
+
+// initializeImagePrompt は画像用プロンプトビルダーを初期化します。
+func initializeImagePrompt(charMap mangaKitDom.CharactersMap, styleSuffix string) mangaKitDom.ImagePrompt {
+	return prompts.NewImagePromptBuilder(charMap, styleSuffix)
 }
