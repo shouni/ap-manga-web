@@ -130,6 +130,7 @@ ap-manga-web/
 │   ├── config/    # 環境変数、キャラクター定義等の管理
 │   ├── domain/    # ビジネスドメインの型定義
 │   ├── pipeline/  # 実行フロー制御。Workflowを組み合わせて一連の処理を実行
+│   ├── prompts/   # テンプレート（.md）とデータを用いたAI指示文の動的構築。
 │   └── server/    # HTTP サーバー層。ルーティングおよびハンドラー
 └── templates/     # UIテンプレート (HTML/Bootstrap 5)
 

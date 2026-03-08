@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"ap-manga-web/internal/prompts"
 	"context"
 	"fmt"
 
@@ -61,4 +62,29 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 	}
 
 	return mgr, nil
+}
+
+// initializeScriptPrompt は ScriptPrompt ビルダーを初期化します。
+// 引数として既存のビルダーが渡された場合はそれを返し、nil の場合は新規作成します。
+func initializeScriptPrompt(scriptPrompt mangaKitDom.ScriptPrompt) (mangaKitDom.ScriptPrompt, error) {
+	if scriptPrompt != nil {
+		return scriptPrompt, nil
+	}
+
+	pb, err := prompts.NewTextPromptBuilder()
+	if err != nil {
+		return nil, fmt.Errorf("TextPromptBuilder の新規作成に失敗しました: %w", err)
+	}
+
+	return pb, nil
+}
+
+// initializeImagePrompt は ImagePromptBuilderを初期化します。
+// 引数として既存のビルダーが渡された場合はそれを返し、nil の場合は新規作成します。
+func initializeImagePrompt(imagePrompt mangaKitDom.ImagePrompt, charMap mangaKitDom.CharactersMap, styleSuffix string) (mangaKitDom.ImagePrompt, error) {
+	if imagePrompt != nil {
+		return imagePrompt, nil
+	}
+
+	return prompts.NewImagePromptBuilder(charMap, styleSuffix), nil
 }
