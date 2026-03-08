@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"ap-manga-web/internal/prompts"
 	"context"
 	"fmt"
 
@@ -10,6 +9,7 @@ import (
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 	"ap-manga-web/internal/pipeline"
+	"ap-manga-web/internal/prompts"
 
 	"github.com/shouni/go-http-kit/pkg/httpkit"
 	mangaKitCfg "github.com/shouni/go-manga-kit/pkg/config"
