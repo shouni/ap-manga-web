@@ -48,7 +48,7 @@ func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *doma
 		return nil, fmt.Errorf("panel generation step failed: %w", err)
 	}
 
-	// 2. パブリッシュ（更新された台本をそのまま渡すのだ）
+	// 2. パブリッシュ（更新された台本をそのまま渡す）
 	publishResult, err := p.runPublishStep(ctx, updatedManga, exec)
 	if err != nil {
 		return nil, fmt.Errorf("publish step failed: %w", err)
