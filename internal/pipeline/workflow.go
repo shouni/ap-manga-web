@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/shouni/go-manga-kit/pkg/domain"
-	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
 // runScriptStep はスクリプト生成フェーズを実行し、生成された台本をJSONとしてGCSに保存します。
@@ -37,22 +36,22 @@ func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *domain.MangaRes
 }
 
 // runPublishStep は漫画データを統合し、HTML等を出力します。
-func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *domain.MangaResponse, exec *mangaExecution) (publisher.PublishResult, error) {
+func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *domain.MangaResponse, exec *mangaExecution) (*domain.PublishResult, error) {
 	return p.runners.Publish.Run(ctx, manga, exec.resolveOutputURL(manga))
 }
 
 // runPanelAndPublishSteps は一連の流れを管理します。
-func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *domain.MangaResponse, exec *mangaExecution) (publisher.PublishResult, error) {
+func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *domain.MangaResponse, exec *mangaExecution) (*domain.PublishResult, error) {
 	// 1. パネル生成＆保存（画像パスが書き込まれた新しい台本を受け取る）
 	updatedManga, err := p.runPanelStep(ctx, manga, exec)
 	if err != nil {
-		return publisher.PublishResult{}, fmt.Errorf("panel generation step failed: %w", err)
+		return nil, fmt.Errorf("panel generation step failed: %w", err)
 	}
 
-	// 2. パブリッシュ（更新された台本をそのまま渡すのだ）
+	// 2. パブリッシュ（更新された台本をそのまま渡す）
 	publishResult, err := p.runPublishStep(ctx, updatedManga, exec)
 	if err != nil {
-		return publisher.PublishResult{}, fmt.Errorf("publish step failed: %w", err)
+		return nil, fmt.Errorf("publish step failed: %w", err)
 	}
 	return publishResult, nil
 }
