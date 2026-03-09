@@ -10,7 +10,6 @@ import (
 	"ap-manga-web/internal/domain"
 
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
-	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
 // mangaExecution は一回のリクエスト実行に関する状態（開始時刻や生成されたタイトルなど）を保持します。
@@ -44,7 +43,6 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 
 	var notificationReq *domain.NotificationRequest
 	var publicURL, storageURI string
-	var publishResult publisher.PublishResult
 
 	switch e.payload.Command {
 	case "generate":
@@ -56,7 +54,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 
 		// --- Phase 2 & 3: Panel Generation & Publish ---
 		// パネル生成と成果物のパブリッシュを連続して実行します。
-		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
+		_, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
 		if err != nil {
 			return err
 		}
@@ -67,7 +65,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 			return fmt.Errorf("page generation step failed: %w", err)
 		}
 
-		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga, publishResult)
+		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga)
 
 	case "design":
 		var outputURL string
@@ -90,12 +88,12 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 			slog.ErrorContext(ctx, "Failed to parse input JSON for panel mode", "error", err)
 			return fmt.Errorf("panel mode input JSON unmarshal failed: %w", err)
 		}
-		publishResult, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
+		_, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
 		if err != nil {
 			return err
 		}
 
-		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga, publishResult)
+		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga)
 
 	case "page":
 		if e.payload.InputText != "" {
@@ -111,12 +109,12 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 			return fmt.Errorf("page step failed: %w", err)
 		}
 
-		publishResult, err = e.pipeline.runPublishStep(ctx, manga, e)
+		_, err = e.pipeline.runPublishStep(ctx, manga, e)
 		if err != nil {
 			return err
 		}
 
-		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga, publishResult)
+		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga)
 
 	default:
 		err = fmt.Errorf("unsupported command: %s", e.payload.Command)

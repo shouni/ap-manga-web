@@ -13,7 +13,6 @@ import (
 
 	"github.com/shouni/go-manga-kit/pkg/asset"
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
-	"github.com/shouni/go-manga-kit/pkg/publisher"
 )
 
 // resolveWorkDir は、漫画のワークディレクトリパスを解決します。
@@ -73,7 +72,6 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 // buildMangaNotification は漫画生成の結果に基づいてSlack通知用リクエストを構築します。
 func (e *mangaExecution) buildMangaNotification(
 	manga *mangadom.MangaResponse,
-	result publisher.PublishResult,
 ) (*domain.NotificationRequest, string, string) {
 	safeTitle := e.resolveSafeTitle(manga.Title)
 	publicURL, err := url.JoinPath(
