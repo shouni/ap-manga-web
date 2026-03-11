@@ -40,13 +40,13 @@
     {
       "page": 1,
       "speaker_id": "metan",
-      "visual_anchor": "Clean anime line art, kazumi character, strictly following the character design and outfit from the provided reference image, no speech bubbles, no text, character-focused composition, minimalist school background, high quality, vivid colors.",
+      "visual_anchor": "Clean anime line art, metan character, strictly following the character design and outfit from the provided reference image, no speech bubbles, no text, character-focused composition, minimalist school background, high quality, vivid colors.",
       "dialogue": "さあ、私と一緒に{{.InputText}}の神秘を解き明かしていきましょう。"
     },
     {
       "page": 2,
       "speaker_id": "zundamon",
-      "visual_anchor": "Clean anime line art, hachi character, strictly following the character design and outfit from the provided reference image, no speech bubbles, no word balloons, dramatic angle, minimalist school background, simple speed lines, high quality, vivid colors.",
+      "visual_anchor": "Clean anime line art, zundamon character, strictly following the character design and outfit from the provided reference image, no speech bubbles, no word balloons, dramatic angle, minimalist school background, simple speed lines, high quality, vivid colors.",
       "dialogue": "これが今回の核心部分なのだ！ボクが構造をじっくり説明してやるのだよ。"
     }
   ]
