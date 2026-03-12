@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"path"
@@ -10,7 +11,6 @@ import (
 	"ap-manga-web/internal/domain"
 
 	"github.com/shouni/go-http-kit/pkg/httpkit"
-	"github.com/shouni/go-notifier/pkg/factory"
 	"github.com/shouni/go-notifier/pkg/slack"
 )
 
@@ -26,11 +26,17 @@ type SlackAdapter struct {
 
 func NewSlackAdapter(httpClient httpkit.RequestExecutor, webhookURL string) (*SlackAdapter, error) {
 	if webhookURL == "" {
-		return &SlackAdapter{webhookURL: webhookURL}, nil
+		// オプショナル機能として扱い、空のままインスタンスを返す
+		return &SlackAdapter{}, nil
 	}
-	client, err := factory.GetSlackClient(httpClient)
+
+	if httpClient == nil {
+		return nil, errors.New("http client cannot be nil")
+	}
+
+	client, err := slack.NewClient(httpClient, webhookURL)
 	if err != nil {
-		return nil, fmt.Errorf("Slackクライアントの初期化に失敗したのだ: %w", err)
+		return nil, fmt.Errorf("Slackクライアントの初期化に失敗しました: %w", err)
 	}
 
 	return &SlackAdapter{
@@ -41,8 +47,8 @@ func NewSlackAdapter(httpClient httpkit.RequestExecutor, webhookURL string) (*Sl
 
 // Notify 公開URLとストレージ情報を含む、プロセス完了時のSlack通知送信。
 func (s *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error {
-	if s.slackClient == nil {
-		slog.Info("Slackクライアントが初期化されていないため、通知をスキップします。", "storage_uri", storageURI)
+	if s.webhookURL == "" || s.slackClient == nil {
+		slog.Info("Slack通知が無効化されているか、クライアントが未初期化のためスキップします。", "storage_uri", storageURI)
 		return nil
 	}
 
