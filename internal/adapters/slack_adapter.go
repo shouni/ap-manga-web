@@ -31,7 +31,7 @@ func NewSlackAdapter(httpClient httpkit.RequestExecutor, webhookURL string) (*Sl
 	}
 
 	if httpClient == nil {
-		return nil, errors.New("http client cannot be nil")
+		return nil, errors.New("HTTPクライアントがnilです")
 	}
 
 	client, err := slack.NewClient(httpClient, webhookURL)
@@ -48,7 +48,7 @@ func NewSlackAdapter(httpClient httpkit.RequestExecutor, webhookURL string) (*Sl
 // Notify 公開URLとストレージ情報を含む、プロセス完了時のSlack通知送信。
 func (s *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string, req domain.NotificationRequest) error {
 	if s.webhookURL == "" || s.slackClient == nil {
-		slog.Info("Slack通知が無効化されているか、クライアントが未初期化のためスキップします。", "storage_uri", storageURI)
+		slog.InfoContext(ctx, "Slack通知が無効化されているか、クライアントが未初期化のためスキップします。", "storage_uri", storageURI)
 		return nil
 	}
 
