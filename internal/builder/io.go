@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"ap-manga-web/internal/app"
-
 	"github.com/shouni/go-remote-io/pkg/gcsfactory"
+
+	"ap-manga-web/internal/app"
 )
 
 // buildRemoteIO は、GCS ベースの I/O コンポーネントを初期化します。

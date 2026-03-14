@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"time"
 
-	"ap-manga-web/internal/domain"
-
 	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
+
+	"ap-manga-web/internal/domain"
 )
 
 // mangaExecution は一回のリクエスト実行に関する状態（開始時刻や生成されたタイトルなど）を保持します。

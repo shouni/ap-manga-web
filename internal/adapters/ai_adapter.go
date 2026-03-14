@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"ap-manga-web/internal/config"
-
 	"github.com/shouni/go-gemini-client/pkg/gemini"
 	"google.golang.org/genai"
+
+	"ap-manga-web/internal/config"
 )
 
 const (

@@ -11,11 +11,11 @@ import (
 	"sort"
 	"strings"
 
-	"ap-manga-web/internal/config"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/shouni/go-manga-kit/pkg/asset"
 	"github.com/shouni/go-manga-kit/pkg/domain"
+
+	"ap-manga-web/internal/config"
 )
 
 // mangaViewData はテンプレート「manga_view.html」に渡すためのデータ構造体

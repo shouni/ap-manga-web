@@ -8,10 +8,10 @@ import (
 	"path"
 	"strings"
 
-	"ap-manga-web/internal/domain"
-
 	"github.com/shouni/go-http-kit/pkg/httpkit"
 	"github.com/shouni/go-notifier/pkg/slack"
+
+	"ap-manga-web/internal/domain"
 )
 
 const (
@@ -19,11 +19,13 @@ const (
 	slackErrorContentHeader = "*エラー内容:*\n"
 )
 
+// SlackAdapter は、Slack APIと連携し、Webhookを介してメッセージを投稿するためのアダプタを表します。
 type SlackAdapter struct {
 	webhookURL  string
 	slackClient *slack.Client
 }
 
+// NewSlackAdapter は新しいアダプターインスタンスを作成します。
 func NewSlackAdapter(httpClient httpkit.RequestExecutor, webhookURL string) (*SlackAdapter, error) {
 	if webhookURL == "" {
 		// オプショナル機能として扱い、空のままインスタンスを返す

@@ -4,15 +4,15 @@ import (
 	"net/http"
 	"strings"
 
-	"ap-manga-web/internal/builder"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
-	"ap-manga-web/internal/server/handlers"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/shouni/gcp-kit/auth"
 	"github.com/shouni/gcp-kit/worker"
+
+	"ap-manga-web/internal/builder"
+	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
+	"ap-manga-web/internal/server/handlers"
 )
 
 // NewRouter は、ミドルウェアとルーティングを統合した http.Handler を構築します。
