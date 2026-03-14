@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/shouni/gcp-kit/tasks"
+
 	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
-
-	"github.com/shouni/gcp-kit/tasks"
 )
 
 const titleSuffix = " - AP Manga Web"

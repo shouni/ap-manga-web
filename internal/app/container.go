@@ -21,8 +21,8 @@ type Container struct {
 	// Business Logic
 	Pipeline domain.Pipeline
 	// External Adapters
-	HTTPClient    httpkit.HTTPClient
-	SlackNotifier domain.Notifier
+	HTTPClient httpkit.HTTPClient
+	Notifier   domain.Notifier
 }
 
 // RemoteIO は外部ストレージ操作に関するコンポーネントをまとめます。

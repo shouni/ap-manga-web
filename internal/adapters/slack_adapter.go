@@ -8,10 +8,10 @@ import (
 	"path"
 	"strings"
 
-	"ap-manga-web/internal/domain"
-
 	"github.com/shouni/go-http-kit/pkg/httpkit"
 	"github.com/shouni/go-notifier/pkg/slack"
+
+	"ap-manga-web/internal/domain"
 )
 
 const (
