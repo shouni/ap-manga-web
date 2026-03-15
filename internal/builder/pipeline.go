@@ -18,7 +18,7 @@ import (
 	"ap-manga-web/internal/prompts"
 )
 
-// PromptDependencies はプロンプト関連の依存関係をまとめた構造体です。
+// promptDependencies はプロンプト関連の依存関係をまとめた構造体です。
 type promptDependencies struct {
 	CharactersMap mangaKitDom.CharactersMap
 	ScriptPrompt  mangaKitDom.ScriptPrompt
