@@ -31,9 +31,9 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 	if err != nil {
 		return nil, fmt.Errorf("failed to create aiClient: %w", err)
 	}
-	charsMap, scriptPrompt, imagePrompt, err := adapters.InitializePromptDependencies(ctx, rio.Reader, cfg.CharacterConfig, cfg.StyleSuffix)
+	promptDeps, err := adapters.InitializePromptDependencies(ctx, rio.Reader, cfg.CharacterConfig, cfg.StyleSuffix)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize prompt dependencies: %w", err)
 	}
 
 	args := workflow.ManagerArgs{
@@ -50,9 +50,9 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 		Reader:        rio.Reader,
 		Writer:        rio.Writer,
 		AIClient:      aiClient,
-		CharactersMap: charsMap,
-		ScriptPrompt:  scriptPrompt,
-		ImagePrompt:   imagePrompt,
+		CharactersMap: promptDeps.CharactersMap,
+		ScriptPrompt:  promptDeps.ScriptPrompt,
+		ImagePrompt:   promptDeps.ImagePrompt,
 	}
 
 	mgr, err := workflow.New(ctx, args)
