@@ -5,14 +5,14 @@ go 1.26
 require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/shouni/gcp-kit v1.0.4
-	github.com/shouni/go-gemini-client v1.1.2
+	github.com/shouni/go-gemini-client v1.1.4
 	github.com/shouni/go-http-kit v1.3.3
-	github.com/shouni/go-manga-kit v1.7.6
-	github.com/shouni/go-notifier v1.1.7
+	github.com/shouni/go-manga-kit v1.7.7
+	github.com/shouni/go-notifier v1.1.9
 	github.com/shouni/go-remote-io v1.2.2
 	github.com/shouni/go-utils v1.0.20
-	github.com/shouni/netarmor v1.0.1
-	google.golang.org/genai v1.49.0
+	github.com/shouni/netarmor v1.0.2
+	google.golang.org/genai v1.50.0
 )
 
 require (
@@ -62,7 +62,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/shouni/gemini-image-kit v1.3.7 // indirect
+	github.com/shouni/gemini-image-kit v1.3.8 // indirect
 	github.com/shouni/go-text-format v1.2.1 // indirect
 	github.com/shouni/go-web-exact/v2 v2.1.0 // indirect
 	github.com/slack-go/slack v0.19.0 // indirect
