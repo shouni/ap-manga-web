@@ -6,7 +6,6 @@ import (
 
 	"github.com/shouni/go-http-kit/pkg/httpkit"
 	mangaKitCfg "github.com/shouni/go-manga-kit/pkg/config"
-	mangaKitDom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/workflow"
 
 	"ap-manga-web/internal/adapters"
@@ -14,7 +13,6 @@ import (
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 	"ap-manga-web/internal/pipeline"
-	"ap-manga-web/internal/prompts"
 )
 
 // buildPipeline は、提供されたランナーを使用して新しいパイプラインを初期化して返します。
@@ -29,21 +27,14 @@ func buildPipeline(cfg *config.Config, runners *workflow.Runners, rio *app.Remot
 
 // buildWorkflow は、各 Runner を事前にビルドします。
 func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.HTTPClient, rio *app.RemoteIO) (*workflow.Manager, error) {
-	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, rio.Reader, cfg.CharacterConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load character map: %w", err)
-	}
-
 	aiClient, err := adapters.NewAIAdapter(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create aiClient: %w", err)
 	}
-
-	scriptPrompt, err := initializeScriptPrompt()
+	charsMap, scriptPrompt, imagePrompt, err := adapters.NewPrompts(ctx, rio.Reader, cfg.CharacterConfig, cfg.StyleSuffix)
 	if err != nil {
 		return nil, err
 	}
-	imagePrompt := initializeImagePrompt(charsMap, cfg.StyleSuffix)
 
 	args := workflow.ManagerArgs{
 		Config: mangaKitCfg.Config{
@@ -70,19 +61,4 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 	}
 
 	return mgr, nil
-}
-
-// initializeScriptPrompt は ScriptPrompt ビルダーを初期化します。
-func initializeScriptPrompt() (mangaKitDom.ScriptPrompt, error) {
-	pb, err := prompts.NewTextPromptBuilder()
-	if err != nil {
-		return nil, fmt.Errorf("TextPromptBuilder の新規作成に失敗しました: %w", err)
-	}
-
-	return pb, nil
-}
-
-// initializeImagePrompt は画像用プロンプトビルダーを初期化します。
-func initializeImagePrompt(charMap mangaKitDom.CharactersMap, styleSuffix string) mangaKitDom.ImagePrompt {
-	return prompts.NewImagePromptBuilder(charMap, styleSuffix)
 }
