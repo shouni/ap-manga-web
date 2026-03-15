@@ -8,6 +8,7 @@ import (
 	mangaKitCfg "github.com/shouni/go-manga-kit/pkg/config"
 	mangaKitDom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/workflow"
+	"github.com/shouni/go-remote-io/pkg/remoteio"
 
 	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/app"
@@ -16,6 +17,13 @@ import (
 	"ap-manga-web/internal/pipeline"
 	"ap-manga-web/internal/prompts"
 )
+
+// promptDependencies はプロンプト関連の依存関係をまとめた構造体です。
+type promptDependencies struct {
+	CharactersMap mangaKitDom.CharactersMap
+	ScriptPrompt  mangaKitDom.ScriptPrompt
+	ImagePrompt   mangaKitDom.ImagePrompt
+}
 
 // buildPipeline は、提供されたランナーを使用して新しいパイプラインを初期化して返します。
 func buildPipeline(cfg *config.Config, runners *workflow.Runners, rio *app.RemoteIO, slack domain.Notifier) (domain.Pipeline, error) {
@@ -29,21 +37,14 @@ func buildPipeline(cfg *config.Config, runners *workflow.Runners, rio *app.Remot
 
 // buildWorkflow は、各 Runner を事前にビルドします。
 func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.HTTPClient, rio *app.RemoteIO) (*workflow.Manager, error) {
-	charsMap, err := mangaKitDom.LoadCharacterMap(ctx, rio.Reader, cfg.CharacterConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load character map: %w", err)
-	}
-
 	aiClient, err := adapters.NewAIAdapter(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create aiClient: %w", err)
 	}
-
-	scriptPrompt, err := initializeScriptPrompt()
+	promptDeps, err := buildPromptDependencies(ctx, rio.Reader, cfg.CharacterConfig, cfg.StyleSuffix)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize prompt dependencies: %w", err)
 	}
-	imagePrompt := initializeImagePrompt(charsMap, cfg.StyleSuffix)
 
 	args := workflow.ManagerArgs{
 		Config: mangaKitCfg.Config{
@@ -59,9 +60,9 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 		Reader:        rio.Reader,
 		Writer:        rio.Writer,
 		AIClient:      aiClient,
-		CharactersMap: charsMap,
-		ScriptPrompt:  scriptPrompt,
-		ImagePrompt:   imagePrompt,
+		CharactersMap: promptDeps.CharactersMap,
+		ScriptPrompt:  promptDeps.ScriptPrompt,
+		ImagePrompt:   promptDeps.ImagePrompt,
 	}
 
 	mgr, err := workflow.New(ctx, args)
@@ -72,17 +73,23 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 	return mgr, nil
 }
 
-// initializeScriptPrompt は ScriptPrompt ビルダーを初期化します。
-func initializeScriptPrompt() (mangaKitDom.ScriptPrompt, error) {
-	pb, err := prompts.NewTextPromptBuilder()
+// buildPromptDependencies は Prompt ビルダーを初期化します。
+func buildPromptDependencies(ctx context.Context, reader remoteio.InputReader, characterConfigPath, styleSuffix string) (*promptDependencies, error) {
+	charMap, err := mangaKitDom.LoadCharacterMap(ctx, reader, characterConfigPath)
 	if err != nil {
-		return nil, fmt.Errorf("TextPromptBuilder の新規作成に失敗しました: %w", err)
+		return nil, fmt.Errorf("failed to generate character map: %w", err)
 	}
 
-	return pb, nil
-}
+	textPrompt, err := prompts.NewTextPromptBuilder()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create text prompt builder: %w", err)
+	}
 
-// initializeImagePrompt は画像用プロンプトビルダーを初期化します。
-func initializeImagePrompt(charMap mangaKitDom.CharactersMap, styleSuffix string) mangaKitDom.ImagePrompt {
-	return prompts.NewImagePromptBuilder(charMap, styleSuffix)
+	imagePrompt := prompts.NewImagePromptBuilder(charMap, styleSuffix)
+
+	return &promptDependencies{
+		CharactersMap: charMap,
+		ScriptPrompt:  textPrompt,
+		ImagePrompt:   imagePrompt,
+	}, nil
 }
