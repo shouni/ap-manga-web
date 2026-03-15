@@ -18,15 +18,15 @@ type PromptDependencies struct {
 }
 
 // InitializePromptDependencies は Prompt ビルダーを初期化します。
-func InitializePromptDependencies(ctx context.Context, reader remoteio.InputReader, path string, styleSuffix string) (*PromptDependencies, error) {
-	charMap, err := domain.LoadCharacterMap(ctx, reader, path)
+func InitializePromptDependencies(ctx context.Context, reader remoteio.InputReader, characterConfigPath, styleSuffix string) (*PromptDependencies, error) {
+	charMap, err := domain.LoadCharacterMap(ctx, reader, characterConfigPath)
 	if err != nil {
-		return nil, fmt.Errorf("CharacterMap の生成に失敗しました: %w", err)
+		return nil, fmt.Errorf("failed to generate character map: %w", err)
 	}
 
 	textPrompt, err := prompts.NewTextPromptBuilder()
 	if err != nil {
-		return nil, fmt.Errorf("TextPromptBuilder の新規作成に失敗しました: %w", err)
+		return nil, fmt.Errorf("failed to create text prompt builder: %w", err)
 	}
 
 	imagePrompt := prompts.NewImagePromptBuilder(charMap, styleSuffix)
