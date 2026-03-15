@@ -31,7 +31,7 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 	if err != nil {
 		return nil, fmt.Errorf("failed to create aiClient: %w", err)
 	}
-	promptDeps, err := adapters.InitializePromptDependencies(ctx, rio.Reader, cfg.CharacterConfig, cfg.StyleSuffix)
+	promptDeps, err := adapters.NewPromptDependencies(ctx, rio.Reader, cfg.CharacterConfig, cfg.StyleSuffix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize prompt dependencies: %w", err)
 	}
