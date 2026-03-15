@@ -25,6 +25,11 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | **Panel** | パネル作画。既存の台本JSONから画像とHTMLを生成。 | 台本JSON / Images |
 | **Page** | 生成済みのパネル画像を、JSON形式に基づきページ単位にレイアウトし、ページ画像を生成 | Images |
 
+### 🎨 出力ページイメージ
+
+![Page 1](./assets/manga_page_1.png)
+![Page 2](./assets/manga_page_2.png)
+
 ---
 
 ## ✨ 技術スタック (Technology Stack)
@@ -180,16 +185,6 @@ sequenceDiagram
     Pipeline->>GCS: 成果物保存
     Pipeline->>Slack: 完了通知 (閲覧URL & Seed値)
 ```
-
----
-
-### 💡 Tips: キャラクタービジュアルの固定方法
-
-生成されるキャラクターの見た目を一貫させるためには、以下の手順でSeed値を特定・利用します。
-
-1.  **DesignワークフローでSeed値を特定する**: `Design`画面で好みのビジュアルが生成されるまで試行します。
-2.  **Slack通知でFinal Seedを確認する**: 処理完了後、Slackに通知される`Final Seed`の値を控えてください。
-3.  **他のワークフローでSeed値を利用する**: `Generate`や`Panel`の実行時に、控えたSeed値をフォームに入力すると、同じビジュアルのキャラクターを再現できます。
 
 ---
 
