@@ -10,11 +10,11 @@ import (
 	"ap-manga-web/internal/prompts"
 )
 
-// NewPrompts は Prompt ビルダーを初期化します。
-func NewPrompts(ctx context.Context, reader remoteio.InputReader, path string, styleSuffix string) (domain.CharactersMap, domain.ScriptPrompt, domain.ImagePrompt, error) {
+// InitializePromptDependencies は Prompt ビルダーを初期化します。
+func InitializePromptDependencies(ctx context.Context, reader remoteio.InputReader, path string, styleSuffix string) (domain.CharactersMap, domain.ScriptPrompt, domain.ImagePrompt, error) {
 	charMap, err := domain.LoadCharacterMap(ctx, reader, path)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("CharacterMa の生成に失敗しました: %w", err)
+		return nil, nil, nil, fmt.Errorf("CharacterMap の生成に失敗しました: %w", err)
 	}
 
 	textPrompt, err := prompts.NewTextPromptBuilder()
