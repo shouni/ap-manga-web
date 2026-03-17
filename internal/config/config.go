@@ -53,7 +53,6 @@ type Config struct {
 	AllowedDomains []string
 
 	// Generation Settings
-	CharacterConfig  string
 	MaxPanelsPerPage int
 	MaxConcurrency   int64
 	RateInterval     time.Duration
