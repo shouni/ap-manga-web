@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"ap-manga-web/assets"
 	"context"
 	"fmt"
 
@@ -8,7 +9,6 @@ import (
 	mangaKitCfg "github.com/shouni/go-manga-kit/pkg/config"
 	mangaKitDom "github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-manga-kit/pkg/workflow"
-	"github.com/shouni/go-remote-io/pkg/remoteio"
 
 	"ap-manga-web/internal/adapters"
 	"ap-manga-web/internal/app"
@@ -41,7 +41,7 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 	if err != nil {
 		return nil, fmt.Errorf("failed to create aiClient: %w", err)
 	}
-	promptDeps, err := buildPromptDependencies(ctx, rio.Reader, cfg.CharacterConfig, cfg.StyleSuffix)
+	promptDeps, err := buildPromptDependencies(cfg.StyleSuffix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize prompt dependencies: %w", err)
 	}
@@ -74,8 +74,8 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 }
 
 // buildPromptDependencies は Prompt ビルダーを初期化します。
-func buildPromptDependencies(ctx context.Context, reader remoteio.InputReader, characterConfigPath, styleSuffix string) (*promptDependencies, error) {
-	charMap, err := mangaKitDom.LoadCharacterMap(ctx, reader, characterConfigPath)
+func buildPromptDependencies(styleSuffix string) (*promptDependencies, error) {
+	charMap, err := mangaKitDom.GetCharacters(assets.Characters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate character map: %w", err)
 	}

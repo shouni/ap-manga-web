@@ -14,7 +14,6 @@ const (
 	DefaultImageQualityModel  = "gemini-3-pro-image-preview"
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
 	DefaultHTTPTimeout      = 60 * time.Second
-	DefaultCharactersFile   = "internal/config/characters.json"
 	DefaultMaxConcurrency   = 2
 	DefaultRateIntervalSec  = 60
 	DefaultMaxPanelsPerPage = 6
@@ -54,7 +53,6 @@ type Config struct {
 	AllowedDomains []string
 
 	// Generation Settings
-	CharacterConfig  string
 	MaxPanelsPerPage int
 	MaxConcurrency   int64
 	RateInterval     time.Duration
@@ -74,7 +72,6 @@ func LoadConfig() *Config {
 	}
 
 	templateDir := path.Join(baseDir, "templates")
-	charConfig := path.Join(baseDir, DefaultCharactersFile)
 	maxConcurrency := getEnvAsInt("MAX_CONCURRENCY", DefaultMaxConcurrency)
 	intervalSec := getEnvAsInt("RATE_INTERVAL_SEC", DefaultRateIntervalSec)
 
@@ -107,7 +104,6 @@ func LoadConfig() *Config {
 		AllowedDomains: parseCommaSeparatedList(allowedDomains),
 
 		// Generation Settings
-		CharacterConfig:  charConfig,
 		MaxPanelsPerPage: getEnvAsInt("MAX_PANELS_PER_PAGE", DefaultMaxPanelsPerPage),
 		MaxConcurrency:   int64(maxConcurrency),
 		RateInterval:     time.Duration(intervalSec) * time.Second,
