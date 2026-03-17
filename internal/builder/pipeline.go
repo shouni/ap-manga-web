@@ -75,7 +75,7 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 
 // buildPromptDependencies は Prompt ビルダーを初期化します。
 func buildPromptDependencies(styleSuffix string) (*promptDependencies, error) {
-	charMap, err := mangaKitDom.GetCharacters([]byte(assets.Characters))
+	charMap, err := mangaKitDom.GetCharacters(assets.Characters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate character map: %w", err)
 	}

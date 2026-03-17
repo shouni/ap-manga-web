@@ -16,5 +16,5 @@ var (
 	// Characters は、漫画に登場するキャラクターの基本定義（名前、外見、Seed値など）を
 	// 記述した JSON データです。
 	//go:embed characters/characters.json
-	Characters string
+	Characters []byte
 )
