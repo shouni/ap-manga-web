@@ -27,8 +27,8 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 
 ### 🎨 出力ページイメージ
 
-![Page 1](./assets/manga_page_1.png)
-![Page 2](./assets/manga_page_2.png)
+![Page 1](./doc/manga_page_1.png)
+![Page 2](./doc/manga_page_2.png)
 
 ---
 
