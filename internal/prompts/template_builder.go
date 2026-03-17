@@ -21,7 +21,7 @@ type Builder struct {
 }
 
 // NewPromptAdapter は Builder のインスタンスを構築します。
-func NewPromptAdapter() (domain.ScriptPrompt, error) {
+func NewPromptAdapter() (*Builder, error) {
 	templates := map[string]string{
 		ModeDuet:     assets.DuetPrompt,
 		ModeDialogue: assets.DialoguePrompt,
