@@ -80,7 +80,7 @@ func buildPromptDependencies(ctx context.Context, reader remoteio.InputReader, c
 		return nil, fmt.Errorf("failed to generate character map: %w", err)
 	}
 
-	textPrompt, err := prompts.NewTextPromptBuilder()
+	textPrompt, err := prompts.NewPromptAdapter()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create text prompt builder: %w", err)
 	}
