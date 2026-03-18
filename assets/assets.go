@@ -1,17 +1,20 @@
 package assets
 
-import "embed"
+import (
+	"embed"
+
+	"github.com/shouni/go-prompt-kit/resource"
+)
+
+const (
+	promptDir    = "prompts"
+	promptPrefix = "prompt_"
+)
 
 var (
-	// DuetPrompt は、二人のキャラクターによる掛け合い（デュエット）形式の
-	// プロンプトテンプレートを保持します。
-	//go:embed prompts/duet.md
-	DuetPrompt string
-
-	// DialoguePrompt は、キャラクター同士の対話シーンを生成するための
-	// 基本的なプロンプトテンプレートを保持します。
-	//go:embed prompts/dialogue.md
-	DialoguePrompt string
+	// promptFiles はプロンプトテンプレートです。
+	//go:embed prompts/prompt_*.md
+	promptFiles embed.FS
 
 	// Characters は、漫画に登場するキャラクターの基本定義（名前、外見、Seed値など）を
 	// 記述した JSON データです。
@@ -22,3 +25,8 @@ var (
 	//go:embed templates/*.html
 	Templates embed.FS
 )
+
+// LoadPrompts は埋め込まれたプロンプトファイルを読み込みます。
+func LoadPrompts() (map[string]string, error) {
+	return resource.Load(promptFiles, promptDir, promptPrefix)
+}
