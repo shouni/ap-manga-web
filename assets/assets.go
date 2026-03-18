@@ -1,6 +1,6 @@
 package assets
 
-import _ "embed"
+import "embed"
 
 var (
 	// DuetPrompt は、二人のキャラクターによる掛け合い（デュエット）形式の
@@ -17,4 +17,8 @@ var (
 	// 記述した JSON データです。
 	//go:embed characters/characters.json
 	Characters []byte
+
+	// Templates は、すべてのHTMLテンプレートを保持します。
+	//go:embed templates/*.html
+	Templates embed.FS
 )

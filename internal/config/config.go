@@ -1,8 +1,6 @@
 package config
 
 import (
-	"os"
-	"path"
 	"time"
 )
 
@@ -37,7 +35,6 @@ type Config struct {
 	GeminiModel         string // 台本生成用モデル
 	ImageStandardModel  string // 標準・高速（パネル用）
 	ImageQualityModel   string // 高品質・高知能（ページ用）
-	TemplateDir         string // HTMLテンプレートの格納ディレクトリ
 	ShutdownTimeout     time.Duration
 
 	// OAuth & Session Settings
@@ -65,13 +62,6 @@ func LoadConfig() *Config {
 	allowedEmails := getEnv("ALLOWED_EMAILS", "")
 	allowedDomains := getEnv("ALLOWED_DOMAINS", "")
 
-	// 実行環境（Cloud Run, ko）に応じたパスの解決
-	baseDir := "."
-	if os.Getenv("KO_DATA_PATH") != "" || os.Getenv("K_SERVICE") != "" {
-		baseDir = "/app"
-	}
-
-	templateDir := path.Join(baseDir, "templates")
 	maxConcurrency := getEnvAsInt("MAX_CONCURRENCY", DefaultMaxConcurrency)
 	intervalSec := getEnvAsInt("RATE_INTERVAL_SEC", DefaultRateIntervalSec)
 
@@ -91,7 +81,6 @@ func LoadConfig() *Config {
 		GeminiModel:         getEnv("GEMINI_MODEL", DefaultModel),
 		ImageStandardModel:  getEnv("IMAGE_MODEL", DefaultImageStandardModel),
 		ImageQualityModel:   getEnv("IMAGE_QUALITY_MODEL", DefaultImageQualityModel),
-		TemplateDir:         templateDir,
 		ShutdownTimeout:     15 * time.Second,
 
 		// OAuth & Session
