@@ -3,11 +3,11 @@ package handlers
 import (
 	"fmt"
 	"html/template"
-	"os"
-	"path/filepath"
+	"io/fs"
 
 	"github.com/shouni/gcp-kit/tasks"
 
+	"ap-manga-web/assets"
 	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
@@ -30,31 +30,37 @@ func NewHandler(
 	remoteIO *app.RemoteIO,
 ) (*Handler, error) {
 	cache := make(map[string]*template.Template)
-	layoutPath := filepath.Join(cfg.TemplateDir, "layout.html")
 
-	// テンプレートで共通利用する関数群を定義
+	// 共通関数
 	funcMap := template.FuncMap{
 		"add": func(a, b int) int { return a + b },
 	}
 
-	if _, err := os.Stat(layoutPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("レイアウトテンプレートが見つかりません: %s", layoutPath)
-	}
-
-	pagePaths, err := filepath.Glob(filepath.Join(cfg.TemplateDir, "*.html"))
+	// assets.Templates 内の "templates" ディレクトリを走査
+	// embed.FS はパス区切りに "/" を使うため filepath ではなく path か直書きが安全です
+	entries, err := fs.ReadDir(assets.Templates, "templates")
 	if err != nil {
-		return nil, fmt.Errorf("ページテンプレートの検索に失敗しました: %w", err)
+		return nil, fmt.Errorf("テンプレートディレクトリの読み込み失敗: %w", err)
 	}
 
-	for _, pagePath := range pagePaths {
-		pageName := filepath.Base(pagePath)
-		if pageName == "layout.html" {
+	// レイアウトファイルの存在確認（埋め込みFS内）
+	layoutPath := "templates/layout.html"
+
+	for _, entry := range entries {
+		if entry.IsDir() || entry.Name() == "layout.html" {
 			continue
 		}
 
-		tmpl, err := template.New(pageName).Funcs(funcMap).ParseFiles(layoutPath, pagePath)
+		pageName := entry.Name()
+		pagePath := "templates/" + pageName
+
+		// ParseFS を使い、埋め込まれたファイルからパース
+		tmpl, err := template.New(pageName).
+			Funcs(funcMap).
+			ParseFS(assets.Templates, layoutPath, pagePath)
+
 		if err != nil {
-			return nil, fmt.Errorf("テンプレート %s の解析に失敗しました: %w", pageName, err)
+			return nil, fmt.Errorf("テンプレート %s の解析失敗: %w", pageName, err)
 		}
 		cache[pageName] = tmpl
 	}

@@ -127,17 +127,22 @@ Cloud Tasks がワーカーを呼び出す際に使用する ID（`ServiceAccoun
 
 ```text
 ap-manga-web/
-├── main.go        # エントリーポイント
+├── assets/            # 【資産】静的リソース（Go バイナリに embed で埋め込み）
+│   ├── characters/    #   - キャラクター定義 (characters.json)
+│   ├── prompts/       #   - AI 指示文テンプレート (dialogue.md, duet.md)
+│   ├── templates/     #   - Web 表示用 HTML (layout.html, manga_view.html 等)
+│   └── assets.go      #   - embed.FS 定義（Prompts / Templates / Characters）
 ├── internal/
-│   ├── app/       # DIコンテナ定義。
-│   ├── adapters/  # Slack, Gemini(Vertex AI/Google AI) 連携の実装
-│   ├── builder/   # Factory層。Containerの構築を担当
-│   ├── config/    # 環境変数、キャラクター定義等の管理
-│   ├── domain/    # ビジネスドメインの型定義
-│   ├── pipeline/  # 実行フロー制御。Workflowを組み合わせて一連の処理を実行
-│   ├── prompts/   # テンプレート（.md）とデータを用いたAI指示文の動的構築。
-│   └── server/    # HTTP サーバー層。ルーティングおよびハンドラー
-└── templates/     # UIテンプレート (HTML/Bootstrap 5)
+│   ├── adapters/      # 【接続】外部（Gemini API, Slack）との通信を担う実装
+│   ├── app/           # 【基盤】Container による依存保持とライフサイクル管理
+│   ├── builder/       # 【構築】DI コンテナの組み立てと各コンポーネントの初期化
+│   ├── config/        # 【設定】環境変数のロード、定数、バリデーション
+│   ├── domain/        # 【中心】ドメインモデル、ポート（インターフェース）定義
+│   ├── pipeline/      # 【指揮】Workflow を組み合わせた漫画生成フローの制御
+│   ├── prompts/       # 【生成】assets の md を用いた AI 指示文の動的構築ロジック
+│   └── server/        # 【玄関】ルーティング、各種ハンドラー（submit, view, preview）
+├── docs/              # 【記録】設計ドキュメント、動作イメージ画像
+└── main.go            # 【起点】アプリのブートストラップ（初期化・起動）
 
 ```
 
