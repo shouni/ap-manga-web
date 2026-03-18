@@ -10,23 +10,17 @@ import (
 	"github.com/shouni/go-manga-kit/pkg/domain"
 )
 
-const (
-	ModeDuet     = "duet"
-	ModeDialogue = "dialogue"
-)
-
-// Builder はレビュープロンプトの構成を管理し、モード選択のロジックを内包します。
+// Builder はプロンプトの構成を管理し、モード選択のロジックを内包します。
 type Builder struct {
 	templates map[string]*template.Template
 }
 
 // NewPromptAdapter は Builder のインスタンスを構築します。
 func NewPromptAdapter() (*Builder, error) {
-	templates := map[string]string{
-		ModeDuet:     assets.DuetPrompt,
-		ModeDialogue: assets.DialoguePrompt,
+	templates, err := assets.LoadPrompts()
+	if err != nil {
+		return nil, fmt.Errorf("プロンプトテンプレートの読み込みに失敗しました: %w", err)
 	}
-
 	return NewBuilder(templates)
 }
 

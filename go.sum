@@ -130,6 +130,8 @@ github.com/shouni/go-manga-kit v1.7.11 h1:YmIbdZO79frkh7OnW0CwI6vt1CdQH6RtWwoh6p
 github.com/shouni/go-manga-kit v1.7.11/go.mod h1:gO73ZPZsakB3BBudVaGSBAuX7YPKaPSBt/DVEzKGTsw=
 github.com/shouni/go-notifier v1.1.9 h1:QZgJLmWDtD5u2lQ1wu2dYGQraIcRRgyr+MxfkBycg/o=
 github.com/shouni/go-notifier v1.1.9/go.mod h1:sAJHcM4skvUTHW756WNeLS7rEFBgrUc82Rt6zRXA3ZE=
+github.com/shouni/go-prompt-kit v1.0.0 h1:B/aGXiBuV1tuZyUaAfSBWYiha5UBHzj+6zHA4AYOLpw=
+github.com/shouni/go-prompt-kit v1.0.0/go.mod h1:fqsYdnqJTxOUyDblnvJ0ChQBnYWWots1BVo0OgE2qnY=
 github.com/shouni/go-remote-io v1.2.2 h1:mMEjn1ZE14D/pzKGyIKtH/gW9m31GaQHy26SJF79IVc=
 github.com/shouni/go-remote-io v1.2.2/go.mod h1:lCMzjS8EMllIssil8Tw1zGNeQ7UlFoBiaHrG6ode5IQ=
 github.com/shouni/go-text-format v1.2.1 h1:Ac4CPv/+Gh3OEGGGxH4umySUpBNGrJUsQhyvO7qjDuE=
