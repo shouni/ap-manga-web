@@ -3,6 +3,7 @@ package assets
 import (
 	"embed"
 
+	"github.com/shouni/go-manga-kit/pkg/domain"
 	"github.com/shouni/go-prompt-kit/resource"
 )
 
@@ -16,9 +17,9 @@ var (
 	//go:embed prompts/prompt_*.md
 	promptFiles embed.FS
 
-	// Characters は、漫画に登場するキャラクターの基本定義（名前、外見、Seed値など）を記述した JSON データです。
+	// characters は、漫画に登場するキャラクターの基本定義（名前、外見、Seed値など）を記述した JSON データです。
 	//go:embed characters/characters.json
-	Characters []byte
+	characters []byte
 
 	// Templates は、すべてのHTMLテンプレートを保持します。
 	//go:embed templates/*.html
@@ -28,4 +29,9 @@ var (
 // LoadPrompts は埋め込まれたプロンプトファイルを読み込みます。
 func LoadPrompts() (map[string]string, error) {
 	return resource.Load(promptFiles, promptDir, promptPrefix)
+}
+
+// LoadCharacters は埋め込まれたプロンプトファイルを読み込みます。
+func LoadCharacters() (domain.CharactersMap, error) {
+	return domain.GetCharacters(characters)
 }
