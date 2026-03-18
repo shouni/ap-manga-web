@@ -31,7 +31,7 @@ func LoadPrompts() (map[string]string, error) {
 	return resource.Load(promptFiles, promptDir, promptPrefix)
 }
 
-// LoadCharacters は埋め込まれたプロンプトファイルを読み込みます。
+// LoadCharacters は埋め込まれたキャラクター定義ファイルを読み込みます。
 func LoadCharacters() (domain.CharactersMap, error) {
 	return domain.GetCharacters(characters)
 }
