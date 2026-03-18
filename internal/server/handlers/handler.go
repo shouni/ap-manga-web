@@ -37,16 +37,21 @@ func NewHandler(
 	}
 
 	// assets.Templates 内の "templates" ディレクトリを走査
-	// embed.FS はパス区切りに "/" を使うため filepath ではなく path か直書きが安全です
 	entries, err := fs.ReadDir(assets.Templates, "templates")
 	if err != nil {
 		return nil, fmt.Errorf("テンプレートディレクトリの読み込み失敗: %w", err)
 	}
 
-	// レイアウトファイルの存在確認（埋め込みFS内）
+	// レイアウトファイルのパス定義
 	layoutPath := "templates/layout.html"
 
+	// 後続の ParseFS でのエラー混同を防ぎ、原因を特定しやすくします
+	if _, err := fs.Stat(assets.Templates, layoutPath); err != nil {
+		return nil, fmt.Errorf("レイアウトテンプレートが見つかりません: %s", layoutPath)
+	}
+
 	for _, entry := range entries {
+		// ディレクトリ、または既に存在確認済みの layout.html 自体はスキップ
 		if entry.IsDir() || entry.Name() == "layout.html" {
 			continue
 		}
@@ -55,6 +60,7 @@ func NewHandler(
 		pagePath := "templates/" + pageName
 
 		// ParseFS を使い、埋め込まれたファイルからパース
+		// レイアウトと各ページを結合して一つのテンプレートセットとしてキャッシュします
 		tmpl, err := template.New(pageName).
 			Funcs(funcMap).
 			ParseFS(assets.Templates, layoutPath, pagePath)
