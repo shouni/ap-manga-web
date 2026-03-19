@@ -9,13 +9,13 @@ import (
 	"ap-manga-web/assets"
 )
 
-// Builder はプロンプトの構成を管理し、モード選択のロジックを内包します。
+// Builder は go-prompt-kit を利用してプロンプトの構築を行います。
 type Builder struct {
 	promptBuilder *prompts.Builder
 }
 
-// NewPromptBuilder は Builder のインスタンスを構築します。
-func NewPromptBuilder() (*Builder, error) {
+// NewBuilder は Builder のインスタンスを構築します。
+func NewBuilder() (*Builder, error) {
 	templates, err := assets.LoadPrompts()
 	if err != nil {
 		return nil, fmt.Errorf("プロンプトテンプレートの読み込みに失敗しました: %w", err)
