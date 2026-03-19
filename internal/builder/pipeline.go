@@ -80,7 +80,7 @@ func buildPromptDependencies(styleSuffix string) (*promptDependencies, error) {
 		return nil, fmt.Errorf("failed to generate character map: %w", err)
 	}
 
-	textPrompt, err := prompts.NewPromptAdapter()
+	textPrompt, err := prompts.NewPromptBuilder()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create text prompt builder: %w", err)
 	}
