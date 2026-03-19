@@ -75,16 +75,20 @@ func buildWorkflow(ctx context.Context, cfg *config.Config, httpClient httpkit.H
 
 // buildPromptDependencies は Prompt ビルダーを初期化します。
 func buildPromptDependencies(styleSuffix string) (*promptDependencies, error) {
-	charMap, err := assets.LoadCharacters()
+	templates, err := assets.LoadPrompts()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate character map: %w", err)
+		return nil, fmt.Errorf("プロンプトテンプレートの読み込みに失敗しました: %w", err)
 	}
 
-	textPrompt, err := prompts.NewBuilder()
+	textPrompt, err := prompts.NewBuilder(templates)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create text prompt builder: %w", err)
 	}
 
+	charMap, err := assets.LoadCharacters()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate character map: %w", err)
+	}
 	imagePrompt := prompts.NewImagePromptBuilder(charMap, styleSuffix)
 
 	return &promptDependencies{

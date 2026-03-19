@@ -4,23 +4,17 @@ import (
 	"fmt"
 
 	"github.com/shouni/go-manga-kit/pkg/domain"
-	"github.com/shouni/go-prompt-kit/prompts"
-
-	"ap-manga-web/assets"
+	promptkit "github.com/shouni/go-prompt-kit/prompts"
 )
 
 // Builder は go-prompt-kit を利用してプロンプトの構築を行います。
 type Builder struct {
-	promptBuilder *prompts.Builder
+	promptBuilder *promptkit.Builder
 }
 
 // NewBuilder は Builder のインスタンスを構築します。
-func NewBuilder() (*Builder, error) {
-	templates, err := assets.LoadPrompts()
-	if err != nil {
-		return nil, fmt.Errorf("プロンプトテンプレートの読み込みに失敗しました: %w", err)
-	}
-	pb, err := prompts.NewBuilder(templates)
+func NewBuilder(templates map[string]string) (*Builder, error) {
+	pb, err := promptkit.NewBuilder(templates)
 	if err != nil {
 		return nil, fmt.Errorf("プロンプトビルダーの初期化に失敗しました: %w", err)
 	}
