@@ -26,7 +26,7 @@ func NewMangaPipeline(config *config.Config, workflows domain.WorkFlows, writer 
 	}
 
 	if workflows == nil {
-		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 漫画生成ワークフロー (WorkflowsAdapter が初期化されていません")
+		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 漫画生成ワークフロー (WorkflowsAdapter) が初期化されていません")
 	}
 
 	if notifier == nil {

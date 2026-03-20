@@ -129,7 +129,7 @@ Cloud Tasks がワーカーを呼び出す際に使用する ID（`ServiceAccoun
 ap-manga-web/
 ├── assets/            # 【資産】静的リソース（Go バイナリに embed で埋め込み）
 │   ├── characters/    #   - キャラクター定義 (characters.json)
-│   ├── prompts/       #   - AI 指示文テンプレート (dialogue.md, duet.md),AI 指示文の動的構築ロジック
+│   ├── prompts/       #   - AI 指示文テンプレート (dialogue.md, duet.md), AI 指示文の動的構築ロジック
 │   ├── templates/     #   - Web 表示用 HTML (layout.html, manga_view.html 等)
 │   └── assets.go      #   - embed.FS 定義（Prompts / Templates / Characters）
 ├── internal/
