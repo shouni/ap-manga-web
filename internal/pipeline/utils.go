@@ -9,27 +9,27 @@ import (
 	"path"
 	"time"
 
-	"github.com/shouni/go-manga-kit/pkg/asset"
-	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/asset"
+	"github.com/shouni/go-manga-kit/ports"
 
 	"ap-manga-web/internal/domain"
 )
 
 // resolveWorkDir は、漫画のワークディレクトリパスを解決します。
 // 共通化により保守性を向上させ、パス解決のルールを一元化するのだ。
-func (e *mangaExecution) resolveWorkDir(manga *mangadom.MangaResponse) string {
+func (e *mangaExecution) resolveWorkDir(manga *ports.MangaResponse) string {
 	safeTitle := e.resolveSafeTitle(manga.Title)
 	return e.pipeline.config.GetWorkDir(safeTitle)
 }
 
 // resolveOutputURL は、出力先ディレクトリのURLを取得します。
-func (e *mangaExecution) resolveOutputURL(manga *mangadom.MangaResponse) string {
+func (e *mangaExecution) resolveOutputURL(manga *ports.MangaResponse) string {
 	workDir := e.resolveWorkDir(manga)
 	return e.pipeline.config.GetGCSObjectURL(workDir)
 }
 
 // resolvePlotFileURL は、指定されたプロットファイルのフルパス（GCS URLなど）を解決します。
-func (e *mangaExecution) resolvePlotFileURL(manga *mangadom.MangaResponse) string {
+func (e *mangaExecution) resolvePlotFileURL(manga *ports.MangaResponse) string {
 	workDir := e.resolveWorkDir(manga)
 	filePath := path.Join(workDir, asset.DefaultMangaPlotJson)
 	// パスを GCS オブジェクト URL (例: gs://bucket/path) に変換して返します。
@@ -71,7 +71,7 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 
 // buildMangaNotification は漫画生成の結果に基づいてSlack通知用リクエストを構築します。
 func (e *mangaExecution) buildMangaNotification(
-	manga *mangadom.MangaResponse,
+	manga *ports.MangaResponse,
 ) (*domain.NotificationRequest, string, string) {
 	safeTitle := e.resolveSafeTitle(manga.Title)
 	publicURL, err := url.JoinPath(
@@ -96,7 +96,7 @@ func (e *mangaExecution) buildMangaNotification(
 }
 
 // buildScriptNotification はスクリプト生成の結果に基づいてSlack通知用リクエストを構築します。
-func (e *mangaExecution) buildScriptNotification(manga *mangadom.MangaResponse, gcsPath string) (*domain.NotificationRequest, string, string) {
+func (e *mangaExecution) buildScriptNotification(manga *ports.MangaResponse, gcsPath string) (*domain.NotificationRequest, string, string) {
 	return &domain.NotificationRequest{
 		SourceURL:      e.payload.ScriptURL,
 		OutputCategory: "script-json",

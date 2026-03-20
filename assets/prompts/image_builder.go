@@ -3,7 +3,7 @@ package prompts
 import (
 	"strings"
 
-	"github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/ports"
 )
 
 const (
@@ -17,12 +17,12 @@ const (
 
 // ImagePromptBuilder は、キャラクター情報を考慮してAIプロンプトを構築します。
 type ImagePromptBuilder struct {
-	characterMap  domain.CharactersMap
+	characterMap  ports.CharactersMap
 	defaultSuffix string // 例: "anime style, high quality"
 }
 
 // NewImagePromptBuilder は新しい PromptBuilder を生成します。
-func NewImagePromptBuilder(characterMap domain.CharactersMap, suffix string) *ImagePromptBuilder {
+func NewImagePromptBuilder(characterMap ports.CharactersMap, suffix string) *ImagePromptBuilder {
 	return &ImagePromptBuilder{
 		characterMap:  characterMap,
 		defaultSuffix: suffix,

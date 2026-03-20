@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/ports"
 )
 
 // runScriptStep はスクリプト生成フェーズを実行し、生成された台本をJSONとしてGCSに保存します。
-func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution) (*domain.MangaResponse, string, error) {
-	manga, err := p.runners.Script.Run(ctx, exec.payload.ScriptURL, exec.payload.Mode)
+func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution) (*ports.MangaResponse, string, error) {
+	manga, err := p.workflows.Script(ctx, exec.payload.ScriptURL, exec.payload.Mode)
 	if err != nil {
 		return nil, "", fmt.Errorf("ScriptRunnerの実行に失敗しました: %w", err)
 	}
@@ -29,19 +29,19 @@ func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution)
 }
 
 // runPanelStep は台本に基づき画像を生成・保存し、更新された台本を返します。
-func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *domain.MangaResponse, exec *mangaExecution) (*domain.MangaResponse, error) {
+func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *ports.MangaResponse, exec *mangaExecution) (*ports.MangaResponse, error) {
 	plotFile := exec.resolvePlotFileURL(manga)
 
-	return p.runners.PanelImage.RunAndSave(ctx, manga, plotFile)
+	return p.workflows.Panel(ctx, manga, plotFile)
 }
 
 // runPublishStep は漫画データを統合し、HTML等を出力します。
-func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *domain.MangaResponse, exec *mangaExecution) (*domain.PublishResult, error) {
-	return p.runners.Publish.Run(ctx, manga, exec.resolveOutputURL(manga))
+func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *ports.MangaResponse, exec *mangaExecution) (*ports.PublishResult, error) {
+	return p.workflows.Publish(ctx, manga, exec.resolveOutputURL(manga))
 }
 
 // runPanelAndPublishSteps は一連の流れを管理します。
-func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *domain.MangaResponse, exec *mangaExecution) (*domain.PublishResult, error) {
+func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *ports.MangaResponse, exec *mangaExecution) (*ports.PublishResult, error) {
 	// 1. パネル生成＆保存（画像パスが書き込まれた新しい台本を受け取る）
 	updatedManga, err := p.runPanelStep(ctx, manga, exec)
 	if err != nil {
@@ -57,12 +57,12 @@ func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *doma
 }
 
 // runPageStep はMangaResponseからページ画像を生成します。
-func (p *MangaPipeline) runPageStep(ctx context.Context, manga *domain.MangaResponse, exec *mangaExecution) ([]string, error) {
+func (p *MangaPipeline) runPageStep(ctx context.Context, manga *ports.MangaResponse, exec *mangaExecution) ([]string, error) {
 	if manga == nil {
 		return nil, fmt.Errorf("manga data is nil")
 	}
 	plotFile := exec.resolvePlotFileURL(manga)
-	pagePaths, err := p.runners.PageImage.RunAndSave(ctx, manga, plotFile)
+	pagePaths, err := p.workflows.Page(ctx, manga, plotFile)
 	if err != nil {
 		return nil, fmt.Errorf("PageImageRunner による生成と保存に失敗しました: %w", err)
 	}
@@ -79,5 +79,5 @@ func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution)
 
 	outputDir := p.config.GetGCSObjectURL(p.config.BaseOutputDir)
 
-	return p.runners.Design.Run(ctx, charIDs, exec.payload.Seed, outputDir)
+	return p.workflows.Design(ctx, charIDs, exec.payload.Seed, outputDir)
 }
