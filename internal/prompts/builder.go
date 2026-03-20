@@ -3,7 +3,7 @@ package prompts
 import (
 	"fmt"
 
-	"github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/ports"
 	promptkit "github.com/shouni/go-prompt-kit/prompts"
 )
 
@@ -26,7 +26,7 @@ func NewBuilder(templates map[string]string) (*Builder, error) {
 
 // Build は、要求されたモードに応じて適切なテンプレートを実行します。
 // 注意: data の内容に関する事前バリデーションは行いません。呼び出し元で適切なデータが設定されていることを保証してください。
-func (b *Builder) Build(mode string, data *domain.TemplateData) (string, error) {
+func (b *Builder) Build(mode string, data *ports.TemplateData) (string, error) {
 	if data == nil {
 		return "", fmt.Errorf("データがnilです: テンプレートの実行にはデータが必要です")
 	}

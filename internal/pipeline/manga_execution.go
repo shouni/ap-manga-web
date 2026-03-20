@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	mangadom "github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/ports"
 
 	"ap-manga-web/internal/domain"
 )
@@ -22,7 +22,7 @@ type mangaExecution struct {
 
 // run は各生成フェーズを順番に実行し、結果を通知します。
 func (e *mangaExecution) run(ctx context.Context) (err error) {
-	var manga *mangadom.MangaResponse
+	var manga *ports.MangaResponse
 	var scriptPath string
 
 	// 失敗時の通知を defer 文で一括管理します。

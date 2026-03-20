@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/shouni/go-manga-kit/pkg/asset"
-	"github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/asset"
+	"github.com/shouni/go-manga-kit/ports"
 
 	"ap-manga-web/internal/config"
 )
@@ -22,8 +22,8 @@ import (
 type mangaViewData struct {
 	Title         string
 	OriginalTitle string
-	Manga         domain.MangaResponse // JSONからデコードしURL置換済みのデータ
-	PageURLs      []string             // ページ全体画像の署名付きURL
+	Manga         ports.MangaResponse // JSONからデコードしURL置換済みのデータ
+	PageURLs      []string            // ページ全体画像の署名付きURL
 }
 
 // ServePreview は指定されたタイトルの漫画成果物を取得し、プレビュー画面を表示します。
@@ -68,7 +68,7 @@ func (h *Handler) ServePreview(w http.ResponseWriter, r *http.Request) {
 }
 
 // resolvePanelURLs は取得した署名付きURLを使って、MangaResponse内のReferenceURLを更新します。
-func (h *Handler) resolvePanelURLs(manga *domain.MangaResponse, signedURLs []string) {
+func (h *Handler) resolvePanelURLs(manga *ports.MangaResponse, signedURLs []string) {
 	panelMap := make(map[string]string)
 	for _, u := range signedURLs {
 		// クエリパラメータを除去してファイル名を取得
@@ -98,8 +98,8 @@ func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, msg, title
 }
 
 // loadMangaJSON は GCS から manga_plot.json を読み込み、ドメインモデルにデコードします。
-func (h *Handler) loadMangaJSON(r *http.Request, title string) (domain.MangaResponse, error) {
-	var manga domain.MangaResponse
+func (h *Handler) loadMangaJSON(r *http.Request, title string) (ports.MangaResponse, error) {
+	var manga ports.MangaResponse
 	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotJson)
 	if err != nil {
 		return manga, err

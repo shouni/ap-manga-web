@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/shouni/go-manga-kit/pkg/domain"
+	"github.com/shouni/go-manga-kit/ports"
 )
 
 // BuildPanel は、単体パネル用の UserPrompt, SystemPrompt, およびシード値を生成します。
-func (pb *ImagePromptBuilder) BuildPanel(panel domain.Panel, char *domain.Character) (userPrompt string, systemPrompt string) {
+func (pb *ImagePromptBuilder) BuildPanel(panel ports.Panel, char *ports.Character) (userPrompt string, systemPrompt string) {
 	// --- 1. System Prompt の構築 ---
 	const mangaSystemInstruction = "You are a professional anime illustrator. Create a single high-quality cinematic scene with vibrant digital coloring."
 
