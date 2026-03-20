@@ -49,12 +49,12 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 	if err != nil {
 		return nil, err
 	}
-	workflow, err := adapters.NewWorkflowsAdapter(cfg, httpClient, rio, aiClient)
+	workflows, err := adapters.NewWorkflowsAdapter(cfg, httpClient, rio, aiClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize manga workflow: %w", err)
 	}
 	// 3. Pipeline (Core Logic)
-	mangaPipeline, err := buildPipeline(cfg, workflow, rio, slack)
+	mangaPipeline, err := buildPipeline(cfg, workflows, rio, slack)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize manga pipeline: %w", err)
 	}

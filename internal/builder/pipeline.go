@@ -8,7 +8,7 @@ import (
 )
 
 // buildPipeline は、提供されたランナーを使用して新しいパイプラインを初期化して返します。
-func buildPipeline(cfg *config.Config, workflows domain.WorkFlows, rio *app.RemoteIO, slack domain.Notifier) (domain.Pipeline, error) {
+func buildPipeline(cfg *config.Config, workflows domain.Workflows, rio *app.RemoteIO, slack domain.Notifier) (domain.Pipeline, error) {
 	p, err := pipeline.NewMangaPipeline(cfg, workflows, rio.Writer, slack)
 	if err != nil {
 		return nil, err

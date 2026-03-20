@@ -12,8 +12,8 @@ type Pipeline interface {
 	Execute(ctx context.Context, payload GenerateTaskPayload) (err error)
 }
 
-// WorkFlows は、漫画の生成、公開などのワークフローを実行するためのインターフェースです。
-type WorkFlows interface {
+// Workflows は、漫画の生成、公開などのワークフローを実行するためのインターフェースです。
+type Workflows interface {
 	// Design は指定されたキャラクターIDのキャラクターを生成します。
 	Design(ctx context.Context, charIDs []string, seed int64, outputDir string) (string, int64, error)
 	// Script は指定されたURLから台本を作成します。
