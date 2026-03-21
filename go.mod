@@ -5,12 +5,12 @@ go 1.26
 require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/shouni/gcp-kit v1.0.4
-	github.com/shouni/go-gemini-client v1.1.5
-	github.com/shouni/go-http-kit v1.3.3
-	github.com/shouni/go-manga-kit v1.8.1
-	github.com/shouni/go-notifier v1.1.9
+	github.com/shouni/go-gemini-client v1.2.0
+	github.com/shouni/go-http-kit v1.4.0
+	github.com/shouni/go-manga-kit v1.8.3
+	github.com/shouni/go-notifier v1.1.10
 	github.com/shouni/go-prompt-kit v1.0.2
-	github.com/shouni/go-remote-io v1.2.2
+	github.com/shouni/go-remote-io v1.3.0
 	github.com/shouni/go-utils v1.0.20
 	github.com/shouni/netarmor v1.0.2
 	google.golang.org/genai v1.51.0
@@ -29,7 +29,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0 // indirect
-	github.com/PuerkitoBio/goquery v1.11.0 // indirect
+	github.com/PuerkitoBio/goquery v1.12.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.6 // indirect
@@ -63,8 +63,8 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/shouni/gemini-image-kit v1.4.0 // indirect
-	github.com/shouni/go-web-exact/v2 v2.1.0 // indirect
+	github.com/shouni/gemini-image-kit v1.5.0 // indirect
+	github.com/shouni/go-web-exact/v2 v2.1.1 // indirect
 	github.com/slack-go/slack v0.19.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/yuin/goldmark v1.7.17 // indirect
@@ -77,12 +77,12 @@ require (
 	go.opentelemetry.io/otel/sdk v1.40.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.40.0 // indirect
 	go.opentelemetry.io/otel/trace v1.40.0 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/net v0.51.0 // indirect
+	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/api v0.271.0 // indirect
 	google.golang.org/genproto v0.0.0-20260128011058-8636f8732409 // indirect

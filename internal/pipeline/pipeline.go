@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shouni/go-remote-io/pkg/remoteio"
+	"github.com/shouni/go-remote-io/remoteio"
 
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"

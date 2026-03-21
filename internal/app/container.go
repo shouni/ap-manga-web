@@ -7,8 +7,8 @@ import (
 	"ap-manga-web/internal/domain"
 
 	"github.com/shouni/gcp-kit/tasks"
-	"github.com/shouni/go-http-kit/pkg/httpkit"
-	"github.com/shouni/go-remote-io/pkg/remoteio"
+	"github.com/shouni/go-http-kit/httpkit"
+	"github.com/shouni/go-remote-io/remoteio"
 )
 
 // Container はアプリケーションの依存関係（DIコンテナ）を保持します。

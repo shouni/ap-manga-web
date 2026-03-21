@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/shouni/go-gemini-client/pkg/gemini"
-	"github.com/shouni/go-http-kit/pkg/httpkit"
+	"github.com/shouni/go-gemini-client/gemini"
+	"github.com/shouni/go-http-kit/httpkit"
 	"github.com/shouni/go-manga-kit/ports"
 	"github.com/shouni/go-manga-kit/workflow"
 
@@ -16,6 +16,7 @@ import (
 	"ap-manga-web/internal/prompts"
 )
 
+// WorkflowsAdapter は、Workflows インターフェイスをラップするアダプタ構造体です。
 type WorkflowsAdapter struct {
 	workflows *ports.Workflows
 }
