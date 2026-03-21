@@ -16,7 +16,7 @@ import (
 	"ap-manga-web/internal/prompts"
 )
 
-// WorkflowsAdapter は、Workflows インターフェイスをラップするアダプタ構造体です
+// WorkflowsAdapter は、Workflows インターフェイスをラップするアダプタ構造体です。
 type WorkflowsAdapter struct {
 	workflows *ports.Workflows
 }
