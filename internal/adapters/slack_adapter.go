@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/shouni/go-http-kit/pkg/httpkit"
+	"github.com/shouni/go-http-kit/httpkit"
 	"github.com/shouni/go-notifier/pkg/slack"
 
 	"ap-manga-web/internal/domain"
@@ -26,7 +26,7 @@ type SlackAdapter struct {
 }
 
 // NewSlackAdapter は新しいアダプターインスタンスを作成します。
-func NewSlackAdapter(httpClient httpkit.RequestExecutor, webhookURL string) (*SlackAdapter, error) {
+func NewSlackAdapter(httpClient httpkit.Requester, webhookURL string) (*SlackAdapter, error) {
 	if webhookURL == "" {
 		// オプショナル機能として扱い、空のままインスタンスを返す
 		return &SlackAdapter{}, nil

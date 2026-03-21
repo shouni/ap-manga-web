@@ -9,7 +9,7 @@ import (
 	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
 
-	"github.com/shouni/go-http-kit/pkg/httpkit"
+	"github.com/shouni/go-http-kit/httpkit"
 )
 
 // BuildContainer は外部サービスとの接続を確立し、依存関係を組み立てた app.Container を返します。
@@ -54,7 +54,7 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 		return nil, fmt.Errorf("failed to initialize manga workflow: %w", err)
 	}
 	// 3. Pipeline (Core Logic)
-	mangaPipeline, err := buildPipeline(cfg, workflows, rio, slack)
+	mangaPipeline, err := buildPipeline(cfg, workflows, rio.Writer, slack)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize manga pipeline: %w", err)
 	}
