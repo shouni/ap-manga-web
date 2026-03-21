@@ -17,11 +17,11 @@ type Workflows interface {
 	// Design は指定されたキャラクターIDのキャラクターを生成します。
 	Design(ctx context.Context, charIDs []string, seed int64, outputDir string) (string, int64, error)
 	// Script は指定されたURLから台本を作成します。
-	Script(ctx context.Context, scriptURL, mode string) (*ports.MangaResponse, error)
+	Script(ctx context.Context, sourceURL, mode string) (*ports.MangaResponse, error)
 	// Panel は指定された漫画のページを保存します。
-	Panel(ctx context.Context, manga *ports.MangaResponse, scriptPath string) (*ports.MangaResponse, error)
+	Panel(ctx context.Context, manga *ports.MangaResponse, outputPath string) (*ports.MangaResponse, error)
 	// Page は指定された漫画のページを保存します。
-	Page(ctx context.Context, manga *ports.MangaResponse, plotPath string) ([]string, error)
+	Page(ctx context.Context, manga *ports.MangaResponse, outputPath string) ([]string, error)
 	// Publish は指定された漫画を公開します。
 	Publish(ctx context.Context, manga *ports.MangaResponse, outputDir string) (*ports.PublishResult, error)
 }
