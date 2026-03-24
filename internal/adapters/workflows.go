@@ -60,18 +60,18 @@ func (w *WorkflowsAdapter) Design(ctx context.Context, charIDs []string, seed in
 }
 
 // Script は指定されたURLから台本を作成します。
-func (w *WorkflowsAdapter) Script(ctx context.Context, scriptURL, mode string) (*ports.MangaResponse, error) {
-	return w.workflows.Script.Run(ctx, scriptURL, mode)
+func (w *WorkflowsAdapter) Script(ctx context.Context, sourceURL, mode string) (*ports.MangaResponse, error) {
+	return w.workflows.Script.Run(ctx, sourceURL, mode)
 }
 
 // Panel は指定された漫画のページを保存します。
-func (w *WorkflowsAdapter) Panel(ctx context.Context, manga *ports.MangaResponse, scriptPath string) (*ports.MangaResponse, error) {
-	return w.workflows.PanelImage.RunAndSave(ctx, manga, scriptPath)
+func (w *WorkflowsAdapter) Panel(ctx context.Context, manga *ports.MangaResponse, outputPath string) (*ports.MangaResponse, error) {
+	return w.workflows.PanelImage.RunAndSave(ctx, manga, outputPath)
 }
 
 // Page は指定された漫画のページを保存します。
-func (w *WorkflowsAdapter) Page(ctx context.Context, manga *ports.MangaResponse, plotPath string) ([]string, error) {
-	return w.workflows.PageImage.RunAndSave(ctx, manga, plotPath)
+func (w *WorkflowsAdapter) Page(ctx context.Context, manga *ports.MangaResponse, outputPath string) ([]string, error) {
+	return w.workflows.PageImage.RunAndSave(ctx, manga, outputPath)
 }
 
 // Publish は指定された漫画を公開します。
