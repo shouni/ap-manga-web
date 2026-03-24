@@ -34,7 +34,7 @@ func (e *mangaExecution) notifyError(ctx context.Context, payload domain.Generat
 }
 
 // parseTargetPanels はカンマ区切りの文字列を解析し、有効なパネルインデックスのスライスを返します。
-func (e *mangaExecution) parseTargetPanels(s string, total int) []int {
+func parseTargetPanels(s string, total int) []int {
 	if strings.TrimSpace(s) == "" {
 		res := make([]int, total)
 		for i := 0; i < total; i++ {
@@ -55,7 +55,7 @@ func (e *mangaExecution) parseTargetPanels(s string, total int) []int {
 }
 
 // parseCSV はカンマ区切りの入力文字列をスライスに変換します。
-func (e *mangaExecution) parseCSV(input string) []string {
+func parseCSV(input string) []string {
 	var res []string
 	for _, s := range strings.Split(input, ",") {
 		if trimmed := strings.TrimSpace(s); trimmed != "" {

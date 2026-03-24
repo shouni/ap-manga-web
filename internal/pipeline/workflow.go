@@ -72,7 +72,7 @@ func (e *mangaExecution) runPageStep(ctx context.Context, manga *ports.MangaResp
 
 // runDesignStep はデザインシート生成します。
 func (e *mangaExecution) runDesignStep(ctx context.Context) (string, int64, error) {
-	charIDs := e.parseCSV(e.payload.InputText)
+	charIDs := parseCSV(e.payload.InputText)
 	if len(charIDs) == 0 {
 		return "", 0, fmt.Errorf("キャラクターIDが必要です")
 	}
