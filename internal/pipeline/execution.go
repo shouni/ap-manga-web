@@ -68,7 +68,8 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 	}
 
 	// 成功時の共通通知
-	return e.notifySuccess(ctx, req, publicURL, storageURI)
+	e.notifySuccess(ctx, req, publicURL, storageURI)
+	return nil
 }
 
 // --- Command Handlers ---
@@ -166,12 +167,11 @@ func (e *mangaExecution) handleFailure(ctx context.Context, manga *ports.MangaRe
 }
 
 // notifySuccess は成功時の通知を実行します。
-func (e *mangaExecution) notifySuccess(ctx context.Context, req *domain.NotificationRequest, url, uri string) error {
+func (e *mangaExecution) notifySuccess(ctx context.Context, req *domain.NotificationRequest, url, uri string) {
 	if req == nil {
-		return nil
+		return
 	}
 	if notifyErr := e.notifier.Notify(ctx, url, uri, *req); notifyErr != nil {
 		slog.ErrorContext(ctx, "Notification failed", "error", notifyErr)
 	}
-	return nil
 }
