@@ -14,7 +14,7 @@ import (
 	"ap-manga-web/internal/domain"
 )
 
-// mangaExecution は一回のリクエスト実行に関する状態（開始時刻や生成されたタイトルなど）を保持します。
+// mangaExecution は一回のリクエスト実行に関する状態を保持します。
 type mangaExecution struct {
 	// 実行状態
 	payload           domain.GenerateTaskPayload
@@ -28,114 +28,150 @@ type mangaExecution struct {
 	notifier  domain.Notifier
 }
 
-// run は各生成フェーズを順番に実行し、結果を通知します。
+// run はメインのエントリーポイントとして各コマンドにディスパッチします。
 func (e *mangaExecution) run(ctx context.Context) (err error) {
 	var manga *ports.MangaResponse
-	var scriptPath string
 
-	// 失敗時の通知を defer 文で一括管理します。
+	// 失敗時の通知を defer で一括管理
 	defer func() {
 		if err != nil {
-			titleHint := ""
-			if manga != nil {
-				titleHint = manga.Title
-			}
-			if titleHint == "" && e.payload.ScriptURL != "" {
-				titleHint = fmt.Sprintf("Source: %s", e.payload.ScriptURL)
-			}
-			e.notifyError(ctx, e.payload, err, titleHint)
+			e.handleFailure(ctx, manga, err)
 		}
 	}()
 
-	slog.Info("Pipeline execution started", "command", e.payload.Command, "mode", e.payload.Mode)
+	slog.Info("Pipeline execution started",
+		"command", e.payload.Command,
+		"mode", e.payload.Mode,
+	)
 
-	var notificationReq *domain.NotificationRequest
+	var req *domain.NotificationRequest
 	var publicURL, storageURI string
 
+	// コマンドに応じたハンドラ呼び出し
 	switch e.payload.Command {
 	case "generate":
-		// --- Phase 1: Script Phase ---
-		// スクリプトを保存し、そのパスを受け取る。
-		if manga, scriptPath, err = e.runScriptStep(ctx); err != nil {
-			return fmt.Errorf("script step failed: %w", err)
-		}
-
-		// --- Phase 2 & 3: Panel Generation & Publish ---
-		// パネル生成と成果物のパブリッシュを連続して実行します。
-		_, err = e.runPanelAndPublishSteps(ctx, manga)
-		if err != nil {
-			return err
-		}
-
-		// --- Phase 4: Page Generation Phase ---
-		// 最終的なページ画像を構成する。
-		if _, err = e.runPageStep(ctx, manga); err != nil {
-			return fmt.Errorf("page generation step failed: %w", err)
-		}
-
-		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga)
-
+		req, publicURL, storageURI, manga, err = e.handleGenerate(ctx)
 	case "design":
-		var outputURL string
-		var finalSeed int64
-		outputURL, finalSeed, err = e.runDesignStep(ctx)
-		if err != nil {
-			return fmt.Errorf("design step failed: %w", err)
-		}
-		notificationReq, publicURL, storageURI = e.buildDesignNotification(outputURL, finalSeed)
-
+		req, publicURL, storageURI, err = e.handleDesign(ctx)
 	case "script":
-		manga, scriptPath, err = e.runScriptStep(ctx)
-		if err != nil {
-			return fmt.Errorf("script step failed: %w", err)
-		}
-		notificationReq, publicURL, storageURI = e.buildScriptNotification(manga, scriptPath)
-
+		req, publicURL, storageURI, manga, err = e.handleScript(ctx)
 	case "panel":
-		if err = json.Unmarshal([]byte(e.payload.InputText), &manga); err != nil {
-			slog.ErrorContext(ctx, "Failed to parse input JSON for panel mode", "error", err)
-			return fmt.Errorf("panel mode input JSON unmarshal failed: %w", err)
-		}
-		_, err = e.runPanelAndPublishSteps(ctx, manga)
-		if err != nil {
-			return err
-		}
-
-		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga)
-
+		req, publicURL, storageURI, manga, err = e.handlePanel(ctx)
 	case "page":
-		if e.payload.InputText != "" {
-			if err = json.Unmarshal([]byte(e.payload.InputText), &manga); err != nil {
-				return fmt.Errorf("page mode input JSON unmarshal failed: %w", err)
-			}
-		}
-		// mangaがnilの場合、処理を続行できないためエラーを返す。
-		if manga == nil {
-			return fmt.Errorf("page mode requires manga data in InputText")
-		}
-		if _, err = e.runPageStep(ctx, manga); err != nil {
-			return fmt.Errorf("page step failed: %w", err)
-		}
-
-		_, err = e.runPublishStep(ctx, manga)
-		if err != nil {
-			return err
-		}
-
-		notificationReq, publicURL, storageURI = e.buildMangaNotification(manga)
-
+		req, publicURL, storageURI, manga, err = e.handlePage(ctx)
 	default:
-		err = fmt.Errorf("unsupported command: %s", e.payload.Command)
-		return err
+		return fmt.Errorf("unsupported command: %s", e.payload.Command)
 	}
 
-	// 成功時の共通通知処理を行います。
-	if notificationReq != nil {
-		if notifyErr := e.notifier.Notify(ctx, publicURL, storageURI, *notificationReq); notifyErr != nil {
-			slog.ErrorContext(ctx, "Notification failed", "error", notifyErr)
-			// 通知処理自体の失敗は、パイプライン全体の成否には影響させません。
+	if err != nil {
+		return err // defer により handleFailure が呼ばれる
+	}
+
+	// 成功時の共通通知
+	return e.notifySuccess(ctx, req, publicURL, storageURI)
+}
+
+// --- Command Handlers ---
+
+// handleGenerate は スクリプト解析 -> パネル生成 -> ページ構成 のフルパイプラインを実行します。
+func (e *mangaExecution) handleGenerate(ctx context.Context) (*domain.NotificationRequest, string, string, *ports.MangaResponse, error) {
+	manga, _, err := e.runScriptStep(ctx)
+	if err != nil {
+		return nil, "", "", nil, fmt.Errorf("script step failed: %w", err)
+	}
+
+	if _, err := e.runPanelAndPublishSteps(ctx, manga); err != nil {
+		return nil, "", "", manga, err
+	}
+
+	if _, err := e.runPageStep(ctx, manga); err != nil {
+		return nil, "", "", manga, fmt.Errorf("page generation step failed: %w", err)
+	}
+
+	req, url, uri := e.buildMangaNotification(manga)
+	return req, url, uri, manga, nil
+}
+
+// handleDesign は キャラクターのデザインシート生成を実行します。
+func (e *mangaExecution) handleDesign(ctx context.Context) (*domain.NotificationRequest, string, string, error) {
+	outputURL, finalSeed, err := e.runDesignStep(ctx)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("design step failed: %w", err)
+	}
+	req, url, uri := e.buildDesignNotification(outputURL, finalSeed)
+	return req, url, uri, nil
+}
+
+// handleScript は スクリプトの解析と保存のみを実行します。
+func (e *mangaExecution) handleScript(ctx context.Context) (*domain.NotificationRequest, string, string, *ports.MangaResponse, error) {
+	manga, scriptPath, err := e.runScriptStep(ctx)
+	if err != nil {
+		return nil, "", "", nil, fmt.Errorf("script step failed: %w", err)
+	}
+	req, url, uri := e.buildScriptNotification(manga, scriptPath)
+	return req, url, uri, manga, nil
+}
+
+// handlePanel は 既存のJSONデータからパネル画像を生成します。
+func (e *mangaExecution) handlePanel(ctx context.Context) (*domain.NotificationRequest, string, string, *ports.MangaResponse, error) {
+	var manga *ports.MangaResponse
+	if err := json.Unmarshal([]byte(e.payload.InputText), &manga); err != nil {
+		return nil, "", "", nil, fmt.Errorf("panel mode input JSON unmarshal failed: %w", err)
+	}
+
+	if _, err := e.runPanelAndPublishSteps(ctx, manga); err != nil {
+		return nil, "", "", manga, err
+	}
+
+	req, url, uri := e.buildMangaNotification(manga)
+	return req, url, uri, manga, nil
+}
+
+// handlePage は 既存のパネルデータから最終ページ画像を構成します。
+func (e *mangaExecution) handlePage(ctx context.Context) (*domain.NotificationRequest, string, string, *ports.MangaResponse, error) {
+	var manga *ports.MangaResponse
+	if e.payload.InputText != "" {
+		if err := json.Unmarshal([]byte(e.payload.InputText), &manga); err != nil {
+			return nil, "", "", nil, fmt.Errorf("page mode input JSON unmarshal failed: %w", err)
 		}
 	}
+	if manga == nil {
+		return nil, "", "", nil, fmt.Errorf("page mode requires manga data in InputText")
+	}
 
+	if _, err := e.runPageStep(ctx, manga); err != nil {
+		return nil, "", "", manga, fmt.Errorf("page step failed: %w", err)
+	}
+
+	if _, err := e.runPublishStep(ctx, manga); err != nil {
+		return nil, "", "", manga, err
+	}
+
+	req, url, uri := e.buildMangaNotification(manga)
+	return req, url, uri, manga, nil
+}
+
+// --- Helper Methods ---
+
+// handleFailure はエラー発生時の通知ロジックをカプセル化します。
+func (e *mangaExecution) handleFailure(ctx context.Context, manga *ports.MangaResponse, err error) {
+	titleHint := ""
+	if manga != nil {
+		titleHint = manga.Title
+	}
+	if titleHint == "" && e.payload.ScriptURL != "" {
+		titleHint = fmt.Sprintf("Source: %s", e.payload.ScriptURL)
+	}
+	e.notifyError(ctx, e.payload, err, titleHint)
+}
+
+// notifySuccess は成功時の通知を実行します。
+func (e *mangaExecution) notifySuccess(ctx context.Context, req *domain.NotificationRequest, url, uri string) error {
+	if req == nil {
+		return nil
+	}
+	if notifyErr := e.notifier.Notify(ctx, url, uri, *req); notifyErr != nil {
+		slog.ErrorContext(ctx, "Notification failed", "error", notifyErr)
+	}
 	return nil
 }
