@@ -10,46 +10,46 @@ import (
 )
 
 // runScriptStep はスクリプト生成フェーズを実行し、生成された台本をJSONとしてGCSに保存します。
-func (p *MangaPipeline) runScriptStep(ctx context.Context, exec *mangaExecution) (*ports.MangaResponse, string, error) {
-	manga, err := p.workflows.Script(ctx, exec.payload.ScriptURL, exec.payload.Mode)
+func (e *mangaExecution) runScriptStep(ctx context.Context) (*ports.MangaResponse, string, error) {
+	manga, err := e.workflows.Script(ctx, e.payload.ScriptURL, e.payload.Mode)
 	if err != nil {
 		return nil, "", fmt.Errorf("ScriptRunnerの実行に失敗しました: %w", err)
 	}
 
-	plotFile := exec.resolvePlotFileURL(manga)
+	plotFile := e.resolvePlotFileURL(manga)
 	data, err := json.MarshalIndent(manga, "", "  ")
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to marshal manga script to JSON: %w", err)
 	}
 
-	if err := p.writer.Write(ctx, plotFile, bytes.NewReader(data), "application/json"); err != nil {
+	if err := e.writer.Write(ctx, plotFile, bytes.NewReader(data), "application/json"); err != nil {
 		return manga, "", err
 	}
 	return manga, plotFile, nil
 }
 
 // runPanelStep は台本に基づき画像を生成・保存し、更新された台本を返します。
-func (p *MangaPipeline) runPanelStep(ctx context.Context, manga *ports.MangaResponse, exec *mangaExecution) (*ports.MangaResponse, error) {
-	plotFile := exec.resolvePlotFileURL(manga)
+func (e *mangaExecution) runPanelStep(ctx context.Context, manga *ports.MangaResponse) (*ports.MangaResponse, error) {
+	plotFile := e.resolvePlotFileURL(manga)
 
-	return p.workflows.Panel(ctx, manga, plotFile)
+	return e.workflows.Panel(ctx, manga, plotFile)
 }
 
 // runPublishStep は漫画データを統合し、HTML等を出力します。
-func (p *MangaPipeline) runPublishStep(ctx context.Context, manga *ports.MangaResponse, exec *mangaExecution) (*ports.PublishResult, error) {
-	return p.workflows.Publish(ctx, manga, exec.resolveOutputURL(manga))
+func (e *mangaExecution) runPublishStep(ctx context.Context, manga *ports.MangaResponse) (*ports.PublishResult, error) {
+	return e.workflows.Publish(ctx, manga, e.resolveOutputURL(manga))
 }
 
 // runPanelAndPublishSteps は一連の流れを管理します。
-func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *ports.MangaResponse, exec *mangaExecution) (*ports.PublishResult, error) {
+func (e *mangaExecution) runPanelAndPublishSteps(ctx context.Context, manga *ports.MangaResponse) (*ports.PublishResult, error) {
 	// 1. パネル生成＆保存（画像パスが書き込まれた新しい台本を受け取る）
-	updatedManga, err := p.runPanelStep(ctx, manga, exec)
+	updatedManga, err := e.runPanelStep(ctx, manga)
 	if err != nil {
 		return nil, fmt.Errorf("panel generation step failed: %w", err)
 	}
 
 	// 2. パブリッシュ（更新された台本をそのまま渡す）
-	publishResult, err := p.runPublishStep(ctx, updatedManga, exec)
+	publishResult, err := e.runPublishStep(ctx, updatedManga)
 	if err != nil {
 		return nil, fmt.Errorf("publish step failed: %w", err)
 	}
@@ -57,12 +57,12 @@ func (p *MangaPipeline) runPanelAndPublishSteps(ctx context.Context, manga *port
 }
 
 // runPageStep はMangaResponseからページ画像を生成します。
-func (p *MangaPipeline) runPageStep(ctx context.Context, manga *ports.MangaResponse, exec *mangaExecution) ([]string, error) {
+func (e *mangaExecution) runPageStep(ctx context.Context, manga *ports.MangaResponse) ([]string, error) {
 	if manga == nil {
 		return nil, fmt.Errorf("manga data is nil")
 	}
-	plotFile := exec.resolvePlotFileURL(manga)
-	pagePaths, err := p.workflows.Page(ctx, manga, plotFile)
+	plotFile := e.resolvePlotFileURL(manga)
+	pagePaths, err := e.workflows.Page(ctx, manga, plotFile)
 	if err != nil {
 		return nil, fmt.Errorf("PageImageRunner による生成と保存に失敗しました: %w", err)
 	}
@@ -71,13 +71,13 @@ func (p *MangaPipeline) runPageStep(ctx context.Context, manga *ports.MangaRespo
 }
 
 // runDesignStep はデザインシート生成します。
-func (p *MangaPipeline) runDesignStep(ctx context.Context, exec *mangaExecution) (string, int64, error) {
-	charIDs := p.parseCSV(exec.payload.InputText)
+func (e *mangaExecution) runDesignStep(ctx context.Context) (string, int64, error) {
+	charIDs := parseCSV(e.payload.InputText)
 	if len(charIDs) == 0 {
 		return "", 0, fmt.Errorf("キャラクターIDが必要です")
 	}
 
-	outputDir := p.config.GetGCSObjectURL(p.config.BaseOutputDir)
+	outputDir := e.cfg.GetGCSObjectURL(e.cfg.BaseOutputDir)
 
-	return p.workflows.Design(ctx, charIDs, exec.payload.Seed, outputDir)
+	return e.workflows.Design(ctx, charIDs, e.payload.Seed, outputDir)
 }

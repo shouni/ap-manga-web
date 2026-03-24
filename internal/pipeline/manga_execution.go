@@ -8,16 +8,24 @@ import (
 	"time"
 
 	"github.com/shouni/go-manga-kit/ports"
+	"github.com/shouni/go-remote-io/remoteio"
 
+	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 )
 
 // mangaExecution は一回のリクエスト実行に関する状態（開始時刻や生成されたタイトルなど）を保持します。
 type mangaExecution struct {
-	pipeline          *MangaPipeline
+	// 実行状態
 	payload           domain.GenerateTaskPayload
 	startTime         time.Time
 	resolvedSafeTitle string
+
+	// 依存関係
+	cfg       *config.Config
+	workflows domain.Workflows
+	writer    remoteio.OutputWriter
+	notifier  domain.Notifier
 }
 
 // run は各生成フェーズを順番に実行し、結果を通知します。
@@ -35,7 +43,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 			if titleHint == "" && e.payload.ScriptURL != "" {
 				titleHint = fmt.Sprintf("Source: %s", e.payload.ScriptURL)
 			}
-			e.pipeline.notifyError(ctx, e.payload, err, titleHint)
+			e.notifyError(ctx, e.payload, err, titleHint)
 		}
 	}()
 
@@ -48,20 +56,20 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 	case "generate":
 		// --- Phase 1: Script Phase ---
 		// スクリプトを保存し、そのパスを受け取る。
-		if manga, scriptPath, err = e.pipeline.runScriptStep(ctx, e); err != nil {
+		if manga, scriptPath, err = e.runScriptStep(ctx); err != nil {
 			return fmt.Errorf("script step failed: %w", err)
 		}
 
 		// --- Phase 2 & 3: Panel Generation & Publish ---
 		// パネル生成と成果物のパブリッシュを連続して実行します。
-		_, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
+		_, err = e.runPanelAndPublishSteps(ctx, manga)
 		if err != nil {
 			return err
 		}
 
 		// --- Phase 4: Page Generation Phase ---
 		// 最終的なページ画像を構成する。
-		if _, err = e.pipeline.runPageStep(ctx, manga, e); err != nil {
+		if _, err = e.runPageStep(ctx, manga); err != nil {
 			return fmt.Errorf("page generation step failed: %w", err)
 		}
 
@@ -70,14 +78,14 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 	case "design":
 		var outputURL string
 		var finalSeed int64
-		outputURL, finalSeed, err = e.pipeline.runDesignStep(ctx, e)
+		outputURL, finalSeed, err = e.runDesignStep(ctx)
 		if err != nil {
 			return fmt.Errorf("design step failed: %w", err)
 		}
 		notificationReq, publicURL, storageURI = e.buildDesignNotification(outputURL, finalSeed)
 
 	case "script":
-		manga, scriptPath, err = e.pipeline.runScriptStep(ctx, e)
+		manga, scriptPath, err = e.runScriptStep(ctx)
 		if err != nil {
 			return fmt.Errorf("script step failed: %w", err)
 		}
@@ -88,7 +96,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 			slog.ErrorContext(ctx, "Failed to parse input JSON for panel mode", "error", err)
 			return fmt.Errorf("panel mode input JSON unmarshal failed: %w", err)
 		}
-		_, err = e.pipeline.runPanelAndPublishSteps(ctx, manga, e)
+		_, err = e.runPanelAndPublishSteps(ctx, manga)
 		if err != nil {
 			return err
 		}
@@ -105,11 +113,11 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 		if manga == nil {
 			return fmt.Errorf("page mode requires manga data in InputText")
 		}
-		if _, err = e.pipeline.runPageStep(ctx, manga, e); err != nil {
+		if _, err = e.runPageStep(ctx, manga); err != nil {
 			return fmt.Errorf("page step failed: %w", err)
 		}
 
-		_, err = e.pipeline.runPublishStep(ctx, manga, e)
+		_, err = e.runPublishStep(ctx, manga)
 		if err != nil {
 			return err
 		}
@@ -123,7 +131,7 @@ func (e *mangaExecution) run(ctx context.Context) (err error) {
 
 	// 成功時の共通通知処理を行います。
 	if notificationReq != nil {
-		if notifyErr := e.pipeline.notifier.Notify(ctx, publicURL, storageURI, *notificationReq); notifyErr != nil {
+		if notifyErr := e.notifier.Notify(ctx, publicURL, storageURI, *notificationReq); notifyErr != nil {
 			slog.ErrorContext(ctx, "Notification failed", "error", notifyErr)
 			// 通知処理自体の失敗は、パイプライン全体の成否には影響させません。
 		}
