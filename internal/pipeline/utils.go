@@ -5,14 +5,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"path"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/shouni/go-manga-kit/asset"
 	"github.com/shouni/go-manga-kit/ports"
-
-	"ap-manga-web/internal/domain"
 )
 
 // resolveWorkDir は、漫画のワークディレクトリパスを解決します。
@@ -69,48 +68,34 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 	return e.resolvedSafeTitle
 }
 
-// buildMangaNotification は漫画生成の結果に基づいてSlack通知用リクエストを構築します。
-func (e *mangaExecution) buildMangaNotification(
-	manga *ports.MangaResponse,
-) (*domain.NotificationRequest, string, string) {
-	safeTitle := e.resolveSafeTitle(manga.Title)
-	publicURL, err := url.JoinPath(
-		e.cfg.ServiceURL,
-		e.cfg.BaseOutputDir,
-		safeTitle,
-	)
-	if err != nil {
-		slog.Error("Failed to construct public URL", "error", err)
-		publicURL = domain.PublicURLConstructionError
+// parseTargetPanels はカンマ区切りの文字列を解析し、有効なパネルインデックスのスライスを返します。
+func parseTargetPanels(s string, total int) []int {
+	if strings.TrimSpace(s) == "" {
+		res := make([]int, total)
+		for i := 0; i < total; i++ {
+			res[i] = i
+		}
+		return res
 	}
 
-	workDir := e.resolveWorkDir(manga)
-	storageURI := e.cfg.GetGCSObjectURL(workDir)
-
-	return &domain.NotificationRequest{
-		SourceURL:      e.payload.ScriptURL,
-		OutputCategory: "manga-output",
-		TargetTitle:    manga.Title,
-		ExecutionMode:  e.payload.Command + " / " + e.payload.Mode,
-	}, publicURL, storageURI
+	var res []int
+	for _, part := range strings.Split(s, ",") {
+		trimmed := strings.TrimSpace(part)
+		// 数値に変換できない、または範囲外のインデックスは意図的に無視します。
+		if idx, err := strconv.Atoi(trimmed); err == nil && idx >= 0 && idx < total {
+			res = append(res, idx)
+		}
+	}
+	return res
 }
 
-// buildScriptNotification はスクリプト生成の結果に基づいてSlack通知用リクエストを構築します。
-func (e *mangaExecution) buildScriptNotification(manga *ports.MangaResponse, gcsPath string) (*domain.NotificationRequest, string, string) {
-	return &domain.NotificationRequest{
-		SourceURL:      e.payload.ScriptURL,
-		OutputCategory: "script-json",
-		TargetTitle:    manga.Title,
-		ExecutionMode:  "script-only",
-	}, domain.NotAvailable, gcsPath
-}
-
-// buildDesignNotification はデザインシート生成の結果に基づいてSlack通知用リクエストを構築します。
-func (e *mangaExecution) buildDesignNotification(outputStorageURI string, seed int64) (*domain.NotificationRequest, string, string) {
-	return &domain.NotificationRequest{
-		SourceURL:      "N/A (Design)",
-		OutputCategory: "design-sheet",
-		TargetTitle:    fmt.Sprintf("Design: %s (Seed: %d)", e.payload.InputText, seed),
-		ExecutionMode:  "design",
-	}, domain.NotAvailable, outputStorageURI
+// parseCSV はカンマ区切りの入力文字列をスライスに変換します。
+func parseCSV(input string) []string {
+	var res []string
+	for _, s := range strings.Split(input, ",") {
+		if trimmed := strings.TrimSpace(s); trimmed != "" {
+			res = append(res, trimmed)
+		}
+	}
+	return res
 }
