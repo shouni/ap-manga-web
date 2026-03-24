@@ -1,7 +1,7 @@
 package pipeline
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"fmt"
 	"path"
 	"strconv"
@@ -40,7 +40,7 @@ func (e *mangaExecution) resolvePlotFileURL(manga *ports.MangaResponse) string {
 // --- Title & ID Generators ---
 
 // resolveSafeTitle は、一意で安全な実行用ディレクトリ名を生成します。
-// すでに生成済みの場合はその値を返し、未生成の場合は新規作成します。
+// フォーマット: YYYYMMDD_HHMMSS_<8桁のハッシュ>
 func (e *mangaExecution) resolveSafeTitle(title string) string {
 	if e.resolvedSafeTitle != "" {
 		return e.resolvedSafeTitle
@@ -52,9 +52,9 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 	}
 	tJST := t.In(jst)
 
-	// ハッシュ生成: タイトルとナノ秒を混ぜて衝突を回避
+	// ハッシュ生成: セキュリティスキャン(G401)回避のため SHA256 を使用
 	seed := fmt.Sprintf("%s-%d", title, t.UnixNano())
-	hash := fmt.Sprintf("%x", md5.Sum([]byte(seed)))[:8]
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(seed)))[:8]
 
 	e.resolvedSafeTitle = fmt.Sprintf("%s_%s", tJST.Format("20060102_150405"), hash)
 	return e.resolvedSafeTitle
@@ -63,10 +63,10 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 // --- String Parsers ---
 
 // parseTargetPanels はカンマ区切りの文字列を解析し、範囲内のインデックスを返します。
-// 入力が空の場合は、全インデックス (0...total-1) を返します。
+// 入力が空、または空白のみの場合は、全インデックス (0...total-1) を返します。
 func parseTargetPanels(s string, total int) []int {
-	trimmed := strings.TrimSpace(s)
-	if trimmed == "" {
+	trimmedInput := strings.TrimSpace(s)
+	if trimmedInput == "" {
 		res := make([]int, total)
 		for i := 0; i < total; i++ {
 			res[i] = i
@@ -74,8 +74,8 @@ func parseTargetPanels(s string, total int) []int {
 		return res
 	}
 
-	parts := strings.Split(trimmed, ",")
-	res := make([]int, 0, len(parts)) // キャパシティを事前に確保
+	parts := strings.Split(trimmedInput, ",")
+	res := make([]int, 0, len(parts))
 	for _, part := range parts {
 		if idx, err := strconv.Atoi(strings.TrimSpace(part)); err == nil {
 			if idx >= 0 && idx < total {
@@ -88,10 +88,12 @@ func parseTargetPanels(s string, total int) []int {
 
 // parseCSV はカンマ区切りの文字列をスライスに変換します。
 func parseCSV(input string) []string {
-	if input == "" {
+	trimmedInput := strings.TrimSpace(input)
+	if trimmedInput == "" {
 		return nil
 	}
-	parts := strings.Split(input, ",")
+
+	parts := strings.Split(trimmedInput, ",")
 	res := make([]string, 0, len(parts))
 	for _, s := range parts {
 		if trimmed := strings.TrimSpace(s); trimmed != "" {
