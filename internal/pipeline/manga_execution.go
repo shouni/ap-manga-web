@@ -16,13 +16,16 @@ import (
 
 // mangaExecution は一回のリクエスト実行に関する状態（開始時刻や生成されたタイトルなど）を保持します。
 type mangaExecution struct {
+	// 実行状態
 	payload           domain.GenerateTaskPayload
 	startTime         time.Time
 	resolvedSafeTitle string
-	cfg               *config.Config
-	workflows         domain.Workflows
-	writer            remoteio.OutputWriter
-	notifier          domain.Notifier
+
+	// 依存関係
+	cfg       *config.Config
+	workflows domain.Workflows
+	writer    remoteio.OutputWriter
+	notifier  domain.Notifier
 }
 
 // run は各生成フェーズを順番に実行し、結果を通知します。
