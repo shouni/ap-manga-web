@@ -29,7 +29,7 @@ const (
 )
 
 // BuildPage はメインのプロンプト構築フローを管理します。
-func (pb *ImagePromptBuilder) BuildPage(panels []ports.Panel, rm *ports.ResourceMap) (string, string) {
+func (pb *ImageBuilder) BuildPage(panels []ports.Panel, rm *ports.ResourceMap) (string, string) {
 	numPanels := len(panels)
 	bigPanelIdx := pb.calculateBigPanelIndex(numPanels)
 
@@ -47,7 +47,7 @@ func (pb *ImagePromptBuilder) BuildPage(panels []ports.Panel, rm *ports.Resource
 }
 
 // buildSystemPrompt 一貫性を保つために、定義済みの指示、スタイル、タグを組み込んだシステム プロンプト文字列を構築します。
-func (pb *ImagePromptBuilder) buildSystemPrompt() string {
+func (pb *ImageBuilder) buildSystemPrompt() string {
 	const instr = "You are a master digital artist. You MUST follow the exact panel count and layout rules. Character identity MUST match the character master reference files."
 	parts := []string{instr, MangaStructureHeader, RenderingStyle, CinematicTags}
 	if pb.defaultSuffix != "" {
@@ -57,7 +57,7 @@ func (pb *ImagePromptBuilder) buildSystemPrompt() string {
 }
 
 // writeBasicRequirements フォーマットされた基本要件セクションを生成し、提供された文字列ビルダーに追加します。
-func (pb *ImagePromptBuilder) writeBasicRequirements(w *strings.Builder, num int) {
+func (pb *ImageBuilder) writeBasicRequirements(w *strings.Builder, num int) {
 	w.WriteString("# FULL COLOR PAGE PRODUCTION REQUEST\n")
 	w.WriteString("- OUTPUT: ONE single portrait manga page image.\n")
 	w.WriteString("- COLOR: STRICTLY VIBRANT FULL COLOR. NO monochrome, NO screentones.\n")
@@ -65,7 +65,7 @@ func (pb *ImagePromptBuilder) writeBasicRequirements(w *strings.Builder, num int
 }
 
 // writeLayoutStructure フォーマットされたレイアウト構造を生成し、提供された文字列ビルダーに追加します。
-func (pb *ImagePromptBuilder) writeLayoutStructure(w *strings.Builder, num int) {
+func (pb *ImageBuilder) writeLayoutStructure(w *strings.Builder, num int) {
 	w.WriteString("## MANDATORY PAGE STRUCTURE\n")
 	w.WriteString("- READING ORDER: Japanese Style (Right-to-Left, then Top-to-Bottom).\n")
 	w.WriteString("- PANEL PLACEMENT MAP:\n")
@@ -89,7 +89,7 @@ func (pb *ImagePromptBuilder) writeLayoutStructure(w *strings.Builder, num int) 
 }
 
 // writeCharacterReferences フォーマットされた文字参照のリストを生成し、提供された文字列ビルダーに追加します。
-func (pb *ImagePromptBuilder) writeCharacterReferences(w *strings.Builder, rm *ports.ResourceMap) {
+func (pb *ImageBuilder) writeCharacterReferences(w *strings.Builder, rm *ports.ResourceMap) {
 	w.WriteString("## CHARACTER MASTER REFERENCES\n")
 
 	type charRef struct {
@@ -117,7 +117,7 @@ func (pb *ImagePromptBuilder) writeCharacterReferences(w *strings.Builder, rm *p
 }
 
 // writePanelBreakdown 個々のパネルのフォーマットされた内訳を生成し、提供された文字列ビルダーに追加します。
-func (pb *ImagePromptBuilder) writePanelBreakdown(w *strings.Builder, panels []ports.Panel, rm *ports.ResourceMap, bigIdx int) {
+func (pb *ImageBuilder) writePanelBreakdown(w *strings.Builder, panels []ports.Panel, rm *ports.ResourceMap, bigIdx int) {
 	num := len(panels)
 	w.WriteString("## PANEL BREAKDOWN\n")
 	for i, panel := range panels {
@@ -203,7 +203,7 @@ func (pb *ImagePromptBuilder) writePanelBreakdown(w *strings.Builder, panels []p
 // パネル数が1の場合は0を返します。
 // パネル数が1より大きく奇数の場合は、最後のパネルのインデックス (num - 1) を返します。
 // それ以外の場合（0、偶数）は、拡大パネルなしを示す-1を返します。
-func (pb *ImagePromptBuilder) calculateBigPanelIndex(num int) int {
+func (pb *ImageBuilder) calculateBigPanelIndex(num int) int {
 	if num == 1 {
 		return 0
 	}
