@@ -47,7 +47,10 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 	// 実行ごとの状態（開始時刻や生成タイトル等）を管理するコンテキストを生成します。
 	// これにより、並行実行時における状態の混線を防ぎます。
 	exec := &mangaExecution{
-		pipeline:  p,
+		cfg:       p.config,
+		workflows: p.workflows,
+		writer:    p.writer,
+		notifier:  p.notifier,
 		payload:   payload,
 		startTime: time.Now(),
 	}

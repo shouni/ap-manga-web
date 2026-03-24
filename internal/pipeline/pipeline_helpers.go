@@ -15,7 +15,7 @@ const (
 )
 
 // notifyError はエラー発生時に SlackAdapter を通じて通知を行います。
-func (p *MangaPipeline) notifyError(ctx context.Context, payload domain.GenerateTaskPayload, opErr error, titleHint string) {
+func (e *mangaExecution) notifyError(ctx context.Context, payload domain.GenerateTaskPayload, opErr error, titleHint string) {
 	reqTitle := defaultErrorTitle
 	if titleHint != "" {
 		reqTitle = titleHint
@@ -28,13 +28,13 @@ func (p *MangaPipeline) notifyError(ctx context.Context, payload domain.Generate
 		ExecutionMode:  payload.Command,
 	}
 
-	if err := p.notifier.NotifyError(ctx, opErr, req); err != nil {
+	if err := e.notifier.NotifyError(ctx, opErr, req); err != nil {
 		slog.ErrorContext(ctx, "Failed to send error notification", "error", err)
 	}
 }
 
 // parseTargetPanels はカンマ区切りの文字列を解析し、有効なパネルインデックスのスライスを返します。
-func (p *MangaPipeline) parseTargetPanels(ctx context.Context, s string, total int) []int {
+func (e *mangaExecution) parseTargetPanels(s string, total int) []int {
 	if strings.TrimSpace(s) == "" {
 		res := make([]int, total)
 		for i := 0; i < total; i++ {
@@ -55,7 +55,7 @@ func (p *MangaPipeline) parseTargetPanels(ctx context.Context, s string, total i
 }
 
 // parseCSV はカンマ区切りの入力文字列をスライスに変換します。
-func (p *MangaPipeline) parseCSV(input string) []string {
+func (e *mangaExecution) parseCSV(input string) []string {
 	var res []string
 	for _, s := range strings.Split(input, ",") {
 		if trimmed := strings.TrimSpace(s); trimmed != "" {
