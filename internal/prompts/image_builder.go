@@ -15,15 +15,15 @@ const (
 - RENDERING: Sharp clean lineart, vibrant colors, no blurring, high contrast, cinematic manga lighting.`
 )
 
-// ImagePromptBuilder は、キャラクター情報を考慮してAIプロンプトを構築します。
-type ImagePromptBuilder struct {
+// ImageBuilder は、キャラクター情報を考慮してAIプロンプトを構築します。
+type ImageBuilder struct {
 	characterMap  ports.CharactersMap
 	defaultSuffix string // 例: "anime style, high quality"
 }
 
-// NewImagePromptBuilder は新しい PromptBuilder を生成します。
-func NewImagePromptBuilder(characterMap ports.CharactersMap, suffix string) *ImagePromptBuilder {
-	return &ImagePromptBuilder{
+// NewImageBuilder は新しい PromptBuilder を生成します。
+func NewImageBuilder(characterMap ports.CharactersMap, suffix string) *ImageBuilder {
+	return &ImageBuilder{
 		characterMap:  characterMap,
 		defaultSuffix: suffix,
 	}

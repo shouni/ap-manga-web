@@ -23,7 +23,7 @@ type WorkflowsAdapter struct {
 
 // NewWorkflowsAdapter は Workflowsを初期化します。
 func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio *app.RemoteIO, aiClient gemini.GenerativeModel) (domain.Workflows, error) {
-	promptDeps, err := buildPromptDependencies(cfg.StyleSuffix)
+	promptDeps, err := buildPromptDeps(cfg.StyleSuffix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize prompt dependencies: %w", err)
 	}
@@ -38,11 +38,11 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 			RateInterval:       cfg.RateInterval,
 			MaxPanelsPerPage:   cfg.MaxPanelsPerPage,
 		},
-		HTTPClient:         httpClient,
-		Reader:             rio.Reader,
-		Writer:             rio.Writer,
-		AIClient:           aiClient,
-		PromptDependencies: promptDeps,
+		HTTPClient: httpClient,
+		Reader:     rio.Reader,
+		Writer:     rio.Writer,
+		AIClient:   aiClient,
+		PromptDeps: promptDeps,
 	}
 	workflows, err := workflow.NewWorkflows(args)
 	if err != nil {
@@ -79,8 +79,8 @@ func (w *WorkflowsAdapter) Publish(ctx context.Context, manga *ports.MangaRespon
 	return w.workflows.Publish.Run(ctx, manga, outputDir)
 }
 
-// buildPromptDependencies は Prompt ビルダーを初期化します。
-func buildPromptDependencies(styleSuffix string) (*workflow.PromptDependencies, error) {
+// buildPromptDeps は Prompt ビルダーを初期化します。
+func buildPromptDeps(styleSuffix string) (*workflow.PromptDeps, error) {
 	templates, err := assets.LoadPrompts()
 	if err != nil {
 		return nil, fmt.Errorf("プロンプトテンプレートの読み込みに失敗しました: %w", err)
@@ -95,9 +95,9 @@ func buildPromptDependencies(styleSuffix string) (*workflow.PromptDependencies, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate character map: %w", err)
 	}
-	imagePrompt := prompts.NewImagePromptBuilder(charMap, styleSuffix)
+	imagePrompt := prompts.NewImageBuilder(charMap, styleSuffix)
 
-	return &workflow.PromptDependencies{
+	return &workflow.PromptDeps{
 		CharactersMap: charMap,
 		ScriptPrompt:  textPrompt,
 		ImagePrompt:   imagePrompt,
