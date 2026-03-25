@@ -44,7 +44,7 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 		AIClient:   aiClient,
 		PromptDeps: promptDeps,
 	}
-	workflows, err := workflow.NewWorkflows(args)
+	workflows, err := workflow.New(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create workflows: %w", err)
 	}
