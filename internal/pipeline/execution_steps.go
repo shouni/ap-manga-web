@@ -1,9 +1,7 @@
 package pipeline
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/shouni/go-manga-kit/ports"
@@ -17,12 +15,7 @@ func (e *mangaExecution) runScriptStep(ctx context.Context) (*ports.MangaRespons
 	}
 
 	plotFile := e.resolvePlotFileURL(manga)
-	data, err := json.MarshalIndent(manga, "", "  ")
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to marshal manga script to JSON: %w", err)
-	}
-
-	if err := e.writer.Write(ctx, plotFile, bytes.NewReader(data), "application/json"); err != nil {
+	if err := e.saveJSON(ctx, plotFile, manga); err != nil {
 		return manga, "", err
 	}
 	return manga, plotFile, nil
@@ -58,9 +51,6 @@ func (e *mangaExecution) runPanelAndPublishSteps(ctx context.Context, manga *por
 
 // runPageStep はMangaResponseからページ画像を生成します。
 func (e *mangaExecution) runPageStep(ctx context.Context, manga *ports.MangaResponse) ([]string, error) {
-	if manga == nil {
-		return nil, fmt.Errorf("manga data is nil")
-	}
 	plotFile := e.resolvePlotFileURL(manga)
 	pagePaths, err := e.workflows.Page(ctx, manga, plotFile)
 	if err != nil {
