@@ -7,7 +7,7 @@ require (
 	github.com/shouni/gcp-kit v1.0.4
 	github.com/shouni/go-gemini-client v1.2.0
 	github.com/shouni/go-http-kit v1.4.0
-	github.com/shouni/go-manga-kit v1.8.8
+	github.com/shouni/go-manga-kit v1.8.9
 	github.com/shouni/go-notifier v1.2.1
 	github.com/shouni/go-prompt-kit v1.0.3
 	github.com/shouni/go-remote-io v1.3.0
@@ -63,8 +63,8 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/shouni/gemini-image-kit v1.5.0 // indirect
-	github.com/shouni/go-web-exact/v2 v2.1.1 // indirect
+	github.com/shouni/gemini-image-kit v1.5.1 // indirect
+	github.com/shouni/go-web-exact/v2 v2.1.2 // indirect
 	github.com/slack-go/slack v0.19.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/yuin/goldmark v1.7.17 // indirect
