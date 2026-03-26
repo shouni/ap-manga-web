@@ -38,11 +38,12 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 			RateInterval:       cfg.RateInterval,
 			MaxPanelsPerPage:   cfg.MaxPanelsPerPage,
 		},
-		HTTPClient: httpClient,
-		Reader:     rio.Reader,
-		Writer:     rio.Writer,
-		AIClient:   aiClient,
-		PromptDeps: promptDeps,
+		HTTPClient:      httpClient,
+		Reader:          rio.Reader,
+		Writer:          rio.Writer,
+		AIClient:        aiClient,
+		AIClientQuality: aiClient,
+		PromptDeps:      promptDeps,
 	}
 	workflows, err := workflow.New(args)
 	if err != nil {
