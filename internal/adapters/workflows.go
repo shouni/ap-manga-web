@@ -22,7 +22,7 @@ type WorkflowsAdapter struct {
 }
 
 // NewWorkflowsAdapter は Workflowsを初期化します。
-func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio *app.RemoteIO, aiClient gemini.GenerativeModel) (domain.Workflows, error) {
+func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio *app.RemoteIO, geminiAI, vertexAI gemini.GenerativeModel) (domain.Workflows, error) {
 	promptDeps, err := buildPromptDeps(cfg.StyleSuffix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize prompt dependencies: %w", err)
@@ -41,8 +41,8 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 		HTTPClient:      httpClient,
 		Reader:          rio.Reader,
 		Writer:          rio.Writer,
-		AIClient:        aiClient,
-		AIClientQuality: aiClient,
+		AIClient:        geminiAI,
+		AIClientQuality: vertexAI,
 		PromptDeps:      promptDeps,
 	}
 	workflows, err := workflow.New(args)

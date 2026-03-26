@@ -45,11 +45,16 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 		return nil, err
 	}
 
-	aiClient, err := adapters.NewAIAdapter(ctx, cfg)
+	geminiAI, err := adapters.NewGeminiAIAdapter(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
-	workflows, err := adapters.NewWorkflowsAdapter(cfg, httpClient, rio, aiClient)
+	vertexAI, err := adapters.NewVertexAIAdapter(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	workflows, err := adapters.NewWorkflowsAdapter(cfg, httpClient, rio, geminiAI, vertexAI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize manga workflow: %w", err)
 	}

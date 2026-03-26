@@ -12,39 +12,55 @@ import (
 )
 
 const (
-	// defaultLocationID はデフォルトのロケーションIDです。
-	defaultLocationID = "global"
-
 	// defaultGeminiTemperature はモデル生成時の多様性を制御します。
-	// 0.1 は低い値に設定することで、漫画の構成や指示への忠実度を安定させます。
-	defaultGeminiTemperature = float32(0.1)
-
-	// defaultInitialDelay リトライのデフォルトの遅延期間を指定します。
+	defaultGeminiTemperature = float32(0.8)
+	// defaultInitialDelay はリトライ時の初期待ち時間です。
 	defaultInitialDelay = 60 * time.Second
+	// Vertex AI のデフォルトロケーション
+	defaultVertexLocationID = "global"
+	// 生成パラメータ
+	defaultVertexTemperature = float32(0.2)
+	// リトライ遅延
+	defaultVertexInitialDelay = 60 * time.Second
 )
 
-// NewAIAdapter は aiClientを初期化します。
-func NewAIAdapter(ctx context.Context, cfg *config.Config) (gemini.GenerativeModel, error) {
+// NewGeminiAIAdapter は Google AI (Gemini API) クライアントを初期化します。
+func NewGeminiAIAdapter(ctx context.Context, cfg *config.Config) (gemini.GenerativeModel, error) {
+	if cfg.GeminiAPIKey == "" {
+		return nil, fmt.Errorf("GEMINI_API_KEY が設定されていません")
+	}
+
 	clientConfig := gemini.Config{
+		APIKey:       cfg.GeminiAPIKey,
 		Temperature:  genai.Ptr(defaultGeminiTemperature),
 		InitialDelay: defaultInitialDelay,
 	}
 
-	// GeminiAPIKeyが設定されている場合は優先して使用し、
-	// 設定されていない場合はGCPのProjectIDを使用したVertex AI経由の認証を試みる。
-	if cfg.GeminiAPIKey != "" {
-		clientConfig.APIKey = cfg.GeminiAPIKey
-	} else if cfg.ProjectID != "" {
-		clientConfig.ProjectID = cfg.ProjectID
-		clientConfig.LocationID = defaultLocationID
-	} else {
-		return nil, fmt.Errorf("GEMINI_API_KEY or GCP_PROJECT_ID is not set")
+	aiClient, err := gemini.NewClient(ctx, clientConfig)
+	if err != nil {
+		return nil, fmt.Errorf("Gemini API クライアントの初期化に失敗しました: %w", err)
+	}
+
+	return aiClient, nil
+}
+
+// NewVertexAIAdapter は GCP Vertex AI クライアントを初期化します。
+func NewVertexAIAdapter(ctx context.Context, cfg *config.Config) (gemini.GenerativeModel, error) {
+	if cfg.ProjectID == "" {
+		return nil, fmt.Errorf("GCP_PROJECT_ID が設定されていません")
+	}
+
+	clientConfig := gemini.Config{
+		ProjectID:    cfg.ProjectID,
+		LocationID:   defaultVertexLocationID,
+		Temperature:  genai.Ptr(defaultVertexTemperature),
+		InitialDelay: defaultVertexInitialDelay,
 	}
 
 	aiClient, err := gemini.NewClient(ctx, clientConfig)
-
 	if err != nil {
-		return nil, fmt.Errorf("AIクライアントの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("Vertex AI クライアントの初期化に失敗しました: %w", err)
 	}
+
 	return aiClient, nil
 }
