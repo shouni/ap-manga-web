@@ -12,7 +12,6 @@ import (
 	"ap-manga-web/assets"
 	"ap-manga-web/internal/app"
 	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
 	"ap-manga-web/internal/prompts"
 )
 
@@ -22,7 +21,7 @@ type WorkflowsAdapter struct {
 }
 
 // NewWorkflowsAdapter は Workflowsを初期化します。
-func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio *app.RemoteIO, geminiAI, vertexAI gemini.GenerativeModel) (domain.Workflows, error) {
+func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio *app.RemoteIO, geminiAI, vertexAI gemini.GenerativeModel) (*WorkflowsAdapter, error) {
 	promptDeps, err := buildPromptDeps(cfg.StyleSuffix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize prompt dependencies: %w", err)
