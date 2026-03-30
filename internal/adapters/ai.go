@@ -25,7 +25,7 @@ const (
 )
 
 // NewGeminiAIAdapter は Google AI (Gemini API) クライアントを初期化します。
-func NewGeminiAIAdapter(ctx context.Context, cfg *config.Config) (gemini.GenerativeModel, error) {
+func NewGeminiAIAdapter(ctx context.Context, cfg *config.Config) (*gemini.Client, error) {
 	if cfg.GeminiAPIKey == "" {
 		return nil, fmt.Errorf("GEMINI_API_KEY が設定されていません")
 	}
@@ -45,7 +45,7 @@ func NewGeminiAIAdapter(ctx context.Context, cfg *config.Config) (gemini.Generat
 }
 
 // NewVertexAIAdapter は GCP Vertex AI クライアントを初期化します。
-func NewVertexAIAdapter(ctx context.Context, cfg *config.Config) (gemini.GenerativeModel, error) {
+func NewVertexAIAdapter(ctx context.Context, cfg *config.Config) (*gemini.Client, error) {
 	if cfg.ProjectID == "" {
 		return nil, fmt.Errorf("GCP_PROJECT_ID が設定されていません")
 	}
