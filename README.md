@@ -25,10 +25,92 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 | **Panel** | パネル作画。既存の台本JSONから画像とHTMLを生成。 | 台本JSON / Images |
 | **Page** | 生成済みのパネル画像を、JSON形式に基づきページ単位にレイアウトし、ページ画像を生成 | Images |
 
-### 🎨 出力ページイメージ
+### 💻 ワークフロー (Workflow)
 
-![Page 1](./docs/manga_page_1.png)
-![Page 2](./docs/manga_page_2.png)
+1. **Request**: ユーザーが Web フォームからプロット等を送信。
+2. **Enqueue**: `CloudTasksAdapter` を介してジョブを非同期投入。
+3. **Worker**: `MangaPipeline` が起動。
+4. **Pipeline**:
+   * **Phase 1: Script/Page**: プロットのパースと構成。
+   * **Phase 2: Panel/Design**: **Vertex AI + GCS 直接参照** による高速な画像生成。
+   * **Phase 3: Publish**: 成果物をGCSに保存。
+   * **Phase 4: Notification**: Slack への完了報告。
+
+---
+
+## 🏗 アーキテクチャ設計 (Architecture)
+
+本プロジェクトは、**ヘキサゴナル・アーキテクチャ**と**サーバーレス・オーケストレーション**を組み合わせた設計を採用しています。
+
+1. **Domain 層 (The Core)**
+   * **システムの中心核**です。`Task` や `Notification` など、特定の技術（GCPやWeb）に依存しない純粋なデータ構造とビジネスルールを定義します。すべての層がこの共通言語を通じて連携する、アーキテクチャの真の中心です。
+2. **Pipeline 層 (Orchestrator)**
+   * **ワークフローの指揮官**としての役割を担います。Domain モデルを使用し、台本生成・画像生成・通知といった一連の処理プロセスを制御します。具体的な保存先や通知手段の詳細は持たず、抽象化されたインターフェース（Port）を介して命令を実行します。
+3. **Server 層 (Entry Points)**
+   * **外部システムとの窓口**であり、用途に応じて以下の2つの役割を持ちます。
+      * **Web Handler**: ユーザーの入力を Domain モデルへ変換し、Cloud Tasks へジョブを投入します。
+      * **Worker Handler**: Cloud Tasks からのリクエストを受け取り、Pipeline を起動する実行トリガーとして機能します。
+4. **Adapters 層 (Infrastructure)**
+   * **実務を担う手足**です。GCS、Slack、Gemini API、Cloud Tasks といった具体的な外部サービスと接続し、Pipeline からの抽象的な命令を現実の技術的な処理へと翻訳します。
+5. **Builder 層 (Dependency Injection)**
+   * **システムを組み立てる工場**です。アプリケーションの起動時に「Web用」または「Worker用」に必要な各パーツ（Adapters）を、Domain のルールに従って依存関係を注入しながら結合し、実行可能なシステムとして組み立てます。
+
+---
+
+## 🏗 プロジェクトレイアウト (Project Layout)
+
+```text
+ap-manga-web/
+├── assets/            # 【資産】静的リソース（Go バイナリに embed で埋め込み）
+│   ├── characters/    #   - キャラクター定義 (characters.json)
+│   ├── prompts/       #   - AI 指示文テンプレート (dialogue.md, duet.md), AI 指示文の動的構築ロジック
+│   ├── templates/     #   - Web 表示用 HTML (layout.html, manga_view.html 等)
+│   └── assets.go      #   - embed.FS 定義（Prompts / Templates / Characters）
+├── internal/
+│   ├── adapters/      # 【接続】外部（Gemini API, Slack）との通信を担う実装
+│   ├── app/           # 【基盤】Container による依存保持とライフサイクル管理
+│   ├── builder/       # 【構築】DI コンテナの組み立てと各コンポーネントの初期化
+│   ├── config/        # 【設定】環境変数のロード、定数、バリデーション
+│   ├── domain/        # 【中心】ドメインモデル、ポート（インターフェース）定義
+│   ├── pipeline/      # 【指揮】Workflow を組み合わせた漫画生成フローの制御
+│   ├── prompts/       # 【生成】assets の md を用いた AI 指示文の動的構築ロジック
+│   └── server/        # 【玄関】ルーティング、各種ハンドラー（submit, view, preview）
+├── docs/              # 【記録】設計ドキュメント、動作イメージ画像
+└── main.go            # 【起点】アプリのブートストラップ（初期化・起動）
+
+```
+
+---
+
+## 🔄 シーケンスフロー (Sequence Flow)
+
+```mermaid
+sequenceDiagram
+    participant User as User (Web UI)
+    participant Web as Web (Cloud Run)
+    participant Queue as Cloud Tasks
+    participant Worker as Worker (Cloud Run)
+    participant Pipeline as Manga Pipeline
+    participant VertexAI as Vertex AI (Imagen/Gemini)
+    participant GCS as Cloud Storage
+    participant Slack as Slack Notification
+
+    User->>Web: フォーム送信 (Prompt/URL/Seed)
+    Web->>Queue: タスクをエンキュー (Async)
+    Web-->>User: 受付完了画面を表示
+    
+    Queue->>Worker: HTTP POST (タスク実行)
+    Worker->>Pipeline: Execute() 起動
+    
+    rect rgb(240, 240, 240)
+        Note over Pipeline, VertexAI: 生成フェーズ (GCS直接参照)
+        Pipeline->>VertexAI: 画像生成リクエスト (gs:// 参照)
+        VertexAI-->>Pipeline: 生成画像データ
+    end
+    
+    Pipeline->>GCS: 成果物保存
+    Pipeline->>Slack: 完了通知 (閲覧URL & Seed値)
+```
 
 ---
 
@@ -46,22 +128,10 @@ Webフォームを通じて画像生成処理を**非同期ワーカー**（Clou
 
 ---
 
-## 🏗 システムアーキテクチャ (System Architecture)
+## 🎨 概要イメージ
 
-本プロジェクトは、**ヘキサゴナル・アーキテクチャ**と**サーバーレス・オーケストレーション**を組み合わせた設計を採用しています。
-
-1. **Domain 層 (The Core)**
-    * **システムの中心核**です。`Task` や `Notification` など、特定の技術（GCPやWeb）に依存しない純粋なデータ構造とビジネスルールを定義します。すべての層がこの共通言語を通じて連携する、アーキテクチャの真の中心です。
-2. **Pipeline 層 (Orchestrator)**
-    * **ワークフローの指揮官**としての役割を担います。Domain モデルを使用し、台本生成・画像生成・通知といった一連の処理プロセスを制御します。具体的な保存先や通知手段の詳細は持たず、抽象化されたインターフェース（Port）を介して命令を実行します。
-3. **Server 層 (Entry Points)**
-    * **外部システムとの窓口**であり、用途に応じて以下の2つの役割を持ちます。
-        * **Web Handler**: ユーザーの入力を Domain モデルへ変換し、Cloud Tasks へジョブを投入します。
-        * **Worker Handler**: Cloud Tasks からのリクエストを受け取り、Pipeline を起動する実行トリガーとして機能します。
-4. **Adapters 層 (Infrastructure)**
-    * **実務を担う手足**です。GCS、Slack、Gemini API、Cloud Tasks といった具体的な外部サービスと接続し、Pipeline からの抽象的な命令を現実の技術的な処理へと翻訳します。
-5. **Builder 層 (Dependency Injection)**
-    * **システムを組み立てる工場**です。アプリケーションの起動時に「Web用」または「Worker用」に必要な各パーツ（Adapters）を、Domain のルールに従って依存関係を注入しながら結合し、実行可能なシステムとして組み立てます。
+![Page 1](./docs/manga_page_1.png)
+![Page 2](./docs/manga_page_2.png)
 
 ---
 
@@ -120,76 +190,6 @@ Cloud Tasks がワーカーを呼び出す際に使用する ID（`ServiceAccoun
 | **認証方式** | OIDC トークン認証 |
 | **Audience** | アプリの `SERVICE_URL`（例: `https://...run.app`） |
 | **実行主体** | `SERVICE_ACCOUNT_EMAIL` に設定したサービスアカウント |
-
----
-
-## 🏗 プロジェクトレイアウト (Project Layout)
-
-```text
-ap-manga-web/
-├── assets/            # 【資産】静的リソース（Go バイナリに embed で埋め込み）
-│   ├── characters/    #   - キャラクター定義 (characters.json)
-│   ├── prompts/       #   - AI 指示文テンプレート (dialogue.md, duet.md), AI 指示文の動的構築ロジック
-│   ├── templates/     #   - Web 表示用 HTML (layout.html, manga_view.html 等)
-│   └── assets.go      #   - embed.FS 定義（Prompts / Templates / Characters）
-├── internal/
-│   ├── adapters/      # 【接続】外部（Gemini API, Slack）との通信を担う実装
-│   ├── app/           # 【基盤】Container による依存保持とライフサイクル管理
-│   ├── builder/       # 【構築】DI コンテナの組み立てと各コンポーネントの初期化
-│   ├── config/        # 【設定】環境変数のロード、定数、バリデーション
-│   ├── domain/        # 【中心】ドメインモデル、ポート（インターフェース）定義
-│   ├── pipeline/      # 【指揮】Workflow を組み合わせた漫画生成フローの制御
-│   ├── prompts/       # 【生成】assets の md を用いた AI 指示文の動的構築ロジック
-│   └── server/        # 【玄関】ルーティング、各種ハンドラー（submit, view, preview）
-├── docs/              # 【記録】設計ドキュメント、動作イメージ画像
-└── main.go            # 【起点】アプリのブートストラップ（初期化・起動）
-
-```
-
----
-
-## 💻 ワークフロー (Workflow)
-
-1. **Request**: ユーザーが Web フォームからプロット等を送信。
-2. **Enqueue**: `CloudTasksAdapter` を介してジョブを非同期投入。
-3. **Worker**: `MangaPipeline` が起動。
-4. **Pipeline**:
-    * **Phase 1: Script/Page**: プロットのパースと構成。
-    * **Phase 2: Panel/Design**: **Vertex AI + GCS 直接参照** による高速な画像生成。
-    * **Phase 3: Publish**: 成果物をGCSに保存。
-    * **Phase 4: Notification**: Slack への完了報告。
-
----
-
-## 🔄 シーケンスフロー (Sequence Flow)
-
-```mermaid
-sequenceDiagram
-    participant User as User (Web UI)
-    participant Web as Web (Cloud Run)
-    participant Queue as Cloud Tasks
-    participant Worker as Worker (Cloud Run)
-    participant Pipeline as Manga Pipeline
-    participant VertexAI as Vertex AI (Imagen/Gemini)
-    participant GCS as Cloud Storage
-    participant Slack as Slack Notification
-
-    User->>Web: フォーム送信 (Prompt/URL/Seed)
-    Web->>Queue: タスクをエンキュー (Async)
-    Web-->>User: 受付完了画面を表示
-    
-    Queue->>Worker: HTTP POST (タスク実行)
-    Worker->>Pipeline: Execute() 起動
-    
-    rect rgb(240, 240, 240)
-        Note over Pipeline, VertexAI: 生成フェーズ (GCS直接参照)
-        Pipeline->>VertexAI: 画像生成リクエスト (gs:// 参照)
-        VertexAI-->>Pipeline: 生成画像データ
-    end
-    
-    Pipeline->>GCS: 成果物保存
-    Pipeline->>Slack: 完了通知 (閲覧URL & Seed値)
-```
 
 ---
 
