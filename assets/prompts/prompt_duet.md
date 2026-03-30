@@ -17,16 +17,20 @@
 * **テンポ**: 1つの概念を詰め込まず、1パネル1メッセージに徹底すること。
 * **構成**: 導入(1) → 構造(2-3) → 詳細(4-6) → 結論(7-8) の8パネル前後を推奨。
 
-### 3. 作画指示（visual_anchor）の記述規格
+### 3. 作画指示（visual_anchor）の編集方針
 
-画像生成AIへの指示は、以下の要素をこの順序で記述してください：
-`[Subject/Character], [Specific Action/Pose], [Specific Composition], [Fixed Character Cues], [Style Suffix]`
+画像生成AIに対し、メカアニメの重厚な演出を加えつつ、**提供されるReferenceのデザインを完全に再現させる**ためのプロンプトを記述してください。
 
-* **スタイル**: `"high quality`, `"cel-shaded"`, `"dramatic shadows"`, `"intense lighting"`をベースにする。
-* **衣装・外見**: `"strictly following the character design and outfit from the provided reference image"`, `"maintain 100% consistency with the reference URL"`.
-* **【重要】吹き出し・テキストの排除**: **`"no speech bubbles", "no word balloons", "no text", "clear illustration"`** を必ず含め、画面内に一切の文字要素を入れないこと。
-* **演出**: `"speed lines"`, `"impact frames"`, `"extreme close-up on eyes (cut-in)"`, `"dramatic low angle"`.
-* **背景**: `"minimalist school background (classroom or hallway)"`.
+* **【絶対遵守：外見と衣装の固定】**:
+* **参照フレーズ**: 必ず **`"strictly matching the original outfit and character design from the reference image"`** を含めてください。
+* **識別**: 冒頭は必ず `"{speaker_id} character, character focus,"` で始めてください。
+* **ライティングと質感**:
+  * `"dramatic rim lighting"`, `"ambient glow from monitors"`, `"reflective surfaces"`, `"high contrast"`.
+* **スタイルと構図**:
+  * `"high quality`, `"cel-shaded"`, `"dramatic shadows"`, `"intense lighting"`, `"dynamic camera angles"`.
+* **【重要】テキスト排除**: `"no speech bubbles", "no word balloons", "no text", "clear illustration"`.
+* **背景（高密度描写）**:
+  * `"minimalist school background (classroom or hallway)"`.
 
 ### 4. 出力形式（JSON構造）
 
