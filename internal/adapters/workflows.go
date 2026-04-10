@@ -3,11 +3,14 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/shouni/go-gemini-client/gemini"
 	"github.com/shouni/go-http-kit/httpkit"
 	"github.com/shouni/go-manga-kit/ports"
 	"github.com/shouni/go-manga-kit/workflow"
+	"github.com/shouni/go-remote-io/remoteio"
+	"github.com/shouni/go-web-reader/pkg/reader"
 
 	"ap-manga-web/assets"
 	"ap-manga-web/internal/app"
@@ -27,6 +30,24 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 		return nil, fmt.Errorf("failed to initialize prompt dependencies: %w", err)
 	}
 
+	factory := rio.Factory
+	defer func() {
+		if err != nil {
+			if closeErr := factory.Close(); closeErr != nil {
+				slog.Warn("failed to close GCS factory during cleanup", "error", closeErr)
+			}
+		}
+	}()
+
+	contentReader, err := reader.New(
+		reader.WithGCSFactory(func(ctx context.Context) (remoteio.ReadWriteFactory, error) {
+			return factory, nil
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize content reader: %w", err)
+	}
+
 	args := workflow.ManagerArgs{
 		Config: ports.Config{
 			GeminiModel:        cfg.GeminiModel,
@@ -38,7 +59,7 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 			MaxPanelsPerPage:   cfg.MaxPanelsPerPage,
 		},
 		HTTPClient:      httpClient,
-		Reader:          rio.Reader,
+		Reader:          contentReader,
 		Writer:          rio.Writer,
 		AIClient:        geminiAI,
 		AIClientQuality: vertexAI,

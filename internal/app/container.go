@@ -3,12 +3,12 @@ package app
 import (
 	"log/slog"
 
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
-
 	"github.com/shouni/gcp-kit/tasks"
 	"github.com/shouni/go-http-kit/httpkit"
 	"github.com/shouni/go-remote-io/remoteio"
+
+	"ap-manga-web/internal/config"
+	"ap-manga-web/internal/domain"
 )
 
 // Container はアプリケーションの依存関係（DIコンテナ）を保持します。
@@ -28,7 +28,7 @@ type Container struct {
 // RemoteIO は外部ストレージ操作に関するコンポーネントをまとめます。
 type RemoteIO struct {
 	Factory remoteio.IOFactory
-	Reader  remoteio.InputReader
+	Reader  domain.ContentReader
 	Writer  remoteio.OutputWriter
 	Signer  remoteio.URLSigner
 }
