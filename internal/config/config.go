@@ -51,7 +51,7 @@ type Config struct {
 
 	// Generation Settings
 	MaxPanelsPerPage int
-	MaxConcurrency   int64
+	MaxConcurrency   int
 	RateInterval     time.Duration
 	StyleSuffix      string
 }
@@ -61,8 +61,6 @@ func LoadConfig() *Config {
 	serviceURL := getEnv("SERVICE_URL", "http://localhost:8080")
 	allowedEmails := getEnv("ALLOWED_EMAILS", "")
 	allowedDomains := getEnv("ALLOWED_DOMAINS", "")
-
-	maxConcurrency := getEnvAsInt("MAX_CONCURRENCY", DefaultMaxConcurrency)
 	intervalSec := getEnvAsInt("RATE_INTERVAL_SEC", DefaultRateIntervalSec)
 
 	return &Config{
@@ -94,7 +92,7 @@ func LoadConfig() *Config {
 
 		// Generation Settings
 		MaxPanelsPerPage: getEnvAsInt("MAX_PANELS_PER_PAGE", DefaultMaxPanelsPerPage),
-		MaxConcurrency:   int64(maxConcurrency),
+		MaxConcurrency:   getEnvAsInt("MAX_CONCURRENCY", DefaultMaxConcurrency),
 		RateInterval:     time.Duration(intervalSec) * time.Second,
 		StyleSuffix:      DefaultStyleSuffix,
 	}
