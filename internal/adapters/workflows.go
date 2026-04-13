@@ -114,6 +114,7 @@ func (w *WorkflowsAdapter) Publish(ctx context.Context, manga *ports.MangaRespon
 	return w.workflows.Publish.Run(ctx, manga, outputDir)
 }
 
+// saveJSON は指定されたデータを JSON 形式で保存します。
 func (w *WorkflowsAdapter) saveJSON(ctx context.Context, path string, data any) error {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
