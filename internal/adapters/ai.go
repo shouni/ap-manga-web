@@ -6,20 +6,19 @@ import (
 	"time"
 
 	"github.com/shouni/go-gemini-client/gemini"
-	"google.golang.org/genai"
 
 	"ap-manga-web/internal/config"
 )
 
 const (
 	// defaultGeminiTemperature はモデル生成時の多様性を制御します。
-	defaultGeminiTemperature = float32(0.8)
+	defaultGeminiTemperature = float32(1.0)
 	// defaultInitialDelay はリトライ時の初期待ち時間です。
 	defaultInitialDelay = 60 * time.Second
 	// defaultVertexLocationID はVertex AI のデフォルトロケーション
 	defaultVertexLocationID = "global"
 	// defaultVertexTemperature は生成パラメータ
-	defaultVertexTemperature = float32(0.2)
+	defaultVertexTemperature = float32(1.0)
 	// defaultVertexInitialDelay はリトライ遅延
 	defaultVertexInitialDelay = 60 * time.Second
 )
@@ -32,7 +31,7 @@ func NewGeminiAIAdapter(ctx context.Context, cfg *config.Config) (*gemini.Client
 
 	clientConfig := gemini.Config{
 		APIKey:       cfg.GeminiAPIKey,
-		Temperature:  genai.Ptr(defaultGeminiTemperature),
+		Temperature:  new(defaultGeminiTemperature),
 		InitialDelay: defaultInitialDelay,
 	}
 
@@ -53,7 +52,7 @@ func NewVertexAIAdapter(ctx context.Context, cfg *config.Config) (*gemini.Client
 	clientConfig := gemini.Config{
 		ProjectID:    cfg.ProjectID,
 		LocationID:   defaultVertexLocationID,
-		Temperature:  genai.Ptr(defaultVertexTemperature),
+		Temperature:  new(defaultVertexTemperature),
 		InitialDelay: defaultVertexInitialDelay,
 	}
 
