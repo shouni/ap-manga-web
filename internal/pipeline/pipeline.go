@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shouni/go-remote-io/remoteio"
-
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
 )
@@ -15,16 +13,11 @@ import (
 type MangaPipeline struct {
 	config    *config.Config
 	workflows domain.Workflows
-	writer    remoteio.OutputWriter
 	notifier  domain.Notifier
 }
 
 // NewMangaPipeline は、Container から必要な依存関係のみを抽出して MangaPipeline を生成します。
-func NewMangaPipeline(config *config.Config, workflows domain.Workflows, writer remoteio.OutputWriter, notifier domain.Notifier) (*MangaPipeline, error) {
-	if writer == nil {
-		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 成果物の保存に必要な OutputWriter が Container 内に設定されていません")
-	}
-
+func NewMangaPipeline(config *config.Config, workflows domain.Workflows, notifier domain.Notifier) (*MangaPipeline, error) {
 	if workflows == nil {
 		return nil, fmt.Errorf("MangaPipelineの初期化に失敗しました: 漫画生成ワークフロー (WorkflowsAdapter) が初期化されていません")
 	}
@@ -36,7 +29,6 @@ func NewMangaPipeline(config *config.Config, workflows domain.Workflows, writer 
 	return &MangaPipeline{
 		config:    config,
 		workflows: workflows,
-		writer:    writer,
 		notifier:  notifier,
 	}, nil
 }
@@ -51,7 +43,6 @@ func (p *MangaPipeline) Execute(ctx context.Context, payload domain.GenerateTask
 		startTime: time.Now(),
 		cfg:       p.config,
 		workflows: p.workflows,
-		writer:    p.writer,
 		notifier:  p.notifier,
 	}
 

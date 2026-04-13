@@ -66,7 +66,7 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 		return nil, fmt.Errorf("failed to initialize manga workflow: %w", err)
 	}
 	// 3. Pipeline (Core Logic)
-	mangaPipeline, err := buildPipeline(cfg, workflows, rio.Writer, slack)
+	mangaPipeline, err := buildPipeline(cfg, workflows, slack)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize manga pipeline: %w", err)
 	}

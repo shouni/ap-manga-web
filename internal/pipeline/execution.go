@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/shouni/go-manga-kit/ports"
-	"github.com/shouni/go-remote-io/remoteio"
 
 	"ap-manga-web/internal/config"
 	"ap-manga-web/internal/domain"
@@ -24,7 +23,6 @@ type mangaExecution struct {
 	// 依存関係
 	cfg       *config.Config
 	workflows domain.Workflows
-	writer    remoteio.OutputWriter
 	notifier  domain.Notifier
 }
 
