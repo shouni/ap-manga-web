@@ -1,7 +1,9 @@
 package adapters
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -21,6 +23,7 @@ import (
 // WorkflowsAdapter は、Workflows インターフェイスをラップするアダプタ構造体です。
 type WorkflowsAdapter struct {
 	workflows *ports.Workflows
+	writer    remoteio.OutputWriter
 }
 
 // NewWorkflowsAdapter は Workflowsを初期化します。
@@ -75,6 +78,7 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 
 	return &WorkflowsAdapter{
 		workflows: workflows,
+		writer:    rio.Writer,
 	}, nil
 }
 
@@ -83,9 +87,16 @@ func (w *WorkflowsAdapter) Design(ctx context.Context, charIDs []string, seed in
 	return w.workflows.Design.Run(ctx, charIDs, seed, outputDir)
 }
 
-// Script は指定されたURLから台本を作成します。
-func (w *WorkflowsAdapter) Script(ctx context.Context, sourceURL, mode string) (*ports.MangaResponse, error) {
-	return w.workflows.Script.Run(ctx, sourceURL, mode)
+// Script は指定されたURLから台本を作成し、JSON を保存します。
+func (w *WorkflowsAdapter) Script(ctx context.Context, sourceURL, mode, outputPath string) (*ports.MangaResponse, error) {
+	manga, err := w.workflows.Script.Run(ctx, sourceURL, mode)
+	if err != nil {
+		return nil, err
+	}
+	if err := w.saveJSON(ctx, outputPath, manga); err != nil {
+		return manga, err
+	}
+	return manga, nil
 }
 
 // Panel は指定された漫画のページを保存します。
@@ -101,6 +112,16 @@ func (w *WorkflowsAdapter) Page(ctx context.Context, manga *ports.MangaResponse,
 // Publish は指定された漫画を公開します。
 func (w *WorkflowsAdapter) Publish(ctx context.Context, manga *ports.MangaResponse, outputDir string) (*ports.PublishResult, error) {
 	return w.workflows.Publish.Run(ctx, manga, outputDir)
+}
+
+func (w *WorkflowsAdapter) saveJSON(ctx context.Context, path string, data any) error {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(data); err != nil {
+		return fmt.Errorf("failed to encode to JSON: %w", err)
+	}
+	return w.writer.Write(ctx, path, &buf, "application/json")
 }
 
 // buildPromptDeps は Prompt ビルダーを初期化します。

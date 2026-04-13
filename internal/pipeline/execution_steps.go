@@ -9,14 +9,10 @@ import (
 
 // runScriptStep はスクリプト生成フェーズを実行し、生成された台本をJSONとしてGCSに保存します。
 func (e *mangaExecution) runScriptStep(ctx context.Context) (*ports.MangaResponse, string, error) {
-	manga, err := e.workflows.Script(ctx, e.payload.ScriptURL, e.payload.Mode)
+	plotFile := e.resolvePlotFileURL(nil)
+	manga, err := e.workflows.Script(ctx, e.payload.ScriptURL, e.payload.Mode, plotFile)
 	if err != nil {
 		return nil, "", fmt.Errorf("ScriptRunnerの実行に失敗しました: %w", err)
-	}
-
-	plotFile := e.resolvePlotFileURL(manga)
-	if err := e.saveJSON(ctx, plotFile, manga); err != nil {
-		return manga, "", err
 	}
 	return manga, plotFile, nil
 }

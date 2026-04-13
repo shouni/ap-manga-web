@@ -1,10 +1,7 @@
 package pipeline
 
 import (
-	"bytes"
-	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"
@@ -18,17 +15,6 @@ import (
 var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
 
 // --- Path Resolvers ---
-
-// saveJSON は共通の保存処理として切り出す
-func (e *mangaExecution) saveJSON(ctx context.Context, path string, data any) error {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(data); err != nil {
-		return fmt.Errorf("failed to encode to JSON: %w", err)
-	}
-	return e.writer.Write(ctx, path, &buf, "application/json")
-}
 
 // resolveWorkDir は、漫画のワークディレクトリパスを解決します。
 func (e *mangaExecution) resolveWorkDir(manga *ports.MangaResponse) string {
