@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/shouni/go-gemini-client/gemini"
 	"github.com/shouni/go-http-kit/httpkit"
@@ -33,24 +32,12 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 		return nil, fmt.Errorf("failed to initialize prompt dependencies: %w", err)
 	}
 
-	factory := rio.Factory
-	defer func() {
-		if err != nil {
-			if closeErr := factory.Close(); closeErr != nil {
-				slog.Warn("failed to close GCS factory during cleanup", "error", closeErr)
-			}
-		}
-	}()
-
 	contentReader, err := reader.New(
 		reader.WithGCSFactory(func(ctx context.Context) (remoteio.ReadWriteFactory, error) {
-			return factory, nil
+			return rio.Factory, nil
 		}),
 	)
 	if err != nil {
-		if closeErr := factory.Close(); closeErr != nil {
-			slog.Warn("failed to close GCS factory during cleanup", "error", closeErr)
-		}
 		return nil, fmt.Errorf("failed to initialize content reader: %w", err)
 	}
 
