@@ -11,6 +11,11 @@
 
 Webフォームを通じて画像生成処理を**非同期ワーカー**（Cloud Tasks）で実行します。処理完了時には **Slack** へ通知が飛び、生成された作品の確認や、キャラクター固定に必要な Seed 値の取得がスムーズに行えます。
 
+### 🎨 概要イメージ
+
+![Page 1](./docs/manga_page_1.png)
+![Page 2](./docs/manga_page_2.png)
+
 ---
 
 ## 🎨 5つのワークフロー (Workflows)
@@ -125,13 +130,6 @@ sequenceDiagram
 | **AIプラットフォーム** | **Vertex AI / Gemini API** | マルチモーダル生成。**GCSからの直接参照**をサポート。 |
 | **結果保存** | **Google Cloud Storage (GCS)** | 生成物（HTML/画像）の永続化。 |
 | **通知** | **Slack Webhook** | 生成完了および Seed 値の報告。 |
-
----
-
-## 🎨 概要イメージ
-
-![Page 1](./docs/manga_page_1.png)
-![Page 2](./docs/manga_page_2.png)
 
 ---
 
