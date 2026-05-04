@@ -33,7 +33,7 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 	}
 
 	contentReader, err := reader.New(
-		reader.WithGCSFactory(func(ctx context.Context) (remoteio.ReadWriteFactory, error) {
+		reader.WithGCSFactory(func(ctx context.Context) (remoteio.IOFactory, error) {
 			return rio.Factory, nil
 		}),
 	)
