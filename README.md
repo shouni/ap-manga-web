@@ -4,6 +4,8 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/shouni/ap-manga-web)](https://golang.org/)
 [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/shouni/ap-manga-web)](https://github.com/shouni/ap-manga-web/tags)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Report Card](https://goreportcard.com/badge/github.com/shouni/ap-manga-web)](https://goreportcard.com/report/github.com/shouni/ap-manga-web)
+[![Status](https://img.shields.io/badge/Status-In%20Development-yellow)](#)
 
 ## 🚀 概要 (About) - Webベースの画像生成オーケストレーター
 
