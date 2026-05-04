@@ -75,7 +75,7 @@ func setupRoutes(
 					token, err := h.Auth.GenerateAndSaveCSRFToken(w, r)
 					if err != nil {
 						slog.Error("Failed to auto-generate CSRF token", "error", err)
-						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+						http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 						return
 					}
 					csrfToken = token
