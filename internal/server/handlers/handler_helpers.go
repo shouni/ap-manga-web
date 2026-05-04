@@ -13,7 +13,7 @@ import (
 var validTitle = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 // render は HTML テンプレートをレンダリングし、レスポンスを書き込みます。
-func (h *Handler) render(w http.ResponseWriter, status int, pageName string, title string, data any) {
+func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, pageName string, title string, data any) {
 	tmpl, ok := h.templateCache[pageName]
 	if !ok {
 		slog.Error("キャッシュ内にテンプレートが見つかりません", "page", pageName)
@@ -22,11 +22,13 @@ func (h *Handler) render(w http.ResponseWriter, status int, pageName string, tit
 	}
 
 	renderData := struct {
-		Title string
-		Data  any
+		Title     string
+		Data      any
+		CSRFToken string
 	}{
-		Title: title + titleSuffix,
-		Data:  data,
+		Title:     title + titleSuffix,
+		Data:      data,
+		CSRFToken: csrfTokenFromContext(r.Context()),
 	}
 
 	var buf bytes.Buffer

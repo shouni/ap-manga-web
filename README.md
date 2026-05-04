@@ -93,30 +93,78 @@ ap-manga-web/
 
 ```mermaid
 sequenceDiagram
-    participant User as User (Web UI)
-    participant Web as Web (Cloud Run)
-    participant Queue as Cloud Tasks
-    participant Worker as Worker (Cloud Run)
-    participant Pipeline as Manga Pipeline
-    participant VertexAI as Vertex AI (Imagen/Gemini)
-    participant GCS as Cloud Storage
-    participant Slack as Slack Notification
+   participant User as User (Web UI)
+   participant Web as Web Handler (Cloud Run)
+   participant Auth as Auth Middleware
+   participant Queue as Cloud Tasks
+   participant Worker as Worker Handler (Cloud Run)
+   participant Pipeline as Manga Pipeline
+   participant Workflows as go-manga-kit Workflows
+   participant AI as Gemini / Vertex AI
+   participant GCS as Cloud Storage
+   participant Slack as Slack Notification
 
-    User->>Web: フォーム送信 (Prompt/URL/Seed)
-    Web->>Queue: タスクをエンキュー (Async)
-    Web-->>User: 受付完了画面を表示
-    
-    Queue->>Worker: HTTP POST (タスク実行)
-    Worker->>Pipeline: Execute() 起動
-    
-    rect rgb(240, 240, 240)
-        Note over Pipeline, VertexAI: 生成フェーズ (GCS直接参照)
-        Pipeline->>VertexAI: 画像生成リクエスト (gs:// 参照)
-        VertexAI-->>Pipeline: 生成画像データ
-    end
-    
-    Pipeline->>GCS: 成果物保存
-    Pipeline->>Slack: 完了通知 (閲覧URL & Seed値)
+   User->>Web: フォーム送信 (command, URL/Text, mode, seed)
+   Web->>Auth: セッション認証 / CSRF 検証
+   Auth-->>Web: OK
+   Web->>Web: フォーム解析 / seed・target_panels 検証
+   Web->>Queue: GenerateTaskPayload をエンキュー
+   Web-->>User: 受付完了画面を表示
+
+   Queue->>Worker: HTTP POST /tasks/generate (OIDC)
+   Worker->>Auth: Cloud Tasks OIDC 検証
+   Auth-->>Worker: OK
+   Worker->>Pipeline: Execute(payload)
+
+   rect rgb(240, 240, 240)
+      Note over Pipeline, Workflows: command 別にワークフローを実行
+
+      alt generate
+         Pipeline->>Workflows: Script(sourceURL, mode, plotPath)
+         Workflows->>AI: 台本生成
+         Workflows->>GCS: manga_plot.json 保存
+         Pipeline->>Workflows: Panel(manga, plotPath)
+         Workflows->>AI: パネル画像生成
+         Workflows->>GCS: パネル画像 / 更新済み JSON 保存
+         Pipeline->>Workflows: Publish(manga, outputDir)
+         Workflows->>GCS: HTML 等を公開用に保存
+         Pipeline->>Workflows: Page(manga, plotPath)
+         Workflows->>AI: ページ画像生成
+         Workflows->>GCS: final_page_n.png 保存
+      else script
+         Pipeline->>Workflows: Script(sourceURL, mode, plotPath)
+         Workflows->>AI: 台本生成
+         Workflows->>GCS: manga_plot.json 保存
+      else panel
+         Pipeline->>Pipeline: InputText の JSON を MangaResponse に復元
+         Pipeline->>Workflows: Panel(manga, plotPath)
+         Workflows->>AI: パネル画像生成
+         Workflows->>GCS: パネル画像 / 更新済み JSON 保存
+         Pipeline->>Workflows: Publish(manga, outputDir)
+         Workflows->>GCS: HTML 等を公開用に保存
+      else page
+         Pipeline->>Pipeline: InputText の JSON を MangaResponse に復元
+         Pipeline->>Workflows: Page(manga, plotPath)
+         Workflows->>AI: ページ画像生成
+         Workflows->>GCS: final_page_n.png 保存
+         Pipeline->>Workflows: Publish(manga, outputDir)
+         Workflows->>GCS: HTML 等を公開用に保存
+      else design
+         Pipeline->>Pipeline: InputText からキャラクターIDを解析
+         Pipeline->>Workflows: Design(charIDs, seed, outputDir)
+         Workflows->>AI: デザインシート生成
+         Workflows->>GCS: デザイン画像保存
+      end
+   end
+
+   alt 成功
+      Pipeline->>Slack: 完了通知 (公開URL / GCS URI / Seed等)
+      User->>Web: 公開URLにアクセス
+      Web->>GCS: manga_plot.json と画像一覧を取得
+      Web-->>User: 署名付きURLでプレビュー表示
+   else 失敗
+      Pipeline->>Slack: エラー通知
+   end
 ```
 
 ---
