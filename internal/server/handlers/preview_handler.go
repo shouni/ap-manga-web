@@ -59,7 +59,7 @@ func (h *Handler) ServePreview(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", cacheAgeSec))
 
 	// 6. テンプレートのレンダリング
-	h.render(w, http.StatusOK, "manga_view.html", title, mangaViewData{
+	h.render(w, r, http.StatusOK, "manga_view.html", title, mangaViewData{
 		Title:         title,
 		OriginalTitle: manga.Title,
 		Manga:         manga,

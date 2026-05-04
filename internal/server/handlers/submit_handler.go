@@ -54,5 +54,5 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, http.StatusAccepted, "accepted.html", "タスク受付完了", payload)
+	h.render(w, r, http.StatusAccepted, "accepted.html", "タスク受付完了", payload)
 }

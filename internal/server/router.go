@@ -71,13 +71,17 @@ func setupRoutes(
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method == http.MethodGet {
 					// セッションにトークンがない場合のみ生成
-					if h.Auth.GetCSRFTokenFromSession(r) == "" {
-						if _, err := h.Auth.GenerateAndSaveCSRFToken(w, r); err != nil {
+					csrfToken := h.Auth.GetCSRFTokenFromSession(r)
+					if csrfToken == "" {
+						token, err := h.Auth.GenerateAndSaveCSRFToken(w, r)
+						if err != nil {
 							slog.Error("Failed to auto-generate CSRF token", "error", err)
 							http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 							return
 						}
+						csrfToken = token
 					}
+					r = r.WithContext(handlers.WithCSRFToken(r.Context(), csrfToken))
 				}
 				next.ServeHTTP(w, r)
 			})
