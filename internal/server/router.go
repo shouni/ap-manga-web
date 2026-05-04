@@ -66,23 +66,22 @@ func setupRoutes(
 		// ログインチェック & POST時のCSRF検証を適用
 		r.Use(h.Auth.Middleware)
 
-		// GETリクエスト時にCSRFトークンがなければ自動生成してセッションに保存するミドルウェア
+		// CSRFトークンがなければ自動生成してセッションに保存するミドルウェア
 		r.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method == http.MethodGet {
-					// セッションにトークンがない場合のみ生成
-					csrfToken := h.Auth.GetCSRFTokenFromSession(r)
-					if csrfToken == "" {
-						token, err := h.Auth.GenerateAndSaveCSRFToken(w, r)
-						if err != nil {
-							slog.Error("Failed to auto-generate CSRF token", "error", err)
-							http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-							return
-						}
-						csrfToken = token
+				csrfToken := h.Auth.GetCSRFTokenFromSession(r)
+				if csrfToken == "" {
+					// トークンがない場合は生成して保存
+					token, err := h.Auth.GenerateAndSaveCSRFToken(w, r)
+					if err != nil {
+						slog.Error("Failed to auto-generate CSRF token", "error", err)
+						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+						return
 					}
-					r = r.WithContext(handlers.WithCSRFToken(r.Context(), csrfToken))
+					csrfToken = token
 				}
+				// メソッドに関わらずコンテキストにセットする
+				r = r.WithContext(handlers.WithCSRFToken(r.Context(), csrfToken))
 				next.ServeHTTP(w, r)
 			})
 		})
