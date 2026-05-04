@@ -10,6 +10,7 @@
             </div>
             <div class="card-body bg-white p-4">
                 <form action="/generate" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
                     <input type="hidden" name="command" value="page">
 
                     <div class="mb-4">
