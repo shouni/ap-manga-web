@@ -70,8 +70,7 @@ func setupRoutes(
 		r.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				csrfToken := h.Auth.GetCSRFTokenFromSession(r)
-				if csrfToken == "" {
-					// トークンがない場合は生成して保存
+				if csrfToken == "" && r.Method == http.MethodGet {
 					token, err := h.Auth.GenerateAndSaveCSRFToken(w, r)
 					if err != nil {
 						slog.Error("Failed to auto-generate CSRF token", "error", err)
@@ -80,7 +79,6 @@ func setupRoutes(
 					}
 					csrfToken = token
 				}
-				// メソッドに関わらずコンテキストにセットする
 				r = r.WithContext(handlers.WithCSRFToken(r.Context(), csrfToken))
 				next.ServeHTTP(w, r)
 			})
