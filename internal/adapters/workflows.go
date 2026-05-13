@@ -109,7 +109,9 @@ func (w *WorkflowsAdapter) saveJSON(ctx context.Context, path string, data any) 
 	if err := enc.Encode(data); err != nil {
 		return fmt.Errorf("failed to encode to JSON: %w", err)
 	}
-	return w.writer.Write(ctx, path, &buf, "application/json")
+	return w.writer.Write(ctx, path, &buf,
+		remoteio.WithContentType("application/json"),
+		remoteio.WithCacheControl("public, max-age=1800"))
 }
 
 // buildPromptDeps は Prompt ビルダーを初期化します。
