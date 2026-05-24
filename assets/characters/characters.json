@@ -39,7 +39,7 @@
     "id": "tsumugi",
     "name": "Tsumugi",
     "seed": 30001,
-    "reference_url": "https://booth.pximg.net/d2b98c74-a808-4bcb-8d1d-5c4631b22910/i/3474402/0d35a8d1-ca73-433d-9460-91c7de1d0070_base_resized.jpg",
+    "reference_url": "gs://ap-manga/character/design_tsumugi.png",
     "visual_cues": [
       "short brownish-orange hair with side tail",
       "energetic and cheerful expression",
