@@ -133,8 +133,8 @@ func buildPromptDeps(styleSuffix string) (*workflow.PromptDeps, error) {
 	imagePrompt := prompts.NewImageBuilder(charMap, styleSuffix)
 
 	return &workflow.PromptDeps{
-		CharactersMap: charMap,
-		ScriptPrompt:  textPrompt,
-		ImagePrompt:   imagePrompt,
+		Characters:   charMap,
+		ScriptPrompt: textPrompt,
+		ImagePrompt:  imagePrompt,
 	}, nil
 }
