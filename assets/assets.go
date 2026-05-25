@@ -32,6 +32,6 @@ func LoadPrompts() (map[string]string, error) {
 }
 
 // LoadCharacters は埋め込まれたキャラクター定義ファイルを読み込みます。
-func LoadCharacters() (ports.CharactersMap, error) {
-	return ports.GetCharacters(characters)
+func LoadCharacters() (*ports.Characters, error) {
+	return ports.ParseCharacters(characters)
 }

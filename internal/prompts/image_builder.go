@@ -17,12 +17,12 @@ const (
 
 // ImageBuilder は、キャラクター情報を考慮してAIプロンプトを構築します。
 type ImageBuilder struct {
-	characterMap  ports.CharactersMap
+	characterMap  *ports.Characters
 	defaultSuffix string // 例: "anime style, high quality"
 }
 
 // NewImageBuilder は新しい PromptBuilder を生成します。
-func NewImageBuilder(characterMap ports.CharactersMap, suffix string) *ImageBuilder {
+func NewImageBuilder(characterMap *ports.Characters, suffix string) *ImageBuilder {
 	return &ImageBuilder{
 		characterMap:  characterMap,
 		defaultSuffix: suffix,

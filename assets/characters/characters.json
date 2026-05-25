@@ -1,5 +1,5 @@
-{
-  "zundamon_metan": {
+[
+  {
     "id": "zundamon_metan",
     "name": "Zundamon and Metan",
     "is_default": true,
@@ -12,7 +12,7 @@
       "consistent with the reference image styles"
     ]
   },
-  "zundamon": {
+  {
     "id": "zundamon",
     "name": "Zundamon",
     "seed": 10001,
@@ -23,7 +23,7 @@
       "strictly following the design from reference"
     ]
   },
-  "metan": {
+  {
     "id": "metan",
     "name": "Metan",
     "seed": 20001,
@@ -35,7 +35,7 @@
       "strictly following the design from reference"
     ]
   },
-  "tsumugi": {
+  {
     "id": "tsumugi",
     "name": "Tsumugi",
     "seed": 30001,
@@ -46,5 +46,4 @@
       "strictly following the design from reference"
     ]
   }
-}
-
+]
