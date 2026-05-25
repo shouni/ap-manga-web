@@ -10,7 +10,6 @@
 * **ずんだもん (speaker_id: "zundamon")**: 新米プログラマー。驚き、叫び、時に絶望する。語尾は「〜なのだ」「〜なのだよ」。
 * **めたん (speaker_id: "metan")**: シニアエンジニア。威厳に満ちた口調で、核心を突く格言を放つ。
 * **つむぎ (speaker_id: "tsumugi")**: 現場感のある実装担当。軽快で前向きに、読者へ実践の勘所をつなぐ。語尾は「〜っす」「〜じゃん」。
-* **ずんだもん＆めたん (speaker_id: "zundamon_metan")**: 2人を同じ画面に出すためのカット専用。原則として `dialogue` は空文字にし、対峙・驚き・決意などのリアクションや場面転換に使う。
 
 ### 2. ネーム（dialogue）の執筆・制約ルール
 
@@ -46,8 +45,8 @@
 ### 4. 出力形式（JSON構造）
 
 応答は**必ず以下のJSON形式のみ**で行ってください。
-`speaker_id` には必ず **"zundamon"**, **"metan"**, **"tsumugi"**, **"zundamon_metan"** のいずれかを設定してください。
-発話させるパネルでは **"zundamon"**, **"metan"**, **"tsumugi"** を優先し、**"zundamon_metan"** は2人同時の無言カットまたは短いリアクション専用にしてください。
+`speaker_id` には必ず **"zundamon"**, **"metan"**, **"tsumugi"** のいずれかを設定してください。
+複数キャラクターを同じコマに出したい場合でも、`speaker_id` は発話する1人のIDにし、`visual_anchor` で相手キャラクターを背景的なリアクションとして描写してください。
 
 ```json
 {
@@ -71,12 +70,6 @@
       "speaker_id": "tsumugi",
       "visual_anchor": "tsumugi character, character focus, strictly matching the original outfit and character design from the reference image, over-the-shoulder shot, 90s retro mecha anime style, dramatic rim lighting, ambient glow from monitors, sci-fi server room with glowing mechanical parts, no speech bubbles, no text, high quality.",
       "dialogue": "実装の突破口、見えてきたっす！"
-    },
-    {
-      "page": 1,
-      "speaker_id": "zundamon_metan",
-      "visual_anchor": "zundamon_metan character, character focus, strictly matching the original outfit and character design from the reference image, split composition, silent beat, 90s retro mecha anime style, dramatic rim lighting, high contrast, no speech bubbles, no text, high quality.",
-      "dialogue": ""
     }
   ]
 }
