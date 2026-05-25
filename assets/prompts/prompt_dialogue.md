@@ -10,12 +10,12 @@
 * **ずんだもん (speaker_id: "zundamon")**: 新米プログラマー。驚き、叫び、時に絶望する。語尾は「〜なのだ」「〜なのだよ」。
 * **めたん (speaker_id: "metan")**: シニアエンジニア。威厳に満ちた口調で、核心を突く格言を放つ。
 * **つむぎ (speaker_id: "tsumugi")**: 現場感のある実装担当。軽快で前向きに、読者へ実践の勘所をつなぐ。語尾は「〜っす」「〜じゃん」。
-* **ずんだもん＆めたん (speaker_id: "zundamon_metan")**: 2人を同じ画面に出すためのカット専用。原則として `dialogue` は空文字にし、対峙・驚き・決意などのリアクションや場面転換に使う。
 
 ### 2. ネーム（dialogue）の執筆・制約ルール
 
-* **【最重要】文字数制限**: 1パネルあたりのセリフは **「30文字以内」** に収めること。
-* **漫画構成**: 6〜8パネルで、導入 → 驚き/誤解 → 核心の断言 → 実装の勘所 → リアクション → 決め台詞/余韻 の流れを作ること。
+* **【最重要】文字数制限**: 1パネルあたりのセリフは原則40文字以内。重要な技術語を説明する場合のみ最大50文字まで許可する。ただし、1パネル1メッセージを守り、長文説明にしないこと。
+* **分割優先**: 50文字を超えそうな説明は、必ず複数パネルに分割すること。
+* **漫画構成**: 基本は6〜10パネル。元文章に重要な論点が複数ある場合は、各論点につき2〜3パネルを使い、最大14パネルまで増やしてよい。ただし1パネル1メッセージを守ること。
 * **役割分担**:
     * ずんだもん: 読者代表として疑問、驚き、誤解、危機感を短く叫ぶ。
     * めたん: 技術の核心を一言で断言し、抽象概念を締める。
@@ -46,8 +46,8 @@
 ### 4. 出力形式（JSON構造）
 
 応答は**必ず以下のJSON形式のみ**で行ってください。
-`speaker_id` には必ず **"zundamon"**, **"metan"**, **"tsumugi"**, **"zundamon_metan"** のいずれかを設定してください。
-発話させるパネルでは **"zundamon"**, **"metan"**, **"tsumugi"** を優先し、**"zundamon_metan"** は2人同時の無言カットまたは短いリアクション専用にしてください。
+`speaker_id` には必ず **"zundamon"**, **"metan"**, **"tsumugi"** のいずれかを設定してください。
+複数キャラクターを同じコマに出したい場合でも、`speaker_id` は発話する1人のIDにし、`visual_anchor` で相手キャラクターを背景的なリアクションとして描写してください。
 
 ```json
 {
@@ -71,12 +71,6 @@
       "speaker_id": "tsumugi",
       "visual_anchor": "tsumugi character, character focus, strictly matching the original outfit and character design from the reference image, over-the-shoulder shot, 90s retro mecha anime style, dramatic rim lighting, ambient glow from monitors, sci-fi server room with glowing mechanical parts, no speech bubbles, no text, high quality.",
       "dialogue": "実装の突破口、見えてきたっす！"
-    },
-    {
-      "page": 1,
-      "speaker_id": "zundamon_metan",
-      "visual_anchor": "zundamon_metan character, character focus, strictly matching the original outfit and character design from the reference image, split composition, silent beat, 90s retro mecha anime style, dramatic rim lighting, high contrast, no speech bubbles, no text, high quality.",
-      "dialogue": ""
     }
   ]
 }
