@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/shouni/gcp-kit v1.1.3
-	github.com/shouni/go-gemini-client v1.3.1
+	github.com/shouni/go-gemini-client v1.4.3
 	github.com/shouni/go-http-kit v1.4.2
 	github.com/shouni/go-manga-kit v1.9.5
 	github.com/shouni/go-notifier v1.2.3
