@@ -4,7 +4,7 @@ substitutions:
   _ENV_PREFIX: 'develop'
   _TAG: '${_ENV_PREFIX}-${SHORT_SHA}'
   _CACHE_TAG: 'develop-latest'
-  _SERVICE_NAME: 'ap-manga'
+  _SERVICE_NAME: 'ap-manga-web'
   _REGION: 'asia-northeast1'
 
 steps:
