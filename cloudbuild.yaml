@@ -53,7 +53,7 @@ steps:
       - 'GCP_PROJECT_ID=${PROJECT_ID},
         GCP_LOCATION_ID=${_REGION},
         GEMINI_MODEL=gemini-3.5-flash,
-        IMAGE_QUALITY_MODEL=gemini-3-pro-image-preview,
+        IMAGE_QUALITY_MODEL=gemini-3-pro-image,
         IMAGE_MODEL=gemini-3.1-pro-image'
 
   - name: 'gcr.io/cloud-builders/docker'
