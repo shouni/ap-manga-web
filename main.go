@@ -21,7 +21,11 @@ func main() {
 	defer stop()
 
 	// 3. 設定のロードとバリデーション
-	cfg := config.LoadConfig()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		slog.Error("Config loading failed", "error", err)
+		os.Exit(1)
+	}
 	if err := cfg.ValidateEssentialConfig(); err != nil {
 		slog.Error("Config validation failed", "error", err)
 		os.Exit(1)
