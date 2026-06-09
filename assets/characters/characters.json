@@ -8,7 +8,8 @@
       "vibrant emerald green hair",
       "soybean earmuffs",
       "strictly following the design from reference"
-    ]
+    ],
+    "is_default": true
   },
   {
     "id": "metan",
@@ -20,17 +21,23 @@
       "massive twin-tails with spiral curls",
       "sharp red eyes",
       "strictly following the design from reference"
-    ]
+    ],
+    "is_default": false
   },
   {
     "id": "tsumugi",
     "name": "Tsumugi",
-    "seed": 30001,
+    "seed": 208222065,
     "reference_url": "gs://ap-manga/character/design_tsumugi.png",
     "visual_cues": [
-      "short brownish-orange hair with side tail",
-      "energetic and cheerful expression",
+      "short brownish-orange hair with a right-side ponytail",
+      "bright light-blue eyes, energetic and cheerful expression",
+      "oversized yellow cardigan with multiple colorful bandages and a cat-face badge attached",
+      "dark grey collared shirt with a yellow necktie",
+      "pink-and-black plaid pleated skirt",
+      "white loose socks, brown loafers, and a bandage on the left knee",
       "strictly following the design from reference"
-    ]
+    ],
+    "is_default": false
   }
 ]
