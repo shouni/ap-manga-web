@@ -3,6 +3,7 @@ package assets
 import (
 	"embed"
 
+	"github.com/shouni/go-character-kit/character"
 	"github.com/shouni/go-manga-kit/ports"
 	"github.com/shouni/go-prompt-kit/resource"
 )
@@ -33,5 +34,5 @@ func LoadPrompts() (map[string]string, error) {
 
 // LoadCharacters は埋め込まれたキャラクター定義ファイルを読み込みます。
 func LoadCharacters() (*ports.Characters, error) {
-	return ports.ParseCharacters(characters)
+	return character.ParseCharacters(characters)
 }
