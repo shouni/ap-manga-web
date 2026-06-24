@@ -264,7 +264,4 @@ Cloud Tasks がワーカーを呼び出す際に使用する ID（`ServiceAccoun
 
 ### 📜 ライセンス (License)
 
-* デフォルトキャラクター: VOICEVOX:ずんだもん、VOICEVOX:四国めたん
 * このプロジェクトは [MIT License](https://opensource.org/licenses/MIT) の下で公開されています。
-
----
