@@ -3,7 +3,7 @@ package builder
 import (
 	"fmt"
 
-	"ap-manga-web/internal/app"
+	"github.com/shouni/ap-manga-web/internal/app"
 
 	"github.com/shouni/go-remote-io/remoteio"
 )

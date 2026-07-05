@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
@@ -33,7 +32,7 @@ func (e *mangaExecution) resolveOutputURL(manga *ports.MangaResponse) string {
 
 // resolvePlotFileURL は、プロットファイル（JSON）のフルパスを解決します。
 func (e *mangaExecution) resolvePlotFileURL(manga *ports.MangaResponse) string {
-	filePath := path.Join(e.resolveWorkDir(manga), asset.DefaultMangaPlotJson)
+	filePath := path.Join(e.resolveWorkDir(manga), asset.DefaultMangaPlotJSON)
 	return e.cfg.GetGCSObjectURL(filePath)
 }
 
@@ -61,30 +60,6 @@ func (e *mangaExecution) resolveSafeTitle(title string) string {
 }
 
 // --- String Parsers ---
-
-// parseTargetPanels はカンマ区切りの文字列を解析し、範囲内のインデックスを返します。
-// 入力が空、または空白のみの場合は、全インデックス (0...total-1) を返します。
-func parseTargetPanels(s string, total int) []int {
-	trimmedInput := strings.TrimSpace(s)
-	if trimmedInput == "" {
-		res := make([]int, total)
-		for i := 0; i < total; i++ {
-			res[i] = i
-		}
-		return res
-	}
-
-	parts := strings.Split(trimmedInput, ",")
-	res := make([]int, 0, len(parts))
-	for _, part := range parts {
-		if idx, err := strconv.Atoi(strings.TrimSpace(part)); err == nil {
-			if idx >= 0 && idx < total {
-				res = append(res, idx)
-			}
-		}
-	}
-	return res
-}
 
 // parseCSV はカンマ区切りの文字列をスライスに変換します。
 func parseCSV(input string) []string {

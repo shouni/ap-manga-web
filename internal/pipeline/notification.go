@@ -8,7 +8,7 @@ import (
 
 	"github.com/shouni/go-manga-kit/ports"
 
-	"ap-manga-web/internal/domain"
+	"github.com/shouni/ap-manga-web/internal/domain"
 )
 
 const (

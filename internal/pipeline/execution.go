@@ -1,3 +1,5 @@
+// Package pipeline は、漫画生成の各実行フェーズ（デザイン・スクリプト・パネル/ページ画像・公開）を
+// オーケストレーションします。
 package pipeline
 
 import (
@@ -9,8 +11,8 @@ import (
 
 	"github.com/shouni/go-manga-kit/ports"
 
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
+	"github.com/shouni/ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/domain"
 )
 
 // mangaExecution は一回のリクエスト実行に関する状態を保持します。

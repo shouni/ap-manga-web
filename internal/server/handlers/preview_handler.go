@@ -15,7 +15,7 @@ import (
 	"github.com/shouni/go-manga-kit/asset"
 	"github.com/shouni/go-manga-kit/ports"
 
-	"ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/config"
 )
 
 // mangaViewData はテンプレート「manga_view.html」に渡すためのデータ構造体
@@ -100,7 +100,7 @@ func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, msg, title
 // loadMangaJSON は GCS から manga_plot.json を読み込み、ドメインモデルにデコードします。
 func (h *Handler) loadMangaJSON(r *http.Request, title string) (ports.MangaResponse, error) {
 	var manga ports.MangaResponse
-	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotJson)
+	relPath, err := h.validateAndCleanPath(title, asset.DefaultMangaPlotJSON)
 	if err != nil {
 		return manga, err
 	}

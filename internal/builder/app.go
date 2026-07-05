@@ -1,3 +1,5 @@
+// Package builder は、設定値から各サービスクライアント・ワークフローの
+// 依存関係を組み立てるファクトリ関数を提供します。
 package builder
 
 import (
@@ -5,9 +7,9 @@ import (
 	"fmt"
 	"io"
 
-	"ap-manga-web/internal/adapters"
-	"ap-manga-web/internal/app"
-	"ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/adapters"
+	"github.com/shouni/ap-manga-web/internal/app"
+	"github.com/shouni/ap-manga-web/internal/config"
 
 	"github.com/shouni/go-http-kit/httpkit"
 	"github.com/shouni/go-remote-io/remoteio/gcs"

@@ -1,3 +1,4 @@
+// Package assets は、プロンプトテンプレートとキャラクター設定を埋め込みリソースとして提供します。
 package assets
 
 import (

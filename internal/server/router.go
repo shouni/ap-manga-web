@@ -1,3 +1,4 @@
+// Package server は、HTTPルーティングとミドルウェアを構成します。
 package server
 
 import (
@@ -5,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"ap-manga-web/internal/builder"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/server/handlers"
+	"github.com/shouni/ap-manga-web/internal/builder"
+	"github.com/shouni/ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/server/handlers"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

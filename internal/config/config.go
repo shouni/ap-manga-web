@@ -1,3 +1,4 @@
+// Package config は、環境変数からアプリケーション設定を読み込み・検証します。
 package config
 
 import (
@@ -15,6 +16,7 @@ const (
 	SignedURLExpiration = 5 * time.Minute
 	// DefaultHTTPTimeout 画像生成や Gemini API の応答を考慮したタイムアウト
 	DefaultHTTPTimeout = 60 * time.Second
+	// DefaultStyleSuffix は、画像生成プロンプトに付与するデフォルトの画風指定です。
 	DefaultStyleSuffix = "Japanese anime style, official art, cel-shaded, clean line art, high-quality manga coloring, expressive eyes, vibrant colors, cinematic lighting, masterpiece, ultra-detailed, flat shading, clear character features, no 3D effect, high resolution"
 )
 

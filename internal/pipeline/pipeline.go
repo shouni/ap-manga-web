@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
+	"github.com/shouni/ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/domain"
 )
 
 // MangaPipeline はパイプラインの実行に必要な外部依存関係を保持するサービス構造体です。

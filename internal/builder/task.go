@@ -7,8 +7,8 @@ import (
 
 	"github.com/shouni/gcp-kit/tasks"
 
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
+	"github.com/shouni/ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/domain"
 )
 
 // buildTaskEnqueuer は、Cloud Tasks エンキューアを初期化します。

@@ -1,8 +1,11 @@
+// Package domain は、漫画生成ワークフローが扱う中心的なドメインモデルを定義します。
 package domain
 
 const (
+	// PublicURLConstructionError は、公開URLの構築に失敗した際の通知用表示文字列です。
 	PublicURLConstructionError = "N/A (URL construction failed)"
-	NotAvailable               = "N/A"
+	// NotAvailable は、通知メッセージ内で値が存在しないことを示す表示用の文字列です。
+	NotAvailable = "N/A"
 )
 
 // NotificationRequest は Slack 等の通知コンポーネントで共有されるデータ構造です。

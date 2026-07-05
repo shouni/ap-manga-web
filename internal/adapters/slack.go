@@ -11,7 +11,7 @@ import (
 	"github.com/shouni/go-http-kit/httpkit"
 	"github.com/shouni/go-notifier/pkg/slack"
 
-	"ap-manga-web/internal/domain"
+	"github.com/shouni/ap-manga-web/internal/domain"
 )
 
 const (
@@ -38,7 +38,7 @@ func NewSlackAdapter(httpClient httpkit.Requester, webhookURL string) (*SlackAda
 
 	client, err := slack.NewClient(httpClient, webhookURL)
 	if err != nil {
-		return nil, fmt.Errorf("Slackクライアントの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("slackクライアントの初期化に失敗しました: %w", err)
 	}
 
 	return &SlackAdapter{
@@ -56,9 +56,10 @@ func (s *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string,
 
 	// カテゴリに応じた絵文字の出し分けをすると可愛いのだ！
 	icon := "🎨"
-	if req.OutputCategory == "design-sheet" {
+	switch req.OutputCategory {
+	case "design-sheet":
 		icon = "👤"
-	} else if req.OutputCategory == "script-json" {
+	case "script-json":
 		icon = "📝"
 	}
 
@@ -66,7 +67,7 @@ func (s *SlackAdapter) Notify(ctx context.Context, publicURL, storageURI string,
 	content := s.buildSlackContent(publicURL, storageURI, req)
 
 	if err := s.slackClient.SendTextWithHeader(ctx, title, content); err != nil {
-		return fmt.Errorf("Slackへの投稿に失敗しました: %w", err)
+		return fmt.Errorf("slackへの投稿に失敗しました: %w", err)
 	}
 
 	slog.Info("Slack に完了通知を送信しました。", "public_url", publicURL)
@@ -98,7 +99,7 @@ func (s *SlackAdapter) NotifyError(ctx context.Context, errDetail error, req dom
 	content := sb.String()
 
 	if err := s.slackClient.SendTextWithHeader(ctx, title, content); err != nil {
-		return fmt.Errorf("Slackへのエラー通知に失敗しました: %w", err)
+		return fmt.Errorf("slackへのエラー通知に失敗しました: %w", err)
 	}
 
 	slog.Info("Slack にエラー通知を送信しました。", "error", errDetail)
@@ -118,18 +119,18 @@ func (s *SlackAdapter) buildSlackContent(publicURL, storageURI string, req domai
 
 	// 基本メッセージの構築
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("**作品タイトル:** `%s`\n", req.TargetTitle))
-	sb.WriteString(fmt.Sprintf("**実行モード:** `%s`\n", req.ExecutionMode))
-	sb.WriteString(fmt.Sprintf("**ソース:** %s\n\n", req.SourceURL))
+	fmt.Fprintf(&sb, "**作品タイトル:** `%s`\n", req.TargetTitle)
+	fmt.Fprintf(&sb, "**実行モード:** `%s`\n", req.ExecutionMode)
+	fmt.Fprintf(&sb, "**ソース:** %s\n\n", req.SourceURL)
 
 	// プレビューリンク（publicURLがある場合のみ）
 	if publicURL != "" && publicURL != "N/A" {
-		sb.WriteString(fmt.Sprintf("🌐 **詳細(ブラウザ):** <%s|ここから確認するのだ！>\n", publicURL))
+		fmt.Fprintf(&sb, "🌐 **詳細(ブラウザ):** <%s|ここから確認するのだ！>\n", publicURL)
 	}
 
 	// 管理用リンク
-	sb.WriteString(fmt.Sprintf("📂 **管理者(Console):** <%s|GCSで直接見るのだ！>\n", consoleURL))
-	sb.WriteString(fmt.Sprintf("📍 **保存場所(URI):** `%s`\n\n", storageURI))
+	fmt.Fprintf(&sb, "📂 **管理者(Console):** <%s|GCSで直接見るのだ！>\n", consoleURL)
+	fmt.Fprintf(&sb, "📍 **保存場所(URI):** `%s`\n\n", storageURI)
 
 	// 集成画像についての案内（Phase 4 がある generate モードのみ）
 	if strings.Contains(req.ExecutionMode, "generate") {

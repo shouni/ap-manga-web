@@ -1,3 +1,4 @@
+// Package prompts は、go-prompt-kit を利用した漫画生成向けプロンプトの構築を提供します。
 package prompts
 
 import (

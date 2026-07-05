@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"ap-manga-web/internal/domain"
+	"github.com/shouni/ap-manga-web/internal/domain"
 )
 
 var validTargetPanels = regexp.MustCompile(`^[0-9, ]*$`)

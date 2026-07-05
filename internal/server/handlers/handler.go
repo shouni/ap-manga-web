@@ -7,14 +7,16 @@ import (
 
 	"github.com/shouni/gcp-kit/tasks"
 
-	"ap-manga-web/assets"
-	"ap-manga-web/internal/app"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
+	"github.com/shouni/ap-manga-web/assets"
+	"github.com/shouni/ap-manga-web/internal/app"
+	"github.com/shouni/ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/domain"
 )
 
 const titleSuffix = " - AP Manga Web"
 
+// Handler は、Web UI（フォーム表示・生成タスク投入・プレビュー閲覧等）のHTTPハンドラーが
+// 共有する依存関係を保持します。
 type Handler struct {
 	cfg           *config.Config
 	templateCache map[string]*template.Template

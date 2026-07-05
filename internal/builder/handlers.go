@@ -7,10 +7,10 @@ import (
 	"github.com/shouni/gcp-kit/auth"
 	"github.com/shouni/gcp-kit/worker"
 
-	"ap-manga-web/internal/app"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
-	"ap-manga-web/internal/server/handlers"
+	"github.com/shouni/ap-manga-web/internal/app"
+	"github.com/shouni/ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/domain"
+	"github.com/shouni/ap-manga-web/internal/server/handlers"
 )
 
 const defaultSessionName = "ap-manga-session"
