@@ -1,3 +1,4 @@
+// ap-manga-web は、AIによる漫画生成ワークフローを提供するWebアプリケーションです。
 package main
 
 import (
@@ -7,33 +8,42 @@ import (
 	"os/signal"
 	"syscall"
 
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/server"
+	"github.com/shouni/ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/server"
 )
 
 func main() {
-	// 1. ロガーの設定（構造化ログの復元）
+	// ロガーの設定（構造化ログの復元）
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 
-	// 2. シグナルに反応するコンテキストの作成
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+}
+
+// run はアプリケーションの初期化とサーバー起動を行います。defer によるクリーンアップが
+// os.Exit で無視されないよう、終了コードの決定は main 側に委ねます。
+func run() error {
+	// シグナルに反応するコンテキストの作成
 	// これにより、SIGINT/SIGTERM受信時に ctx.Done() が閉じる
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// 3. 設定のロードとバリデーション
+	// 設定のロードとバリデーション
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		slog.Error("Config loading failed", "error", err)
-		os.Exit(1)
+		return err
 	}
 	if err := cfg.ValidateEssentialConfig(); err != nil {
 		slog.Error("Config validation failed", "error", err)
-		os.Exit(1)
+		return err
 	}
 
-	// 4. サーバーの実行
+	// サーバーの実行
 	if err := server.Run(ctx, cfg); err != nil {
 		slog.Error("Application failed", "error", err)
-		os.Exit(1)
+		return err
 	}
+	return nil
 }

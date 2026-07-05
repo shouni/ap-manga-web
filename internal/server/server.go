@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"ap-manga-web/internal/builder"
-	"ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/builder"
+	"github.com/shouni/ap-manga-web/internal/config"
 )
 
 // デフォルトのシャットダウン猶予時間

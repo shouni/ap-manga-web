@@ -1,4 +1,4 @@
-module ap-manga-web
+module github.com/shouni/ap-manga-web
 
 go 1.26
 

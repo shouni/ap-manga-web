@@ -1,9 +1,9 @@
 package builder
 
 import (
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/domain"
-	"ap-manga-web/internal/pipeline"
+	"github.com/shouni/ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/domain"
+	"github.com/shouni/ap-manga-web/internal/pipeline"
 )
 
 // buildPipeline は、提供された設定と各コンポーネントを使用して新しいパイプラインを初期化して返します。

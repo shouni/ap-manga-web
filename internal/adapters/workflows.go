@@ -13,10 +13,10 @@ import (
 	"github.com/shouni/go-remote-io/remoteio"
 	"github.com/shouni/go-web-reader/pkg/reader"
 
-	"ap-manga-web/assets"
-	"ap-manga-web/internal/app"
-	"ap-manga-web/internal/config"
-	"ap-manga-web/internal/prompts"
+	"github.com/shouni/ap-manga-web/assets"
+	"github.com/shouni/ap-manga-web/internal/app"
+	"github.com/shouni/ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/prompts"
 )
 
 // WorkflowsAdapter は、Workflows インターフェイスをラップするアダプタ構造体です。
@@ -33,7 +33,7 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 	}
 
 	contentReader, err := reader.New(
-		reader.WithGCSFactory(func(ctx context.Context) (remoteio.IOFactory, error) {
+		reader.WithGCSFactory(func(_ context.Context) (remoteio.IOFactory, error) {
 			return rio.Factory, nil
 		}),
 	)

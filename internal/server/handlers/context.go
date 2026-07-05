@@ -1,3 +1,4 @@
+// Package handlers は、Web UI（フォーム表示・生成タスク投入・プレビュー閲覧等）のHTTPハンドラーを提供します。
 package handlers
 
 import "context"

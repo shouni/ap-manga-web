@@ -1,3 +1,4 @@
+// Package adapters は、Gemini/Slack クライアントの初期化と外部サービス連携を提供します。
 package adapters
 
 import (
@@ -7,7 +8,7 @@ import (
 
 	"github.com/shouni/go-gemini-client/gemini"
 
-	"ap-manga-web/internal/config"
+	"github.com/shouni/ap-manga-web/internal/config"
 )
 
 const (
@@ -32,7 +33,7 @@ func NewGeminiAIAdapter(ctx context.Context, cfg *config.Config) (*gemini.Client
 
 	aiClient, err := gemini.NewClient(ctx, clientConfig)
 	if err != nil {
-		return nil, fmt.Errorf("Gemini API クライアントの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("gemini API クライアントの初期化に失敗しました: %w", err)
 	}
 
 	return aiClient, nil
@@ -52,7 +53,7 @@ func NewVertexAIAdapter(ctx context.Context, cfg *config.Config) (*gemini.Client
 
 	aiClient, err := gemini.NewClient(ctx, clientConfig)
 	if err != nil {
-		return nil, fmt.Errorf("Vertex AI クライアントの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("vertex AI クライアントの初期化に失敗しました: %w", err)
 	}
 
 	return aiClient, nil
