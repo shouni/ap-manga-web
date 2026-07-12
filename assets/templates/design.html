@@ -37,6 +37,35 @@
                         </div>
                     </div>
 
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">アスペクト比</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-aspect-ratio"></i></span>
+                            <select name="aspect_ratio" class="form-select form-select-lg">
+                                <option value="16:9" selected>16:9（既定・ターンアラウンドシート向け）</option>
+                                <option value="9:16">9:16</option>
+                                <option value="1:1">1:1</option>
+                            </select>
+                        </div>
+                        <div class="form-text mt-2 text-muted">
+                            この画像を参照アンカーとして使う生成先（MVキーフレーム、カバーアート等）と同じアスペクト比を選ぶと、色・小物配置・髪型などの再現性が上がります。
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">レイアウト</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-grid-3x3-gap"></i></span>
+                            <select name="design_layout" class="form-select form-select-lg">
+                                <option value="" selected>3面図（前・横・後、既定）</option>
+                                <option value="single">単一ポーズ（正面向き・全身）</option>
+                            </select>
+                        </div>
+                        <div class="form-text mt-2 text-muted">
+                            単一ポーズは、16:9以外のアスペクト比で参照アンカーを作る際に、3面図の混在ポーズによるブレを避けたい場合向けです。
+                        </div>
+                    </div>
+
                     <div class="alert alert-light border-start border-4 border-info mt-4 py-3 shadow-sm">
                         <div class="fw-bold mb-1 text-info small">
                             <i class="bi bi-lightbulb-fill"></i> 運用アドバイス:

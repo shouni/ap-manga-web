@@ -4,17 +4,17 @@ go 1.26
 
 require (
 	github.com/caarlos0/env/v11 v11.4.1
-	github.com/go-chi/chi/v5 v5.3.0
+	github.com/go-chi/chi/v5 v5.3.1
 	github.com/shouni/gcp-kit v1.3.0
-	github.com/shouni/go-character-kit v1.0.2
-	github.com/shouni/go-gemini-client v1.8.0
+	github.com/shouni/go-character-kit v1.0.7
+	github.com/shouni/go-gemini-client v1.9.1
 	github.com/shouni/go-http-kit v1.6.0
-	github.com/shouni/go-manga-kit v1.11.0
+	github.com/shouni/go-manga-kit v1.12.0
 	github.com/shouni/go-notifier v1.3.0
 	github.com/shouni/go-prompt-kit v1.1.0
 	github.com/shouni/go-remote-io v1.6.0
 	github.com/shouni/go-utils v1.1.0
-	github.com/shouni/go-web-reader v1.1.0
+	github.com/shouni/go-web-reader v1.1.1
 	github.com/shouni/netarmor v1.1.0
 )
 
@@ -72,7 +72,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.4.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/shouni/gemini-image-kit v1.8.0 // indirect
+	github.com/shouni/gemini-image-kit v1.9.1 // indirect
 	github.com/shouni/go-web-exact/v2 v2.4.0 // indirect
 	github.com/slack-go/slack v0.26.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
@@ -89,12 +89,12 @@ require (
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/api v0.287.0 // indirect
-	google.golang.org/genai v1.62.0 // indirect
+	google.golang.org/genai v1.63.0 // indirect
 	google.golang.org/genproto v0.0.0-20260519071638-aa98bba5eb94 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260615183401-62b3387ff324 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260622175928-b703f567277d // indirect
