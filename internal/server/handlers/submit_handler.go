@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/shouni/ap-manga-web/internal/domain"
 )
@@ -34,15 +35,23 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// input_text は Design モードで <select multiple> として送信される場合があり、その場合
+	// ブラウザは同名の input_text を複数個送る（FormValue は先頭の1件しか拾えない）ため、
+	// r.Form の全件をカンマ区切りに結合する。他モードの単一テキスト入力ではこれは単一要素の
+	// スライスになるため、常にこの結合ロジックで問題ない。
+	inputText := strings.Join(r.Form["input_text"], ",")
+
 	payload := domain.GenerateTaskPayload{
 		Command:      r.FormValue("command"),
 		ScriptURL:    r.FormValue("script_url"),
-		InputText:    r.FormValue("input_text"),
+		InputText:    inputText,
 		Mode:         r.FormValue("mode"),
 		Seed:         seed,
 		TargetPanels: targetPanels,
 		AspectRatio:  r.FormValue("aspect_ratio"),
 		DesignLayout: r.FormValue("design_layout"),
+		ReferenceURL: r.FormValue("reference_url"),
+		VisualCues:   r.FormValue("visual_cues"),
 	}
 
 	if payload.Command == "" {

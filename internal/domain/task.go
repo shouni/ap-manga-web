@@ -21,4 +21,12 @@ type GenerateTaskPayload struct {
 	// runner.DesignLayoutSingleView（"single"）を指定すると、他の生成物のアスペクト比別
 	// 参照アンカー向けの単一ポーズレイアウトになります。空文字なら従来通りの3面図です。
 	DesignLayout string `json:"design_layout"`
+	// ReferenceURL は、Designモードでキャラクターの参照画像URLをその場限り上書きするための
+	// 値です（characters.json 自体は変更しません）。空文字ならキャラクター定義の値を使います。
+	// 複数キャラクター指定時（InputTextがカンマ区切りで複数）は無視されます。
+	ReferenceURL string `json:"reference_url"`
+	// VisualCues は、Designモードでキャラクターのvisual_cuesをその場限り上書きするための
+	// 値です（1行1cue、改行区切り）。空文字ならキャラクター定義の値を使います。
+	// 複数キャラクター指定時（InputTextがカンマ区切りで複数）は無視されます。
+	VisualCues string `json:"visual_cues"`
 }

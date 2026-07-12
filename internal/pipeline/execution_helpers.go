@@ -77,3 +77,20 @@ func parseCSV(input string) []string {
 	}
 	return res
 }
+
+// parseLines は改行区切りの文字列をスライスに変換します（visual_cues の入力用）。
+func parseLines(input string) []string {
+	trimmedInput := strings.TrimSpace(input)
+	if trimmedInput == "" {
+		return nil
+	}
+
+	lines := strings.Split(trimmedInput, "\n")
+	res := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if trimmed := strings.TrimSpace(line); trimmed != "" {
+			res = append(res, trimmed)
+		}
+	}
+	return res
+}

@@ -64,6 +64,10 @@ func (e *mangaExecution) runDesignStep(ctx context.Context) (string, int64, erro
 	}
 
 	outputDir := e.cfg.GetGCSObjectURL(e.cfg.BaseOutputDir)
+	override := ports.DesignOverride{
+		ReferenceURL: e.payload.ReferenceURL,
+		VisualCues:   parseLines(e.payload.VisualCues),
+	}
 
-	return e.workflows.Design(ctx, charIDs, e.payload.Seed, outputDir, e.payload.AspectRatio, e.payload.DesignLayout)
+	return e.workflows.Design(ctx, charIDs, e.payload.Seed, outputDir, e.payload.AspectRatio, e.payload.DesignLayout, override)
 }

@@ -14,14 +14,18 @@
                     <input type="hidden" name="command" value="design">
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold">キャラクターID (カンマ区切り)</label>
+                        <label class="form-label fw-bold">キャラクター</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="bi bi-fingerprint"></i></span>
-                            <input type="text" name="input_text" class="form-control form-control-lg font-monospace-input"
-                                   placeholder="zundamon, metan" required>
+                            <select id="character-select" name="input_text" class="form-select form-select-lg font-monospace-input" required>
+                                <option value="" disabled selected>キャラクターを選択してください</option>
+                                {{range .Data.Characters}}
+                                <option value="{{.ID}}">{{.ID}}（{{.Name}}）</option>
+                                {{end}}
+                            </select>
                         </div>
                         <div class="form-text mt-2 text-muted">
-                            設定資料（デザインシート）を作成するキャラクターのIDを入力してください。
+                            複数キャラクターの合成シートを作りたい場合は、Ctrl（Macは⌘）を押しながら複数選択してください。その場合、下のSeed以外の上書き欄は無視されます。
                         </div>
                     </div>
 
@@ -29,11 +33,35 @@
                         <label class="form-label fw-bold">シード値 (Seed Number)</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="bi bi-hash"></i></span>
-                            <input type="number" name="seed" class="form-control form-control-lg font-monospace-input"
+                            <input type="number" id="seed-input" name="seed" class="form-control form-control-lg font-monospace-input"
                                    value="10000">
                         </div>
                         <div class="form-text mt-2">
-                            特定の数値を指定することで、キャラクターの外見に再現性を持たせることができます。
+                            特定の数値を指定することで、キャラクターの外見に再現性を持たせることができます。選択したキャラクターの既存Seedが自動入力されます。
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">参照画像URL（reference_url）<span class="badge bg-secondary ms-2">その場限りの上書き</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-image"></i></span>
+                            <input type="text" id="reference-url-input" name="reference_url" class="form-control form-control-lg font-monospace-input"
+                                   placeholder="gs://...">
+                        </div>
+                        <div class="form-text mt-2 text-muted">
+                            選択したキャラクターの既存reference_urlが自動入力されます。編集した内容はこの生成にのみ反映され、characters.json自体は変更されません。空欄のままなら既存値のまま生成します。
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Visual Cues<span class="badge bg-secondary ms-2">その場限りの上書き</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-list-ul"></i></span>
+                            <textarea id="visual-cues-input" name="visual_cues" rows="5" class="form-control form-control-lg font-monospace-input"
+                                      placeholder="1行に1つの特徴を入力"></textarea>
+                        </div>
+                        <div class="form-text mt-2 text-muted">
+                            選択したキャラクターの既存visual_cuesが自動入力されます（1行1項目）。編集した内容はこの生成にのみ反映され、characters.json自体は変更されません。空欄のままなら既存値のまま生成します。
                         </div>
                     </div>
 
@@ -99,4 +127,43 @@
         background-color: var(--zunda-dark) !important;
     }
 </style>
+
+<script>
+(function () {
+    const CHARACTERS = {{.Data.CharactersJSON}};
+    const byID = {};
+    CHARACTERS.forEach(function (c) { byID[c.id] = c; });
+
+    const select = document.getElementById('character-select');
+    const seedInput = document.getElementById('seed-input');
+    const referenceURLInput = document.getElementById('reference-url-input');
+    const visualCuesInput = document.getElementById('visual-cues-input');
+
+    function selectedIDs() {
+        return Array.from(select.selectedOptions).map(function (o) { return o.value; }).filter(Boolean);
+    }
+
+    select.addEventListener('change', function () {
+        const ids = selectedIDs();
+        const overridable = ids.length === 1;
+        referenceURLInput.disabled = !overridable;
+        visualCuesInput.disabled = !overridable;
+
+        if (!overridable) {
+            referenceURLInput.value = '';
+            visualCuesInput.value = '';
+            if (ids.length === 0) {
+                seedInput.value = '';
+            }
+            return;
+        }
+
+        const char = byID[ids[0]];
+        if (!char) return;
+        seedInput.value = char.seed != null ? char.seed : '';
+        referenceURLInput.value = char.reference_url || '';
+        visualCuesInput.value = (char.visual_cues || []).join('\n');
+    });
+})();
+</script>
 {{end}}
