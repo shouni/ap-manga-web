@@ -4,6 +4,7 @@ package assets
 import (
 	"embed"
 
+	characterassets "github.com/shouni/go-character-kit/assets"
 	"github.com/shouni/go-character-kit/character"
 	"github.com/shouni/go-prompt-kit/resource"
 )
@@ -18,10 +19,6 @@ var (
 	//go:embed prompts/prompt_*.md
 	promptFiles embed.FS
 
-	// characters は、漫画に登場するキャラクターの基本定義（名前、外見、Seed値など）を記述した JSON データです。
-	//go:embed characters/characters.json
-	characters []byte
-
 	// Templates は、すべてのHTMLテンプレートを保持します。
 	//go:embed templates/*.html
 	Templates embed.FS
@@ -32,7 +29,10 @@ func LoadPrompts() (map[string]string, error) {
 	return resource.Load(promptFiles, promptDir, promptPrefix)
 }
 
-// LoadCharacters は埋め込まれたキャラクター定義ファイルを読み込みます。
+// LoadCharacters は go-character-kit の共有キャラクター定義を読み込みます。
+// ap-mv・ap-comp と同じ正規データソースを使うことで、キャラクターの外見・参照画像URLの
+// 定義がアプリ間で食い違わないようにしています（このパッケージが独自に characters.json
+// を埋め込んで管理していた過去の実装は、定義が徐々に乖離する原因になっていました）。
 func LoadCharacters() (*character.Characters, error) {
-	return character.ParseCharacters(characters)
+	return characterassets.LoadCharacters()
 }

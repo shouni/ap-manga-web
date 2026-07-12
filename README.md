@@ -62,10 +62,10 @@
 ```text
 ap-manga-web/
 ├── assets/            # 【資産】静的リソース（Go バイナリに embed で埋め込み）
-│   ├── characters/    #   - キャラクター定義 (characters.json)
 │   ├── prompts/       #   - AI 指示文テンプレート (prompt_dialogue.md, prompt_duet.md)
 │   ├── templates/     #   - Web 表示用 HTML (layout.html, manga_view.html 等)
-│   └── assets.go      #   - embed.FS 定義（Prompts / Templates / Characters）
+│   └── assets.go      #   - embed.FS 定義（Prompts / Templates）。キャラクター定義は
+│                       #     go-character-kit の共有データ（ap-mv・ap-comp と共通）を参照
 ├── internal/
 │   ├── adapters/      # 【接続】外部（Gemini API, Slack）との通信を担う実装
 │   ├── app/           # 【基盤】Container による依存保持とライフサイクル管理
@@ -73,7 +73,7 @@ ap-manga-web/
 │   ├── config/        # 【設定】環境変数のロード、定数、バリデーション
 │   ├── domain/        # 【中心】ドメインモデル、ポート（インターフェース）定義
 │   ├── pipeline/      # 【指揮】Workflow を組み合わせた漫画生成フローの制御
-│   ├── prompts/       # 【生成】assets の md と characters.json を用いた AI 指示文の動的構築ロジック
+│   ├── prompts/       # 【生成】assets の md と go-character-kit のキャラクター定義を用いた AI 指示文の動的構築ロジック
 │   └── server/        # 【玄関】ルーティング、各種ハンドラー（submit, view, preview）
 └── main.go            # 【起点】アプリのブートストラップ（初期化・起動）
 
