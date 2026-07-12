@@ -65,5 +65,5 @@ func (e *mangaExecution) runDesignStep(ctx context.Context) (string, int64, erro
 
 	outputDir := e.cfg.GetGCSObjectURL(e.cfg.BaseOutputDir)
 
-	return e.workflows.Design(ctx, charIDs, e.payload.Seed, outputDir)
+	return e.workflows.Design(ctx, charIDs, e.payload.Seed, outputDir, e.payload.AspectRatio, e.payload.DesignLayout)
 }

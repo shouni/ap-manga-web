@@ -70,8 +70,8 @@ func NewWorkflowsAdapter(cfg *config.Config, httpClient httpkit.HTTPClient, rio 
 }
 
 // Design は指定されたキャラクターIDのキャラクターを生成します。
-func (w *WorkflowsAdapter) Design(ctx context.Context, charIDs []string, seed int64, outputDir string) (string, int64, error) {
-	return w.workflows.Design.Run(ctx, charIDs, seed, outputDir)
+func (w *WorkflowsAdapter) Design(ctx context.Context, charIDs []string, seed int64, outputDir, aspectRatio, layoutKind string) (string, int64, error) {
+	return w.workflows.Design.Run(ctx, charIDs, seed, outputDir, aspectRatio, layoutKind)
 }
 
 // Script は指定されたURLから台本を作成し、JSON を保存します。

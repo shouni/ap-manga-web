@@ -14,8 +14,9 @@ type Pipeline interface {
 
 // Workflows は、漫画の生成、公開などのワークフローを実行するためのインターフェースです。
 type Workflows interface {
-	// Design は指定されたキャラクターIDのキャラクターを生成します。
-	Design(ctx context.Context, charIDs []string, seed int64, outputDir string) (string, int64, error)
+	// Design は指定されたキャラクターIDのキャラクターを生成します。aspectRatio・layoutKind は
+	// go-manga-kit/runner.MangaDesignRunner.Run のドキュメントを参照してください。
+	Design(ctx context.Context, charIDs []string, seed int64, outputDir, aspectRatio, layoutKind string) (string, int64, error)
 	// Script は指定されたURLから台本を作成し、指定先へ保存します。
 	Script(ctx context.Context, sourceURL, mode, outputPath string) (*ports.MangaResponse, error)
 	// Panel は指定された漫画のページを保存します。

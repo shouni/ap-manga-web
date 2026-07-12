@@ -14,4 +14,11 @@ type GenerateTaskPayload struct {
 	TargetPanels string `json:"target_panels"`
 	// Seed は乱数生成のためのシード値です。
 	Seed int64 `json:"seed"`
+	// AspectRatio はデザインシート生成のアスペクト比です（"1:1"/"9:16"/"16:9"、Designモードで使用）。
+	// 空文字の場合は go-manga-kit 側の既定値（16:9）にフォールバックします。
+	AspectRatio string `json:"aspect_ratio"`
+	// DesignLayout はデザインシートのレイアウト種別です（Designモードで使用）。
+	// runner.DesignLayoutSingleView（"single"）を指定すると、他の生成物のアスペクト比別
+	// 参照アンカー向けの単一ポーズレイアウトになります。空文字なら従来通りの3面図です。
+	DesignLayout string `json:"design_layout"`
 }

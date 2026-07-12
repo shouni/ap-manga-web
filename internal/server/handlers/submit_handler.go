@@ -41,6 +41,8 @@ func (h *Handler) HandleSubmit(w http.ResponseWriter, r *http.Request) {
 		Mode:         r.FormValue("mode"),
 		Seed:         seed,
 		TargetPanels: targetPanels,
+		AspectRatio:  r.FormValue("aspect_ratio"),
+		DesignLayout: r.FormValue("design_layout"),
 	}
 
 	if payload.Command == "" {
