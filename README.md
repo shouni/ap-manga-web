@@ -181,7 +181,7 @@ sequenceDiagram
 
 | ルート | 用途 |
 | --- | --- |
-| `GET /healthz` | ヘルスチェック |
+| `GET /health` | ヘルスチェック |
 | `GET /auth/login` / `GET /auth/callback` | Google OAuth 2.0 ログイン |
 | `GET /` | Generate 画面 |
 | `GET /design` | Design 画面 |
